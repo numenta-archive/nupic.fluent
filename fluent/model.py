@@ -29,10 +29,11 @@ class Model():
 
   def __init__(self, _params=None):
     self.model = ModelFactory.create(model_params.MODEL_PARAMS)
+    self.model.enableInference({'predictedField': 'word'})
 
 
   def feedInput(self, inpt):
-    modelInput = {'word': inpt.toNumpyArray()}
+    modelInput = {'word': inpt.toArray()}
     result = self.model.run(modelInput)
     print(result)
     return result

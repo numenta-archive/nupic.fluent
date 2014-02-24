@@ -19,8 +19,6 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import numpy
-
 from fluent.cept import Cept
 
 
@@ -37,5 +35,5 @@ class Input():
     self.sdr = self.cept.getSdr(term)
 
 
-  def toNumpyArray(self):
-    return numpy.fromstring(" ".join(self.sdr), dtype=int, sep=" ")
+  def toArray(self):
+    return [int(i) for i in self.sdr]

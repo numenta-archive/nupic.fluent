@@ -44,7 +44,8 @@ MODEL_PARAMS = {
     # Model parameter dictionary.
     'modelParams': {
         # The type of inference that this model will perform
-        'inferenceType': 'TemporalMultiStep',
+        # NOTE: Inference disabled
+        # 'inferenceType': 'TemporalMultiStep',
 
         'sensorParams': {
             # Sensor diagnostic output verbosity control;
@@ -60,14 +61,7 @@ MODEL_PARAMS = {
             #
             # (value generated from DS_ENCODER_SCHEMA)
             'encoders': {
-                '_classifierInput': {
-                    'fieldname': 'word',
-                    'classifierOnly': True,
-                    'type': 'PassThruEncoder',
-                    'w': 586,
-                    'n': 16384
-                },
-                'letter': {
+                'word': {
                        'fieldname': u'word',
                        'w': 586,
                        'n': 16384,
@@ -245,5 +239,5 @@ MODEL_PARAMS = {
         },
 
         'trainSPNetOnlyIfRequested': False,
-    },
+    }
 }
