@@ -42,5 +42,9 @@ class Cept():
     self.client = pycept.Cept(self.appId, self.appKey, cache_dir=CACHE_DIR)
 
 
-  def getSdr(self, term):
-    return self.client.getSdr(term)
+  def getBitmap(self, string):
+    return self.client.getBitmap(string)
+
+
+  def getClosestStrings(self, bitmap, width=128, height=128):
+    return self.client.bitmapToTerms(width, height, bitmap)

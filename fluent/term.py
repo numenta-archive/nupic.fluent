@@ -23,17 +23,32 @@ from fluent.cept import Cept
 
 
 
-class Input():
+class Term():
 
 
   def __init__(self):
-    self.sdr = None
+    self.bitmap = None
     self.cept = Cept()
 
 
-  def createFromTerm(self, term):
-    self.sdr = self.cept.getSdr(term)
+  def createFromString(self, string):
+    self.bitmap = self.cept.getBitmap(string)['positions']
+    return self
+
+
+  def createFromBitmap(self, bitmap):
+    self.bitmap = bitmap
+    return self
 
 
   def toArray(self):
-    return [int(i) for i in self.sdr]
+    array = [0] * 128 * 128
+
+    for i in self.bitmap:
+      array[i] = 1
+
+    return array
+
+
+  def closestString(self):
+    return self.cept.getClosestStrings(self.bitmap)[0]['term']

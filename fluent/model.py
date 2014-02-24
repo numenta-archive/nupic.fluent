@@ -24,6 +24,8 @@ import numpy
 # This is the class corresponding to the C++ optimized Temporal Pooler
 from nupic.research.TP10X2 import TP10X2 as TP
 
+from fluent.term import Term
+
 
 
 class Model():
@@ -49,14 +51,16 @@ class Model():
                 pamLength=pamLength)
 
 
-  def feedInput(self, inpt):
+  def feedTerm(self, term):
     tp = self.tp
-    narr = numpy.array(inpt.toArray(), dtype="uint32")
-    tp.compute(narr, enableLearn = True, computeInfOutput = True)
+    array = numpy.array(term.toArray(), dtype="uint32")
+    tp.compute(array, enableLearn = True, computeInfOutput = True)
 
     predictedCells = tp.getPredictedState()
     predictedColumns = predictedCells.max(axis=1)
-    return predictedColumns.nonzero()[0].tolist()
+    
+    predictedBitmap = predictedColumns.nonzero()[0].tolist()
+    return Term().createFromBitmap(predictedBitmap)
   
 
   def resetSequence(self):
