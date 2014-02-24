@@ -19,21 +19,45 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-from nupic.frameworks.opf.modelfactory import ModelFactory
-from fluent import model_params
+import numpy
+
+# This is the class corresponding to the C++ optimized Temporal Pooler
+from nupic.research.TP10X2 import TP10X2 as TP
 
 
 
 class Model():
 
 
-  def __init__(self, _params=None):
-    self.model = ModelFactory.create(model_params.MODEL_PARAMS)
-    self.model.enableInference({'predictedField': 'word'})
+  def __init__(self,
+               numberOfCols=16384, cellsPerColumn=8,
+                initialPerm=0.5, connectedPerm=0.5,
+                minThreshold=164, newSynapseCount=164,
+                permanenceInc=0.1, permanenceDec=0.0,
+                activationThreshold=164,
+                pamLength=10):
+
+    self.tp = TP(numberOfCols=numberOfCols, cellsPerColumn=cellsPerColumn,
+                initialPerm=initialPerm, connectedPerm=connectedPerm,
+                minThreshold=minThreshold, newSynapseCount=newSynapseCount,
+                permanenceInc=permanenceInc, permanenceDec=permanenceDec,
+                
+                # 1/2 of the on bits = (16384 * .02) / 2
+                activationThreshold=activationThreshold,
+                globalDecay=0, burnIn=1,
+                checkSynapseConsistency=False,
+                pamLength=pamLength)
 
 
   def feedInput(self, inpt):
-    modelInput = {'word': inpt.toArray()}
-    result = self.model.run(modelInput)
-    print(result)
-    return result
+    tp = self.tp
+    narr = numpy.array(inpt.toArray(), dtype="uint32")
+    tp.compute(narr, enableLearn = True, computeInfOutput = True)
+
+    predictedCells = tp.getPredictedState()
+    predictedColumns = predictedCells.max(axis=1)
+    return predictedColumns.nonzero()[0].tolist()
+  
+
+  def resetSequence(self):
+    self.tp.reset()
