@@ -52,6 +52,7 @@ class Model():
 
 
   def feedTerm(self, term):
+    """ Feed a Term to model, returning next predicted Term """
     tp = self.tp
     array = numpy.array(term.toArray(), dtype="uint32")
     tp.compute(array, enableLearn = True, computeInfOutput = True)
