@@ -67,6 +67,7 @@ Here is an example (after some training):
              4 |          6 |                   to |                 keep
              4 |          7 |                 keep |                 them
              4 |          8 |                 them |                 warm
+             ...
 
 ## Demos
 
@@ -74,4 +75,58 @@ Here is an example (after some training):
 
 To run the [Fox demo](http://numenta.org/blog/2013/11/06/2013-fall-hackathon-outcome.html#fox):
 
-    ./tools/read.py data/associations/foxeat.txt -r
+    => ./tools/read.py data/associations/foxeat.txt -r
+
+    Sequence # |     Term # |         Current Term |       Predicted Term
+    ----------------------------------------------------------------------
+             1 |          1 |                 frog |
+             1 |          2 |                  eat |
+             1 |          3 |                flies |
+             2 |          1 |                  cow |
+             2 |          2 |                  eat |                flies
+             2 |          3 |                grain |
+             3 |          1 |             elephant |
+             3 |          2 |                  eat |                grain
+             3 |          3 |               leaves |
+             4 |          1 |                 goat |
+             4 |          2 |                  eat |                grain
+             4 |          3 |                grass |
+             5 |          1 |                 wolf |
+             5 |          2 |                  eat |                grass
+             5 |          3 |               rabbit |
+             6 |          1 |                  cat |
+             6 |          2 |                likes |
+             6 |          3 |                 ball |
+             7 |          1 |             elephant |                  eat
+             7 |          2 |                likes |
+             7 |          3 |                water |
+             8 |          1 |                sheep |
+             8 |          2 |                  eat |                grass
+             8 |          3 |                grass |
+             9 |          1 |                  cat |                likes
+             9 |          2 |                  eat |
+             9 |          3 |               salmon |
+            10 |          1 |                 wolf |                  eat
+            10 |          2 |                  eat |               rabbit
+            10 |          3 |                 mice |
+            11 |          1 |                 lion |
+            11 |          2 |                  eat |                grass
+            11 |          3 |                  cow |                  eat
+            12 |          1 |                  dog |
+            12 |          2 |                likes |                water
+            12 |          3 |                sleep |
+            13 |          1 |               coyote |
+            13 |          2 |                  eat |                grass
+            13 |          3 |                 mice |
+            14 |          1 |               coyote |                  eat
+            14 |          2 |                  eat |                 mice
+            14 |          3 |               rodent |
+            15 |          1 |               coyote |                  eat
+            15 |          2 |                  eat |               rodent
+            15 |          3 |               rabbit |
+            16 |          1 |                 wolf |                  eat
+            16 |          2 |                  eat |                 mice
+            16 |          3 |             squirrel |
+            17 |          1 |                  cow |                  eat
+            17 |          2 |                  eat |                grain
+            ...
