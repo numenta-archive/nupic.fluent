@@ -20,6 +20,7 @@ A platform for building language / NLP-based demos using [NuPIC](https://github.
       model.feedTerm(term1)
       model.feedTerm(term2)
       model.feedTerm(term3)
+      model.resetSequence()
 
     # Test
     term4 = Term().createFromString("wolf")
