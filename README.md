@@ -40,7 +40,7 @@ Requirements:
 
 ## Tool: read
 
-The `read` tool is useful for reading a text document word-by-word, predicting each next word as it goes. You can find it at `tools/read.py`.
+The `read` tool can read a text document word-by-word, predicting each next word as it goes. You can find it at `tools/read.py`.
 
 # Demos
 
