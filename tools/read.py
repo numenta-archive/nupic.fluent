@@ -27,15 +27,16 @@ from fluent.term import Term
 
 
 
-def readFile(filename):
+def readFile(filename, model):
+  if model.canCheckpoint():
+    model.load()
+    
   exclusions = ('!', '.', ':', ',', '"', '\'', '\n')
 
   with open(filename) as f:
     for line in f:
       line = "".join([c for c in line if c not in exclusions])
       strings = line.split(" ")
-
-      model = Model()
 
       for string in strings:
         if not len(string):
@@ -46,13 +47,25 @@ def readFile(filename):
 
         print("%16s | %20s" % (string, prediction.closestString()))
 
+      if model.canCheckpoint():
+        model.save()
+
 
 
 if __name__ == '__main__':
   parser = OptionParser("%prog file [options]")
+  parser.add_option(
+      "--checkpoint",
+      dest="checkpoint",
+      help="Directory to save model to and load model from")
+
   (options, args) = parser.parse_args()
 
   if not len(args):
+    parser.print_help()
+    print
     raise(Exception("file required"))
 
-  readFile(args[0])
+  model = Model(checkpointDir=options.checkpoint)
+
+  readFile(args[0], model)

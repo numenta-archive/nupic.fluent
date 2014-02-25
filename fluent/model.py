@@ -65,6 +65,10 @@ class Model():
       self.checkpointPath = self.checkpointDir + "/model.data"
 
 
+  def canCheckpoint(self):
+    return self.checkpointDir != None
+
+
   def load(self):
     if not self.checkpointDir:
       raise(Exception("No checkpoint directory specified"))
