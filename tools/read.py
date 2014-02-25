@@ -27,7 +27,7 @@ from fluent.term import Term
 
 
 
-def readFile(filename, model):
+def readFile(filename, model, resetSequences=False):
   if model.canCheckpoint():
     model.load()
 
@@ -48,9 +48,12 @@ def readFile(filename, model):
         print("%20s ==> %20s" % (string, prediction.closestString()))
 
       print
-      
+
       if model.canCheckpoint():
         model.save()
+
+      if resetSequences:
+        model.resetSequence()
 
 
 
@@ -60,6 +63,13 @@ if __name__ == '__main__':
       "--checkpoint",
       dest="checkpoint",
       help="Directory to save model to and load model from")
+  parser.add_option(
+      "-r",
+      "--reset-sequences",
+      dest="resetSequences",
+      action="store_true",
+      default=False,
+      help="Reset the model sequence after every line")
 
   (options, args) = parser.parse_args()
 
@@ -70,4 +80,5 @@ if __name__ == '__main__':
 
   model = Model(checkpointDir=options.checkpoint)
 
-  readFile(args[0], model)
+  readFile(args[0], model,
+           resetSequences=options.resetSequences)
