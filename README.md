@@ -1,6 +1,13 @@
 # Fluent - Language with NuPIC
 
-A platform for building language / NLP-based demos using [NuPIC](https://github.com/numenta/nupic) and [CEPT](http://www.cept.at/).
+A platform for building language / NLP-based applications using [NuPIC](https://github.com/numenta/nupic) and [CEPT](http://www.cept.at/).
+
+# Installation
+
+Requirements:
+
+- [NuPIC](https://github.com/numenta/nupic)
+- [pycept](https://github.com/numenta/pycept)
 
 # Usage
 
