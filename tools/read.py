@@ -30,7 +30,7 @@ from fluent.term import Term
 def readFile(filename, model):
   if model.canCheckpoint():
     model.load()
-    
+
   exclusions = ('!', '.', ':', ',', '"', '\'', '\n')
 
   with open(filename) as f:
@@ -45,8 +45,10 @@ def readFile(filename, model):
         term = Term().createFromString(string)
         prediction = model.feedTerm(term)
 
-        print("%16s | %20s" % (string, prediction.closestString()))
+        print("%20s ==> %20s" % (string, prediction.closestString()))
 
+      print
+      
       if model.canCheckpoint():
         model.save()
 
