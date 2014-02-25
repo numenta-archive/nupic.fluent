@@ -37,3 +37,15 @@ Requirements:
 
     print prediction.closestString()
     # => "mouse"
+
+## Tool: read
+
+The `read` tool is useful for reading a text document word-by-word, predicting each next word as it goes. You can find it at `tools/read.py`.
+
+# Demos
+
+## Fox demo
+
+To run the [Fox demo](http://numenta.org/blog/2013/11/06/2013-fall-hackathon-outcome.html#fox):
+
+    ./tools/read.py data/associations/foxeat.txt -r
