@@ -28,7 +28,7 @@ from fluent.term import Term
 
 
 def readFile(filename, model, resetSequences=False):
-  if model.canCheckpoint():
+  if model.canCheckpoint() and model.hasCheckpoint():
     model.load()
 
   exclusions = ('!', '.', ':', ',', '"', '\'', '\n')

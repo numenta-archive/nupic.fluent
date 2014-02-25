@@ -69,11 +69,15 @@ class Model():
     return self.checkpointDir != None
 
 
+  def hasCheckpoint(self):
+    return os.path.exists(self.checkpointPath)
+
+
   def load(self):
     if not self.checkpointDir:
       raise(Exception("No checkpoint directory specified"))
 
-    if not os.path.exists(self.checkpointPath):
+    if not self.hasCheckpoint():
       raise(Exception("Could not find checkpoint file"))
       
     self.tp.loadFromFile(self.checkpointPath)
