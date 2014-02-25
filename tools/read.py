@@ -33,6 +33,14 @@ def readFile(filename, model, resetSequences=False):
 
   exclusions = ('!', '.', ':', ',', '"', '\'', '\n')
 
+  print("%10s | %10s | %20s | %20s" %
+        ("Sequence #", "Term #", "Current Term", "Predicted Term"))
+  print("-----------------------------------"
+        "-----------------------------------")
+
+  s = 1
+  t = 1
+  
   with open(filename) as f:
     for line in f:
       line = "".join([c for c in line if c not in exclusions])
@@ -45,15 +53,19 @@ def readFile(filename, model, resetSequences=False):
         term = Term().createFromString(string)
         prediction = model.feedTerm(term)
 
-        print("%20s ==> %20s" % (string, prediction.closestString()))
+        print("%10i | %10i | %20s | %20s" %
+              (s, t, string, prediction.closestString()))
 
-      print
+        t += 1
 
       if model.canCheckpoint():
         model.save()
 
       if resetSequences:
         model.resetSequence()
+
+      s += 1
+      t = 1
 
 
 
