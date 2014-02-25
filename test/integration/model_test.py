@@ -20,22 +20,39 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import os
 import unittest
 
 from fluent.model import Model
 from fluent.term import Term
 
 
+MODEL_CHECKPOINT_DIR = "/tmp/fluent-test"
+MODEL_CHECKPOINT_PATH = MODEL_CHECKPOINT_DIR + "/model.data"
+
+
 
 class TestModel(unittest.TestCase):
 
 
+  def tearDown(self):
+    if os.path.exists(MODEL_CHECKPOINT_PATH):
+      os.remove(MODEL_CHECKPOINT_PATH)
+      
+    if os.path.exists(MODEL_CHECKPOINT_DIR):
+      os.rmdir(MODEL_CHECKPOINT_DIR)
+
+
   def test_training(self):
+    term0 = Term().createFromString("the")
     term1 = Term().createFromString("fox")
     term2 = Term().createFromString("eats")
     term3 = Term().createFromString("rodent")
 
     model = Model()
+
+    prediction = model.feedTerm(term0)
+    self.assertFalse(len(prediction.bitmap))
 
     for _ in range(5):
       model.feedTerm(term1)
@@ -47,6 +64,24 @@ class TestModel(unittest.TestCase):
     prediction = model.feedTerm(term2)
 
     self.assertEqual(prediction.closestString(), "rodent")
+
+
+  def test_checkpoint(self):
+    model1 = Model(checkpointDir=MODEL_CHECKPOINT_DIR)
+    term = Term().createFromString("fox")
+
+    for _ in range(5):
+      prediction = model1.feedTerm(term)
+
+    self.assertTrue(len(prediction.bitmap))
+    model1.save()
+
+    model2 = Model(checkpointDir=MODEL_CHECKPOINT_DIR)
+    model2.load()
+
+    prediction = model2.feedTerm(term)
+
+    self.assertTrue(len(prediction.bitmap))
 
 
 

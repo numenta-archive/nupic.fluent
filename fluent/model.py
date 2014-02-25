@@ -19,8 +19,9 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import numpy
+import os
 
+import numpy
 # This is the class corresponding to the C++ optimized Temporal Pooler
 from nupic.research.TP10X2 import TP10X2 as TP
 
@@ -37,7 +38,8 @@ class Model():
                 minThreshold=164, newSynapseCount=164,
                 permanenceInc=0.1, permanenceDec=0.0,
                 activationThreshold=164,
-                pamLength=10):
+                pamLength=10,
+                checkpointDir=None):
 
     self.tp = TP(numberOfCols=numberOfCols, cellsPerColumn=cellsPerColumn,
                 initialPerm=initialPerm, connectedPerm=connectedPerm,
@@ -49,6 +51,35 @@ class Model():
                 globalDecay=0, burnIn=1,
                 checkSynapseConsistency=False,
                 pamLength=pamLength)
+
+    self.checkpointDir = checkpointDir
+    self.checkpointPath = None
+    self._initCheckpoint()
+
+
+  def _initCheckpoint(self):
+    if self.checkpointDir:
+      if not os.path.exists(self.checkpointDir):
+        os.mkdir(self.checkpointDir)
+
+      self.checkpointPath = self.checkpointDir + "/model.data"
+
+
+  def load(self):
+    if not self.checkpointDir:
+      raise(Exception("No checkpoint directory specified"))
+
+    if not os.path.exists(self.checkpointPath):
+      raise(Exception("Could not find checkpoint file"))
+      
+    self.tp.loadFromFile(self.checkpointPath)
+
+
+  def save(self):
+    if not self.checkpointDir:
+      raise(Exception("No checkpoint directory specified"))
+
+    self.tp.saveToFile(self.checkpointPath)
 
 
   def feedTerm(self, term):
