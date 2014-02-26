@@ -60,7 +60,7 @@ class Model():
   def _initCheckpoint(self):
     if self.checkpointDir:
       if not os.path.exists(self.checkpointDir):
-        os.mkdir(self.checkpointDir)
+        os.makedirs(self.checkpointDir)
 
       self.checkpointPath = self.checkpointDir + "/model.data"
 
