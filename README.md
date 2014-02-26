@@ -9,6 +9,10 @@ Requirements:
 - [NuPIC](https://github.com/numenta/nupic)
 - [pycept](https://github.com/numenta/pycept)
 
+To install, run:
+
+    python setup.py install
+
 ## Usage
 
 ### Example
