@@ -13,6 +13,11 @@ To install, run:
 
     python setup.py install
 
+Then, set up the following environment variables with your CEPT API credentials:
+
+    export CEPT_APP_ID=app_id
+    export CEPT_APP_KEY=app_key
+
 ## Usage
 
 ### Example
