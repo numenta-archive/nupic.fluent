@@ -28,7 +28,8 @@ from fluent.term import Term
 
 
 MODEL_CHECKPOINT_DIR = "/tmp/fluent-test"
-MODEL_CHECKPOINT_PATH = MODEL_CHECKPOINT_DIR + "/model.data"
+MODEL_CHECKPOINT_PKL_PATH  = MODEL_CHECKPOINT_DIR + "/model.pkl"
+MODEL_CHECKPOINT_DATA_PATH = MODEL_CHECKPOINT_DIR + "/model.data"
 
 
 
@@ -36,9 +37,12 @@ class TestModel(unittest.TestCase):
 
 
   def tearDown(self):
-    if os.path.exists(MODEL_CHECKPOINT_PATH):
-      os.remove(MODEL_CHECKPOINT_PATH)
+    if os.path.exists(MODEL_CHECKPOINT_DATA_PATH):
+      os.remove(MODEL_CHECKPOINT_DATA_PATH)
       
+    if os.path.exists(MODEL_CHECKPOINT_PKL_PATH):
+      os.remove(MODEL_CHECKPOINT_PKL_PATH)
+
     if os.path.exists(MODEL_CHECKPOINT_DIR):
       os.rmdir(MODEL_CHECKPOINT_DIR)
 

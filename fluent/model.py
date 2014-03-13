@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 import os
+import pickle
 
 import numpy
 # This is the class corresponding to the C++ optimized Temporal Pooler
@@ -53,7 +54,8 @@ class Model():
                 pamLength=pamLength)
 
     self.checkpointDir = checkpointDir
-    self.checkpointPath = None
+    self.checkpointPklPath = None
+    self.checkpointDataPath = None
     self._initCheckpoint()
 
 
@@ -62,7 +64,8 @@ class Model():
       if not os.path.exists(self.checkpointDir):
         os.makedirs(self.checkpointDir)
 
-      self.checkpointPath = self.checkpointDir + "/model.data"
+      self.checkpointPklPath = self.checkpointDir + "/model.pkl"
+      self.checkpointDataPath = self.checkpointDir + "/model.data"
 
 
   def canCheckpoint(self):
@@ -70,7 +73,8 @@ class Model():
 
 
   def hasCheckpoint(self):
-    return os.path.exists(self.checkpointPath)
+    return (os.path.exists(self.checkpointPklPath) and
+            os.path.exists(self.checkpointDataPath))
 
 
   def load(self):
@@ -80,14 +84,20 @@ class Model():
     if not self.hasCheckpoint():
       raise(Exception("Could not find checkpoint file"))
       
-    self.tp.loadFromFile(self.checkpointPath)
+    with open(self.checkpointPklPath, 'rb') as f:
+      self.tp = pickle.load(f)
+
+    self.tp.loadFromFile(self.checkpointDataPath)
 
 
   def save(self):
     if not self.checkpointDir:
       raise(Exception("No checkpoint directory specified"))
 
-    self.tp.saveToFile(self.checkpointPath)
+    self.tp.saveToFile(self.checkpointDataPath)
+
+    with open(self.checkpointPklPath, 'wb') as f:
+      pickle.dump(self.tp, f)
 
 
   def feedTerm(self, term):
