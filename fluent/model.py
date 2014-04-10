@@ -100,11 +100,11 @@ class Model():
       pickle.dump(self.tp, f)
 
 
-  def feedTerm(self, term):
+  def feedTerm(self, term, learn=True):
     """ Feed a Term to model, returning next predicted Term """
     tp = self.tp
     array = numpy.array(term.toArray(), dtype="uint32")
-    tp.compute(array, enableLearn = True, computeInfOutput = True)
+    tp.compute(array, enableLearn = learn, computeInfOutput = True)
 
     predictedCells = tp.getPredictedState()
     predictedColumns = predictedCells.max(axis=1)
