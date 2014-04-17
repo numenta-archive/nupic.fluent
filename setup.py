@@ -27,6 +27,6 @@ setup(name='Fluent',
                    'applications using NuPIC and CEPT.'),
       author='Chetan Surpur',
       author_email='csurpur@numenta.com',
-      url='https://github.com/chetan51/nupic.fluent',
+      url='https://github.com/numenta/nupic.fluent',
       packages=['fluent'],
      )
