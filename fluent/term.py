@@ -19,20 +19,26 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import os
+import json
 from fluent.cept import Cept
-
 
 
 class Term():
 
 
   def __init__(self):
-    self.bitmap = None
-    self.cept = Cept()
-
+    self.bitmap   = None
+    self.sparsity = None
+    self.width    = None
+    self.cept     = Cept()
+    
 
   def createFromString(self, string):
-    self.bitmap = self.cept.getBitmap(string)['positions']
+    response = self.cept.getBitmap(string)      
+    self.bitmap   = response['positions']
+    self.sparsity = response['sparsity']
+    self.width    = response['width']
     return self
 
 
