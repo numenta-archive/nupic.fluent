@@ -19,8 +19,6 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import os
-import json
 from fluent.cept import Cept
 
 
