@@ -40,8 +40,10 @@ class Term():
     return self
 
 
-  def createFromBitmap(self, bitmap):
+  def createFromBitmap(self, bitmap, width=128):
     self.bitmap = bitmap
+    self.width = width
+    self.sparsity = (100.0 * len(bitmap)) / (width*width)
     return self
 
 
