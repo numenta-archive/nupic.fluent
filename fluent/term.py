@@ -29,6 +29,7 @@ class Term():
     self.bitmap   = None
     self.sparsity = None
     self.width    = None
+    self.height   = None
     self.cept     = Cept()
     
 
@@ -37,18 +38,20 @@ class Term():
     self.bitmap   = response['positions']
     self.sparsity = response['sparsity']
     self.width    = response['width']
+    self.height   = response['height']
     return self
 
 
-  def createFromBitmap(self, bitmap, width=128):
+  def createFromBitmap(self, bitmap, width, height):
     self.bitmap = bitmap
     self.width = width
-    self.sparsity = (100.0 * len(bitmap)) / (width*width)
+    self.height = height
+    self.sparsity = (100.0 * len(bitmap)) / (width*height)
     return self
 
 
   def toArray(self):
-    array = [0] * 128 * 128
+    array = [0] * self.width * self.height
 
     for i in self.bitmap:
       array[i] = 1

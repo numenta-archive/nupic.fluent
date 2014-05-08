@@ -112,7 +112,8 @@ class Model():
     
     predictedBitmap = predictedColumns.nonzero()[0].tolist()
     return Term().createFromBitmap(predictedBitmap,
-                                   width=math.sqrt(tp.numberOfCols))
+                                   width=term.width,
+                                   height=term.height)
   
 
   def resetSequence(self):
