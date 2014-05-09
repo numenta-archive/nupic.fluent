@@ -63,7 +63,8 @@ class Term():
     if not len(self.bitmap):
       return []
 
-    return self.cept.getClosestStrings(self.bitmap)
+    return [result['term'] for result in
+            self.cept.getClosestStrings(self.bitmap)]
 
 
   def closestString(self):
