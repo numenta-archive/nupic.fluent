@@ -69,7 +69,8 @@ class Term():
 
   def closestString(self):
     closestStrings = self.closestStrings()
+
     if not len(closestStrings):
       return ""
 
-    return closestStrings[0]['term']
+    return closestStrings[0]
