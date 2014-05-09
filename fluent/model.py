@@ -21,6 +21,7 @@
 
 import os
 import pickle
+import math
 
 import numpy
 # This is the class corresponding to the C++ optimized Temporal Pooler
@@ -110,7 +111,9 @@ class Model():
     predictedColumns = predictedCells.max(axis=1)
     
     predictedBitmap = predictedColumns.nonzero()[0].tolist()
-    return Term().createFromBitmap(predictedBitmap)
+    return Term().createFromBitmap(predictedBitmap,
+                                   width=term.width,
+                                   height=term.height)
   
 
   def resetSequence(self):

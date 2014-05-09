@@ -22,27 +22,36 @@
 from fluent.cept import Cept
 
 
-
 class Term():
 
 
   def __init__(self):
-    self.bitmap = None
-    self.cept = Cept()
-
+    self.bitmap   = None
+    self.sparsity = None
+    self.width    = None
+    self.height   = None
+    self.cept     = Cept()
+    
 
   def createFromString(self, string):
-    self.bitmap = self.cept.getBitmap(string)['positions']
+    response = self.cept.getBitmap(string)      
+    self.bitmap   = response['positions']
+    self.sparsity = response['sparsity']
+    self.width    = response['width']
+    self.height   = response['height']
     return self
 
 
-  def createFromBitmap(self, bitmap):
+  def createFromBitmap(self, bitmap, width, height):
     self.bitmap = bitmap
+    self.width = width
+    self.height = height
+    self.sparsity = (100.0 * len(bitmap)) / (width*height)
     return self
 
 
   def toArray(self):
-    array = [0] * 128 * 128
+    array = [0] * self.width * self.height
 
     for i in self.bitmap:
       array[i] = 1
