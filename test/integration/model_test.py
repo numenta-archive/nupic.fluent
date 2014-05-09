@@ -67,6 +67,7 @@ class TestModel(unittest.TestCase):
     model.feedTerm(term1)
     prediction = model.feedTerm(term2)
 
+    self.assertTrue(len(prediction.closestStrings()))
     self.assertEqual(prediction.closestString(), "rodent")
 
 
