@@ -34,7 +34,7 @@ class Term():
     
 
   def createFromString(self, string):
-    response = self.cept.getBitmap(string)      
+    response = self.cept.getBitmap(string)
     self.bitmap   = response['positions']
     self.sparsity = response['sparsity']
     self.width    = response['width']
@@ -59,11 +59,15 @@ class Term():
     return array
 
 
-  def closestString(self):
+  def closestStrings(self):
     if not len(self.bitmap):
-      return ""
+      return []
 
-    closestStrings = self.cept.getClosestStrings(self.bitmap)
+    return self.cept.getClosestStrings(self.bitmap)
+
+
+  def closestString(self):
+    closestStrings = self.closestStrings()
     if not len(closestStrings):
       return ""
 
