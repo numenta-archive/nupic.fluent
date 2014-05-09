@@ -30,21 +30,20 @@ class Cept():
 
 
   def __init__(self):
-    if 'CEPT_APP_ID' not in os.environ or 'CEPT_APP_KEY' not in os.environ:
-      print("Missing CEPT_APP_ID and CEPT_APP_KEY environment variables.")
-      print("You can retrieve these by registering for the CEPT API at ")
-      print("https://cept.3scale.net/")
-      raise
+    if 'CEPT_API_KEY' not in os.environ:
+      print("Missing CEPT_API_KEY environment variable.")
+      print("You can retrieve this by registering for the CEPT API at ")
+      print("http://cept.github.io/CEPT-Website/developers_apikey.html")
+      raise Exception("Missing API key.")
 
-    self.appId  = os.environ['CEPT_APP_ID']
-    self.appKey = os.environ['CEPT_APP_KEY']
+    self.apiKey  = os.environ['CEPT_API_KEY']
 
-    self.client = pycept.Cept(self.appId, self.appKey, cache_dir=CACHE_DIR)
+    self.client = pycept.Cept(self.apiKey, cache_dir=CACHE_DIR)
 
 
   def getBitmap(self, string):
     return self.client.getBitmap(string)
 
 
-  def getClosestStrings(self, bitmap, width=128, height=128):
+  def getClosestStrings(self, bitmap, width=64, height=64):
     return self.client.bitmapToTerms(width, height, bitmap)
