@@ -35,12 +35,12 @@ class Model():
 
 
   def __init__(self,
-               numberOfCols=16384, cellsPerColumn=8,
+               numberOfCols=64*64, cellsPerColumn=8,
                 initialPerm=0.5, connectedPerm=0.5,
-                minThreshold=164, newSynapseCount=164,
+                minThreshold=12, newSynapseCount=12,
                 permanenceInc=0.1, permanenceDec=0.0,
-                activationThreshold=164,
-                pamLength=10,
+                activationThreshold=12,
+                pamLength=3,
                 checkpointDir=None):
 
     self.tp = TP(numberOfCols=numberOfCols, cellsPerColumn=cellsPerColumn,
