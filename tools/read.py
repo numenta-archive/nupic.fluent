@@ -33,9 +33,14 @@ def readFile(filename, model, resetSequences=False):
 
   exclusions = ('!', '.', ':', ',', '"', '\'', '\n')
 
-  print("%10s | %10s | %20s | %20s" %
-        ("Sequence #", "Term #", "Current Term", "Predicted Term"))
+  fmt = "%10s | %10s | %20s | %20s | %20s | %20s | %20s"
+
+  print(fmt %
+        ("Sequence #", "Term #", "Current Term",
+         "Predicted Term 1", "Predicted Term 2", "Predicted Term 3", "Predicted Term 3"))
   print("-----------------------------------"
+        "-----------------------------------"
+        "-----------------------------------"
         "-----------------------------------")
 
   s = 1
@@ -52,9 +57,15 @@ def readFile(filename, model, resetSequences=False):
 
         term = Term().createFromString(string)
         prediction = model.feedTerm(term)
+        closestStrings = prediction.closestStrings()
+        closestStringsIter = iter(closestStrings)
 
-        print("%10i | %10i | %20s | %20s" %
-              (s, t, string, prediction.closestString()))
+        print(fmt %
+              (s, t, string,
+               next(closestStringsIter, ""),
+               next(closestStringsIter, ""),
+               next(closestStringsIter, ""),
+               next(closestStringsIter, "")))
 
         t += 1
 
