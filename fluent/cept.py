@@ -45,5 +45,5 @@ class Cept():
     return self.client.getBitmap(string)
 
 
-  def getClosestStrings(self, bitmap, width=64, height=64):
-    return self.client.bitmapToTerms(width, height, bitmap)
+  def getClosestStrings(self, bitmap):
+    return self.client.bitmapToTerms(bitmap)
