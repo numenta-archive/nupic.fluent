@@ -30,9 +30,19 @@ from fluent.term import Term
 class TestTerm(unittest.TestCase):
 
 
-  def test_invalid(self):
-    term = Term().createFromString("thisisaninvalidterm")
+  def test_createFromString(self):
+    # Test enablePlaceholder
+    term = Term().createFromString("thisisaninvalidterm", enablePlaceholder=False)
     self.assertEqual(sum(term.toArray()), 0)
+
+    term = Term().createFromString("thisisaninvalidterm", enablePlaceholder=True)
+    self.assertGreater(sum(term.toArray()), 0)
+    self.assertGreater(term.sparsity, 0)
+    placeholder = term.bitmap
+
+    # Make sure we get the same placeholder back for the same term
+    term = Term().createFromString("thisisaninvalidterm", enablePlaceholder=True)
+    self.assertEqual(term.bitmap, placeholder)
 
 
 
