@@ -44,6 +44,10 @@ class TestTerm(unittest.TestCase):
     term = Term().createFromString("thisisaninvalidterm", enablePlaceholder=True)
     self.assertEqual(term.bitmap, placeholder)
 
+    # Make sure we get a different placeholder back for a different term
+    term = Term().createFromString("differentinvalidterm", enablePlaceholder=True)
+    self.assertNotEqual(term.bitmap, placeholder)
+
 
 
 if __name__ == '__main__':

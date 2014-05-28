@@ -45,11 +45,12 @@ class Term():
     self.height   = response['height']
 
     if enablePlaceholder and self.sparsity == 0:
+      state = random.getstate()
       random.seed(string)
       num = self.width * self.height
       bitmap = random.sample(range(num), int(TARGET_SPARSITY * num / 100))
       self.createFromBitmap(bitmap, self.width, self.height)
-      random.seed()
+      random.setstate(state)
 
     return self
 
