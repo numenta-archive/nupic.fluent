@@ -45,7 +45,7 @@ def readFile(filename, model, resetSequences=False):
 
   s = 1
   t = 1
-  
+
   with open(filename) as f:
     for line in f:
       line = "".join([c for c in line if c not in exclusions])
@@ -103,5 +103,10 @@ if __name__ == '__main__':
 
   model = Model(checkpointDir=options.checkpoint)
 
-  readFile(args[0], model,
-           resetSequences=options.resetSequences)
+  try:
+    readFile(args[0], model,
+             resetSequences=options.resetSequences)
+  except KeyboardInterrupt:
+    if model.canCheckpoint():
+      print("Saving model before exiting...")
+      model.save()
