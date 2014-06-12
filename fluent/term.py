@@ -20,6 +20,10 @@
 # ----------------------------------------------------------------------
 
 from fluent.cept import Cept
+import random
+
+
+TARGET_SPARSITY = 3.0
 
 
 class Term():
@@ -33,12 +37,21 @@ class Term():
     self.cept     = Cept()
     
 
-  def createFromString(self, string):
+  def createFromString(self, string, enablePlaceholder=True):
     response = self.cept.getBitmap(string)
     self.bitmap   = response['positions']
     self.sparsity = response['sparsity']
     self.width    = response['width']
     self.height   = response['height']
+
+    if enablePlaceholder and self.sparsity == 0:
+      state = random.getstate()
+      random.seed(string)
+      num = self.width * self.height
+      bitmap = random.sample(range(num), int(TARGET_SPARSITY * num / 100))
+      self.createFromBitmap(bitmap, self.width, self.height)
+      random.setstate(state)
+
     return self
 
 

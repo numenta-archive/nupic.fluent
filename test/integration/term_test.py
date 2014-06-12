@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
 # Copyright (C) 2014, Numenta, Inc.  Unless you have purchased from
@@ -20,30 +21,34 @@
 # ----------------------------------------------------------------------
 
 import os
+import unittest
 
-import pycept
-
-CACHE_DIR = "./cache"
-
-
-class Cept():
+from fluent.term import Term
 
 
-  def __init__(self):
-    if 'CEPT_API_KEY' not in os.environ:
-      print("Missing CEPT_API_KEY environment variable.")
-      print("You can retrieve this by registering for the CEPT API at ")
-      print("http://cept.github.io/CEPT-Website/developers_apikey.html")
-      raise Exception("Missing API key.")
 
-    self.apiKey  = os.environ['CEPT_API_KEY']
-
-    self.client = pycept.Cept(self.apiKey, cache_dir=CACHE_DIR)
+class TestTerm(unittest.TestCase):
 
 
-  def getBitmap(self, string):
-    return self.client.getBitmap(string)
+  def test_createFromString(self):
+    # Test enablePlaceholder
+    term = Term().createFromString("thisisaninvalidterm", enablePlaceholder=False)
+    self.assertEqual(sum(term.toArray()), 0)
+
+    term = Term().createFromString("thisisaninvalidterm", enablePlaceholder=True)
+    self.assertGreater(sum(term.toArray()), 0)
+    self.assertGreater(term.sparsity, 0)
+    placeholder = term.bitmap
+
+    # Make sure we get the same placeholder back for the same term
+    term = Term().createFromString("thisisaninvalidterm", enablePlaceholder=True)
+    self.assertEqual(term.bitmap, placeholder)
+
+    # Make sure we get a different placeholder back for a different term
+    term = Term().createFromString("differentinvalidterm", enablePlaceholder=True)
+    self.assertNotEqual(term.bitmap, placeholder)
 
 
-  def getClosestStrings(self, bitmap):
-    return self.client.bitmapToTerms(bitmap)
+
+if __name__ == '__main__':
+  unittest.main()

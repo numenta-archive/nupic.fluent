@@ -139,3 +139,12 @@ To run the [Fox demo](http://numenta.org/blog/2013/11/06/2013-fall-hackathon-out
             17 |          1 |                  cow |                  eat
             17 |          2 |                  eat |                grain
             ...
+
+## Advanced
+
+### Using a different CEPT retina
+
+If you want to use a different CEPT retina, you'll have to make changes in the following places:
+
+1. Specify which retina you want to use in `pycept.Cept(...)` in `fluent/cept.py`.
+2. Update `numberOfCols` in `fluent/model.py`.
