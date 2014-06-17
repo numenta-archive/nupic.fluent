@@ -22,8 +22,18 @@
 from fluent.cept import Cept
 import random
 
-
 TARGET_SPARSITY = 3.0
+
+def termJSONEncoder(obj):
+  """
+  For encoding as JSON. Usage:
+    json.dumps(term, default = termJSONEncoder)
+  """
+  d = {'positions': obj.bitmap,
+       'sparsity': obj.sparsity,
+       'width': obj.width,
+       'height': obj.height}
+  return d
 
 
 class Term():
@@ -35,8 +45,16 @@ class Term():
     self.width    = None
     self.height   = None
     self.cept     = Cept()
-    
 
+
+  def __repr__(self):
+    d = {'positions': self.bitmap,
+         'sparsity': self.sparsity,
+         'width': self.width,
+         'height': self.height}
+    return d.__repr__()
+
+  
   def createFromString(self, string, enablePlaceholder=True):
     response = self.cept.getBitmap(string)
     self.bitmap   = response['positions']
@@ -62,6 +80,14 @@ class Term():
     self.sparsity = (100.0 * len(bitmap)) / (width*height)
     return self
 
+
+  def compare(self, term):
+    """
+    Compare self with the provided term. Calls CEPT compare and returns the
+    corresponding dict.
+    """
+    return self.cept.client.compare(self.bitmap, term.bitmap)
+  
 
   def toArray(self):
     array = [0] * self.width * self.height
