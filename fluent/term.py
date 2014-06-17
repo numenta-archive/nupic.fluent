@@ -36,6 +36,16 @@ def termJSONEncoder(obj):
   return d
 
 
+def termJSONDecoder(d):
+  """
+  For decoding from JSON. Usage:
+    json.loads(str, object_hook = termJSONDecoder)
+  """
+  t = Term()
+  t.createFromBitmap(d['positions'], d['width'], d['height'])
+  return t
+
+
 class Term():
 
 
@@ -48,11 +58,7 @@ class Term():
 
 
   def __repr__(self):
-    d = {'positions': self.bitmap,
-         'sparsity': self.sparsity,
-         'width': self.width,
-         'height': self.height}
-    return d.__repr__()
+    return termJSONEncoder(self)
 
   
   def createFromString(self, string, enablePlaceholder=True):
