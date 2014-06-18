@@ -38,7 +38,7 @@ class Cept():
 
     self.apiKey  = os.environ['CEPT_API_KEY']
 
-    self.client = pycept.Cept(self.apiKey, cache_dir=CACHE_DIR)
+    self.client = pycept.Cept(self.apiKey, cacheDir=CACHE_DIR)
 
 
   def getBitmap(self, string):
