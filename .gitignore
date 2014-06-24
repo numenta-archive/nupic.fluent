@@ -1,6 +1,7 @@
 # General
 .DS_Store
 cache
+*.un~
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
