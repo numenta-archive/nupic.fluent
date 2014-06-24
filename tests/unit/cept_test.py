@@ -25,17 +25,18 @@ import unittest
 from fluent.cept import Cept
 
 class TestCept(unittest.TestCase):
-
   def testGetBitmap(self):
     """ Type check what we get back from the cept object """
     cept = Cept()
     response = cept.getBitmap("fox")
 
-    self.assertTrue(type(response), 'dict')
-    self.assertTrue(type(response['positions']), 'list')
-    self.assertTrue(type(response['sparsity']), 'float')
-    self.assertTrue(type(response['width']), 'int')
-    self.assertTrue(type(response['height']), 'int')
+    self.assertLessEqual(set(("width", "positions", "sparsity", "height")),
+                         set(response))
+
+    self.assertIsInstance(response['positions'], list, "Positions field is not a list")
+    self.assertIsInstance(response['sparsity'], float, "Sparsity field is not a list")
+    self.assertIsInstance(response['width'], int, "Width field is not an int")
+    self.assertIsInstance(response['height'], int, "Height field is not an int")
 
 
   def testGetClosestStrings(self):
