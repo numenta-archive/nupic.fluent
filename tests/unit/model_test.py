@@ -20,7 +20,6 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import mock
 import os
 import pytest
 import unittest
@@ -58,17 +57,6 @@ class TestModel(unittest.TestCase):
     with self.assertRaises(Exception) as e:
       model.load()
     self.assertIn("Could not find checkpoint file", e.exception)
-
-
-  """
-  @mock.patch('os.path')
-  def testLoadWithCheckpointFile(self, mock_path):
-    model = Model()
-
-    mock_path.exists.return_value = True
-    model.load()
-    mock_path.exists.assert_called_with("test")
-  """
 
 
   def testSaveWithoutCheckpointDirectory(self):
