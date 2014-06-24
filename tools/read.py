@@ -26,7 +26,6 @@ from fluent.model import Model
 from fluent.term import Term
 
 
-
 def readFile(filename, model, resetSequences=False):
   if model.canCheckpoint() and model.hasCheckpoint():
     model.load()
@@ -37,7 +36,8 @@ def readFile(filename, model, resetSequences=False):
 
   print(fmt %
         ("Sequence #", "Term #", "Current Term",
-         "Predicted Term 1", "Predicted Term 2", "Predicted Term 3", "Predicted Term 3"))
+         "Predicted Term 1", "Predicted Term 2",
+         "Predicted Term 3", "Predicted Term 3"))
   print("-----------------------------------"
         "-----------------------------------"
         "-----------------------------------"
@@ -77,8 +77,6 @@ def readFile(filename, model, resetSequences=False):
 
       s += 1
       t = 1
-
-
 
 if __name__ == '__main__':
   parser = OptionParser("%prog file [options]")
