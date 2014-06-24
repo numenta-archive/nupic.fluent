@@ -85,7 +85,7 @@ class TestModel(unittest.TestCase):
 
     result = model.feedTerm(term)
 
-    assert type(result) == type(term), "Result is not a Term"
+    self.assertIsInstance(result, Term, "Result is not a Term")
 
 
 if __name__ == '__main__':
