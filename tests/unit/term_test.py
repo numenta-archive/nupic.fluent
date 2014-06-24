@@ -21,6 +21,24 @@
 # ----------------------------------------------------------------------
 
 import unittest
+import mock
+from mock import call
 
 from fluent.term import Term
 
+class TermTest(unittest.TestCase):
+
+  @mock.patch("fluent.cept.Cept.getBitmap")
+  def testCreateFromString(self, ceptMock):
+    term = Term()
+    term = term.createFromString("fox")
+
+    # Check that our mock object was called
+    ceptMock.assert_called_with("fox")
+
+    # Check that we have a Term type
+    self.assertIsInstance(term, Term)
+
+
+if __name__ == "__main__":
+  unittest.main()
