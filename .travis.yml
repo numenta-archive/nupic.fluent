@@ -9,6 +9,10 @@ env:
 
 
 install:
+# Pip dependencies for fluent and nupic installation
+- pip install pycept
+- pip install requests
+
 # Install NuPIC from archive.
 - NUPIC_SHA=`cat ci/nupic_sha.txt`
 - "echo NUPIC SHA: $NUPIC_SHA"
@@ -18,7 +22,6 @@ install:
 - export NTA_CONF_PATH=$TRAVIS_BUILD_DIR/conf
 - export PYTHONPATH=$PYTHONPATH:$NTA/lib/python2.7/site-packages
 # Install pycept dependency
-- pip install pycept
 
 script:
 - nosetests
