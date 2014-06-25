@@ -5,6 +5,8 @@ python:
 
 env:
   global:
+    # CEPT_API_KEY
+    - secure: ZlcQGBCr+l6hmtnBeNqBindAIWkIwuoA9VlmF4D3wkkhEMAnR8h81SRTwlZbyt51n1wKfAmJ2MFCB3BmdxiHd39GIcD9bdOt2pbe8V15Qb3i13mdkQhfi/gfosEH+EsNQyK5MP2XlR2cB7YmWRT89l0fVNIsD2EUVQJlihNIm8Y=
     - export NUPIC=$TRAVIS_BUILD_DIR
 
 
