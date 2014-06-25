@@ -32,16 +32,19 @@ def readFile(filename, model, resetSequences=False, format=None):
 
   exclusions = ('!', '.', ':', ',', '"', '\'', '\n')
 
-  fmt = "%10s | %10s | %20s | %20s | %20s | %20s | %20s"
+  if format == "csv":
+    fmt = "%s,%s,%s,%s,%s,%s,%s"
+  else:
+    # No format specified, so pretty print it
+    fmt = "%10s | %10s | %20s | %20s | %20s | %20s | %20s"
 
-  print(fmt %
-        ("Sequence #", "Term #", "Current Term",
-         "Predicted Term 1", "Predicted Term 2",
-         "Predicted Term 3", "Predicted Term 3"))
-  print("-----------------------------------"
-        "-----------------------------------"
-        "-----------------------------------"
-        "-----------------------------------")
+    print(fmt %
+          ("Sequence #", "Term #", "Current Term",
+           "Predicted Term 1", "Predicted Term 2", "Predicted Term 3", "Predicted Term 3"))
+    print("-----------------------------------"
+          "-----------------------------------"
+          "-----------------------------------"
+          "-----------------------------------")
 
   s = 1
   t = 1
@@ -89,7 +92,7 @@ if __name__ == '__main__':
       "--format",
       dest="format",
       help="Format to output (ie: csv)",
-      metavar=FORMAT)
+      metavar="FORMAT")
   parser.add_option(
       "-r",
       "--reset-sequences",
