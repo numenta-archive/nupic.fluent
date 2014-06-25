@@ -3,30 +3,11 @@ language: python
 python:
 - '2.7'
 
-env:
-  global:
-    # CEPT_API_KEY
-    - secure: ZlcQGBCr+l6hmtnBeNqBindAIWkIwuoA9VlmF4D3wkkhEMAnR8h81SRTwlZbyt51n1wKfAmJ2MFCB3BmdxiHd39GIcD9bdOt2pbe8V15Qb3i13mdkQhfi/gfosEH+EsNQyK5MP2XlR2cB7YmWRT89l0fVNIsD2EUVQJlihNIm8Y=
-    - export NUPIC=$TRAVIS_BUILD_DIR
-
-
 install:
-# Pip dependencies for fluent and nupic installation
 - pip install pycept
-- pip install requests
-
-# Install NuPIC from archive.
-- NUPIC_SHA=`cat ci/nupic_sha.txt`
-- "echo NUPIC SHA: $NUPIC_SHA"
-- python ci/install_from_archive.py
-- travis_retry pip install -q -r nupic-linux64-${NUPIC_SHA}/requirements.txt
-- export NTA=`pwd`/nupic-linux64-$NUPIC_SHA
-- export NTA_CONF_PATH=$TRAVIS_BUILD_DIR/conf
-- export PYTHONPATH=$PYTHONPATH:$NTA/lib/python2.7/site-packages
-# Install pycept dependency
 
 script:
-- nosetests
+- nosetests tests/unit
 # - nosetests --with-coverage
 
 # after_success:
