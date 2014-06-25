@@ -26,22 +26,25 @@ from fluent.model import Model
 from fluent.term import Term
 
 
-def readFile(filename, model, resetSequences=False):
+def readFile(filename, model, resetSequences=False, format=None):
   if model.canCheckpoint() and model.hasCheckpoint():
     model.load()
 
   exclusions = ('!', '.', ':', ',', '"', '\'', '\n')
 
-  fmt = "%10s | %10s | %20s | %20s | %20s | %20s | %20s"
+  if format == "csv":
+    fmt = "%s,%s,%s,%s,%s,%s,%s"
+  else:
+    # No format specified, so pretty print it
+    fmt = "%10s | %10s | %20s | %20s | %20s | %20s | %20s"
 
-  print(fmt %
-        ("Sequence #", "Term #", "Current Term",
-         "Predicted Term 1", "Predicted Term 2",
-         "Predicted Term 3", "Predicted Term 3"))
-  print("-----------------------------------"
-        "-----------------------------------"
-        "-----------------------------------"
-        "-----------------------------------")
+    print(fmt %
+          ("Sequence #", "Term #", "Current Term",
+           "Predicted Term 1", "Predicted Term 2", "Predicted Term 3", "Predicted Term 3"))
+    print("-----------------------------------"
+          "-----------------------------------"
+          "-----------------------------------"
+          "-----------------------------------")
 
   s = 1
   t = 1
@@ -85,6 +88,12 @@ if __name__ == '__main__':
       dest="checkpoint",
       help="Directory to save model to and load model from")
   parser.add_option(
+      "-f",
+      "--format",
+      dest="format",
+      help="Format to output (ie: csv)",
+      metavar="FORMAT")
+  parser.add_option(
       "-r",
       "--reset-sequences",
       dest="resetSequences",
@@ -103,7 +112,7 @@ if __name__ == '__main__':
 
   try:
     readFile(args[0], model,
-             resetSequences=options.resetSequences)
+             resetSequences=options.resetSequences, format=options.format)
   except KeyboardInterrupt:
     if model.canCheckpoint():
       print("Saving model before exiting...")
