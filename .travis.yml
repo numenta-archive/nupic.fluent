@@ -11,7 +11,7 @@ env:
 install:
 # Install NuPIC from archive.
 - NUPIC_SHA=`cat ci/nupic_sha.txt`
-- echo NUPIC SHA: $NUPIC_SHA
+- "echo NUPIC SHA: $NUPIC_SHA"
 - python ci/install_from_archive.py
 - travis_retry pip install -q -r nupic-linux64-${NUPIC_SHA}/requirements.txt
 - export NTA=`pwd`/nupic-linux64-$NUPIC_SHA
