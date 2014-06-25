@@ -21,6 +21,8 @@
 # ----------------------------------------------------------------------
 
 import os
+import sys
+from mock import patch
 import pytest
 import unittest
 
@@ -67,7 +69,10 @@ class TestModel(unittest.TestCase):
     self.assertIn("No checkpoint directory specified", e.exception)
 
 
-  def testFeedTermReturnsTerm(self):
+  @patch('numpy.array')
+  @patch('nupic.research.TP10X2.TP10X2.compute')
+  @patch('pycept.Cept.getBitmap')
+  def testFeedTermReturnsTerm(self, mockBitmap, mockTPCompute, mockNumpyArray):
     model = Model()
     term = Term().createFromString("test")
 
