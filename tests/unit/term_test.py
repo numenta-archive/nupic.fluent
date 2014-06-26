@@ -21,14 +21,14 @@
 # ----------------------------------------------------------------------
 
 import unittest
-import mock
-from mock import call
+from mock import patch
 
 from fluent.term import Term
 
 class TermTest(unittest.TestCase):
 
-  @mock.patch("fluent.cept.Cept.getBitmap")
+  @patch.dict('os.environ', {'CEPT_API_KEY': 'testkey123'})
+  @patch("fluent.cept.Cept.getBitmap")
   def testCreateFromString(self, ceptMock):
     term = Term()
     term = term.createFromString("fox")
