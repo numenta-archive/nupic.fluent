@@ -84,7 +84,7 @@ class TestModel(unittest.TestCase):
       model.save()
     self.assertIn("No checkpoint directory specified", e.exception)
 
-
+  @patch.dict('os.environ', {'CEPT_API_KEY': 'testkey123'})
   @patch('nupic.research.TP10X2.TP10X2.compute')
   @patch('pycept.Cept.getBitmap')
   def testFeedTermReturnsTerm(self, mockBitmap, mockTPCompute):
