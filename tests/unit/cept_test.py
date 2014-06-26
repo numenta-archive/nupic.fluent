@@ -22,16 +22,22 @@
 
 import unittest
 from mock import patch
+import os
 
 from fluent.cept import Cept
 
 class TestCept(unittest.TestCase):
 
+  def testAPIKeyPresent(self):
+    with patch.dict('os.environ', {'CEPT_API_KEY': 'apikey123'}):
+        cept = Cept()
+
   @patch('os.environ')
-  def testCheckForApiKey(self, mockOS):
+  def testExceptionIfAPIKeyNotPresent(self, mockOS):
     with self.assertRaises(Exception) as e:
       cept = Cept()
     self.assertIn("Missing API key.", e.exception)
+
 
 if __name__ == '__main__':
   unittest.main()
