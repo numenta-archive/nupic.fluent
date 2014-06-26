@@ -22,11 +22,10 @@
 
 import os
 import sys
-from mock import patch
+from mock import patch, MagicMock, Mock
 import pytest
 import unittest
 
-from fluent.model import Model
 from fluent.term import Term
 
 MODEL_CHECKPOINT_DIR = "/tmp/fluent-test"
@@ -34,7 +33,24 @@ MODEL_CHECKPOINT_PKL_PATH  = MODEL_CHECKPOINT_DIR + "/model.pkl"
 MODEL_CHECKPOINT_DATA_PATH = MODEL_CHECKPOINT_DIR + "/model.data"
 
 class TestModel(unittest.TestCase):
+
+  def setUp(self):
+    self.nupicMock = MagicMock()
+    modules = {
+      'nupic': self.nupicMock,
+      'nupic.research': self.nupicMock.research,
+      'nupic.research.TP10X2': self.nupicMock.research.TP10X2,
+    }
+    self.module_patcher = patch.dict('sys.modules', modules)
+    self.module_patcher.start()
+
+    from fluent.model import Model
+    self.Model = Model
+
+
   def tearDown(self):
+    self.module_patcher.stop()
+
     if os.path.exists(MODEL_CHECKPOINT_DATA_PATH):
       os.remove(MODEL_CHECKPOINT_DATA_PATH)
 
@@ -46,7 +62,7 @@ class TestModel(unittest.TestCase):
 
 
   def testLoadWithoutCheckpointDirectory(self):
-    model = Model()
+    model = self.Model()
 
     with self.assertRaises(Exception) as e:
       model.load()
@@ -54,7 +70,7 @@ class TestModel(unittest.TestCase):
 
 
   def testLoadWithoutCheckpointFile(self):
-    model = Model(checkpointDir=MODEL_CHECKPOINT_DIR)
+    model = self.Model(checkpointDir=MODEL_CHECKPOINT_DIR)
 
     with self.assertRaises(Exception) as e:
       model.load()
@@ -62,18 +78,17 @@ class TestModel(unittest.TestCase):
 
 
   def testSaveWithoutCheckpointDirectory(self):
-    model = Model()
+    model = self.Model()
 
     with self.assertRaises(Exception) as e:
       model.save()
     self.assertIn("No checkpoint directory specified", e.exception)
 
 
-  @patch('numpy.array')
   @patch('nupic.research.TP10X2.TP10X2.compute')
   @patch('pycept.Cept.getBitmap')
-  def testFeedTermReturnsTerm(self, mockBitmap, mockTPCompute, mockNumpyArray):
-    model = Model()
+  def testFeedTermReturnsTerm(self, mockBitmap, mockTPCompute):
+    model = self.Model()
     term = Term().createFromString("test")
 
     result = model.feedTerm(term)
