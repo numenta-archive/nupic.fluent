@@ -1,6 +1,6 @@
 # Fluent - Language with NuPIC
 
-[![Build Status](https://travis-ci.org/numenta/nupic.fluent.svg?branch=master)](https://travis-ci.org/numenta/nupic.fluent)
+[![Build Status](https://travis-ci.org/numenta/nupic.fluent.svg?branch=master)](https://travis-ci.org/numenta/nupic.fluent) [![Coverage Status](https://coveralls.io/repos/numenta/nupic.fluent/badge.png)](https://coveralls.io/r/numenta/nupic.fluent)
 
 A platform for building language / NLP-based applications using [NuPIC](https://github.com/numenta/nupic) and [CEPT](http://www.cept.at/).
 
