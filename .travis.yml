@@ -7,9 +7,8 @@ install:
 - pip install pycept
 
 script:
-- nosetests tests/unit
-# - nosetests --with-coverage
+- nosetests tests/unit --with-coverage
 
-# after_success:
-# - pip install python-coveralls
-# - coveralls
+after_success:
+- pip install python-coveralls
+- coveralls
