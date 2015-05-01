@@ -30,7 +30,7 @@ def readFile(filename, model, resetSequences=False, format=None):
   if model.canCheckpoint() and model.hasCheckpoint():
     model.load()
 
-  exclusions = ('!', '.', ':', ',', '"', '\'', '\n')
+  exclusions = ('!', '.', ':', ',', '"', '\'', '\n', '?')
 
   if format == "csv":
     fmt = "%s,%s,%s,%s,%s,%s,%s"
@@ -51,6 +51,7 @@ def readFile(filename, model, resetSequences=False, format=None):
 
   with open(filename) as f:
     for line in f:
+      # Tokenize
       line = "".join([c for c in line if c not in exclusions])
       strings = line.split(" ")
 
@@ -58,6 +59,9 @@ def readFile(filename, model, resetSequences=False, format=None):
         if not len(string):
           continue
 
+        # (i) Create a bitmap from the string, (ii) TM predicts the next sdr in
+        # the sequence, (iii) map the prediction to a list of strings that are
+        # most likely to match the prediction sdr.
         term = Term().createFromString(string)
         prediction = model.feedTerm(term)
         closestStrings = prediction.closestStrings()

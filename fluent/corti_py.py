@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
-# Copyright (C) 2014, Numenta, Inc.  Unless you have purchased from
+# Copyright (C) 2014-15, Numenta, Inc.  Unless you have purchased from
 # Numenta, Inc. a separate commercial license for this software code, the
 # following terms and conditions apply:
 #
@@ -18,30 +18,39 @@
 #
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
+"""
+nupic.fluent
+This houses functions, to run in nupic.fluent, that require calls to the
+cortical.io REST API.
+"""
 
 import os
 
-import pycept
+from cortipy.cortical_client import CorticalClient
+
 
 CACHE_DIR = "./cache"
 
 
-class Cept():
+
+class CortiPy():
 
 
   def __init__(self):
-    if 'CEPT_API_KEY' not in os.environ:
-      print("Missing CEPT_API_KEY environment variable.")
-      print("You can retrieve this by registering for the CEPT API at ")
-      print("http://cept.github.io/CEPT-Website/developers_apikey.html")
+    if 'REST_API_KEY' not in os.environ:
+      print ("Missing REST_API_KEY environment variable. If you have a key, "
+        "set it with $ export REST_API_KEY=api_key\n"
+        "You can retrieve a key by registering for the REST API at "
+        "http://www.cortical.io/resources_apikey.html")
       raise Exception("Missing API key.")
 
-    self.apiKey  = os.environ['CEPT_API_KEY']
+    self.apiKey  = os.environ['REST_API_KEY']
 
-    self.client = pycept.Cept(self.apiKey, cacheDir=CACHE_DIR)
+    self.client = CorticalClient(self.apiKey, cacheDir=CACHE_DIR)  # cortipy object
 
 
   def getBitmap(self, string):
+    # Use cortipy to query the the sdr for a string
     return self.client.getBitmap(string)
 
 

@@ -19,7 +19,7 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-from fluent.cept import Cept
+from fluent.corti_py import CortiPy
 import random
 
 TARGET_SPARSITY = 3.0
@@ -54,7 +54,7 @@ class Term():
     self.sparsity = None
     self.width    = None
     self.height   = None
-    self.cept     = Cept()
+    self.cortipy  = CortiPy()
 
 
   def __repr__(self):
@@ -62,8 +62,8 @@ class Term():
 
   
   def createFromString(self, string, enablePlaceholder=True):
-    response = self.cept.getBitmap(string)
-    self.bitmap   = response['positions']
+    response = self.cortipy.getBitmap(string)
+    self.bitmap   = response['fingerprint']['positions']
     self.sparsity = response['sparsity']
     self.width    = response['width']
     self.height   = response['height']
@@ -89,10 +89,10 @@ class Term():
 
   def compare(self, term):
     """
-    Compare self with the provided term. Calls CEPT compare and returns the
+    Compare self with the provided term. Calls REST compare and returns the
     corresponding dict.
     """
-    return self.cept.client.compare(self.bitmap, term.bitmap)
+    return self.cortipy.client.compare(self.bitmap, term.bitmap)
   
 
   def toArray(self):
@@ -107,9 +107,8 @@ class Term():
   def closestStrings(self):
     if not len(self.bitmap):
       return []
-
     return [result['term'] for result in
-            self.cept.getClosestStrings(self.bitmap)]
+            self.cortipy.getClosestStrings(self.bitmap)]
 
 
   def closestString(self):
