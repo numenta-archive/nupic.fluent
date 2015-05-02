@@ -9,7 +9,7 @@ A platform for building language / NLP-based applications using [NuPIC](https://
 Requirements:
 
 - [NuPIC](https://github.com/numenta/nupic)
-- [pycept](https://github.com/numenta/pycept)
+- [cortipy](https://github.com/numenta/cortipy)
 
 You must have a valid REST API key from [Cortical.io](http://www.cortical.io/developers.html).
 
@@ -19,7 +19,7 @@ To install, run:
 
 Then, set up the following environment variables with your REST API credentials:
 
-    export REST_API_KEY=api_key
+    export CORTICAL_API_KEY=api_key
 
 ## Usage
 
