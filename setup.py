@@ -24,7 +24,7 @@ from setuptools import setup
 setup(name='Fluent',
       version='0.2',
       description=('A platform for building language / NLP-based '
-                   'applications using NuPIC and Cortical.io REST.'),
+                   'applications using NuPIC and cortical.io REST.'),
       author='Chetan Surpur',
       author_email='csurpur@numenta.com',
       url='https://github.com/numenta/nupic.fluent',

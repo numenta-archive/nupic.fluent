@@ -29,24 +29,21 @@ import os
 from cortipy.cortical_client import CorticalClient
 
 
-CACHE_DIR = "./cache"
-
-
 
 class CortiPy():
 
 
   def __init__(self):
-    if 'REST_API_KEY' not in os.environ:
+    if 'CORTICAL_API_KEY' not in os.environ:
       print ("Missing REST_API_KEY environment variable. If you have a key, "
         "set it with $ export REST_API_KEY=api_key\n"
         "You can retrieve a key by registering for the REST API at "
         "http://www.cortical.io/resources_apikey.html")
       raise Exception("Missing API key.")
 
-    self.apiKey  = os.environ['REST_API_KEY']
+    self.apiKey  = os.environ['CORTICAL_API_KEY']
 
-    self.client = CorticalClient(self.apiKey, cacheDir=CACHE_DIR)  # cortipy object
+    self.client = CorticalClient(self.apiKey, cacheDir="./cache")
 
 
   def getBitmap(self, string):
