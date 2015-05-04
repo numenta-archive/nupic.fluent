@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
-# Copyright (C) 2014, Numenta, Inc.  Unless you have purchased from
+# Copyright (C) 2014-15, Numenta, Inc.  Unless you have purchased from
 # Numenta, Inc. a separate commercial license for this software code, the
 # following terms and conditions apply:
 #
@@ -19,8 +19,11 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-from fluent.cept import Cept
+import os
 import random
+
+from cortipy.cortical_client import CorticalClient
+
 
 TARGET_SPARSITY = 3.0
 
@@ -50,11 +53,20 @@ class Term():
 
 
   def __init__(self):
+    if 'CORTICAL_API_KEY' not in os.environ:
+      print ("Missing CORTICAL_API_KEY environment variable. If you have a "
+        "key, set it with $ export CORTICAL_API_KEY=api_key\n"
+        "You can retrieve a key by registering for the REST API at "
+        "http://www.cortical.io/resources_apikey.html")
+      raise Exception("Missing API key.")
+
+    self.apiKey  = os.environ['CORTICAL_API_KEY']
+    self.client   = CorticalClient(self.apiKey, cacheDir="./cache")  # TO DO: name cache by experiment
+    
     self.bitmap   = None
     self.sparsity = None
     self.width    = None
     self.height   = None
-    self.cept     = Cept()
 
 
   def __repr__(self):
@@ -62,8 +74,8 @@ class Term():
 
   
   def createFromString(self, string, enablePlaceholder=True):
-    response = self.cept.getBitmap(string)
-    self.bitmap   = response['positions']
+    response = self.client.getBitmap(string)
+    self.bitmap   = response['fingerprint']['positions']
     self.sparsity = response['sparsity']
     self.width    = response['width']
     self.height   = response['height']
@@ -89,10 +101,10 @@ class Term():
 
   def compare(self, term):
     """
-    Compare self with the provided term. Calls CEPT compare and returns the
+    Compare self with the provided term. Calls REST compare and returns the
     corresponding dict.
     """
-    return self.cept.client.compare(self.bitmap, term.bitmap)
+    return self.client.compare(self.bitmap, term.bitmap)
   
 
   def toArray(self):
@@ -107,9 +119,8 @@ class Term():
   def closestStrings(self):
     if not len(self.bitmap):
       return []
-
     return [result['term'] for result in
-            self.cept.getClosestStrings(self.bitmap)]
+            self.client.bitmapToTerms(self.bitmap)]
 
 
   def closestString(self):

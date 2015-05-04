@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
-# Copyright (C) 2014, Numenta, Inc.  Unless you have purchased from
+# Copyright (C) 2014-15, Numenta, Inc.  Unless you have purchased from
 # Numenta, Inc. a separate commercial license for this software code, the
 # following terms and conditions apply:
 #
@@ -22,9 +22,9 @@
 from setuptools import setup
 
 setup(name='Fluent',
-      version='0.1',
+      version='0.2',
       description=('A platform for building language / NLP-based '
-                   'applications using NuPIC and CEPT.'),
+                   'applications using NuPIC and cortical.io REST.'),
       author='Chetan Surpur',
       author_email='csurpur@numenta.com',
       url='https://github.com/numenta/nupic.fluent',

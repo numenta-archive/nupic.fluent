@@ -2,23 +2,24 @@
 
 [![Build Status](https://travis-ci.org/numenta/nupic.fluent.svg?branch=master)](https://travis-ci.org/numenta/nupic.fluent) [![Coverage Status](https://coveralls.io/repos/numenta/nupic.fluent/badge.png?branch=master)](https://coveralls.io/r/numenta/nupic.fluent?branch=master)
 
-A platform for building language / NLP-based applications using [NuPIC](https://github.com/numenta/nupic) and [CEPT](http://www.cept.at/).
+A platform for building language / NLP-based applications using [NuPIC](https://github.com/numenta/nupic) and Cortical.io's [REST](http://www.cortical.io/developers.html). The current version is v0.2.
 
 ## Installation
 
 Requirements:
 
 - [NuPIC](https://github.com/numenta/nupic)
-- [pycept](https://github.com/numenta/pycept)
+- [cortipy](https://github.com/numenta/cortipy)
+
+You must have a valid REST API key from [Cortical.io](http://www.cortical.io/developers.html).
 
 To install, run:
 
     python setup.py install
 
-Then, set up the following environment variables with your CEPT API credentials:
+Then, set up the following environment variables with your REST API credentials:
 
-    export CEPT_APP_ID=app_id
-    export CEPT_APP_KEY=app_key
+    export CORTICAL_API_KEY=api_key
 
 ## Usage
 
