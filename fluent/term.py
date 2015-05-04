@@ -79,8 +79,11 @@ class Term():
     self.sparsity = response['sparsity']
     self.width    = response['width']
     self.height   = response['height']
-
     if enablePlaceholder and self.sparsity == 0:
+      # No fingerprint so fill w/ random bitmap, seeded for each specific term.
+      print ("The client returned a bitmap with sparsity=0 for the string "
+            "\'%s\', so we'll generate a pseudo-random SDR with the target "
+            "sparsity=%f." % (string, TARGET_SPARSITY))
       state = random.getstate()
       random.seed(string)
       num = self.width * self.height
