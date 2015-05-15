@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
-# Copyright (C) 2014, Numenta, Inc.  Unless you have purchased from
+# Copyright (C) 2014-15, Numenta, Inc.  Unless you have purchased from
 # Numenta, Inc. a separate commercial license for this software code, the
 # following terms and conditions apply:
 #
@@ -19,19 +19,21 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import math
+import numpy
 import os
 import pickle
-import math
 
-import numpy
+from fluent.models.model import Model
 # This is the class corresponding to the C++ optimized Temporal Pooler
+## TO DO: switch this to new implementation temporal_memory.py (or temporal_pooler.py in nupic.research?)
 from nupic.research.TP10X2 import TP10X2 as TP
 
 from fluent.term import Term
 
 
 
-class Model():
+class HTMModel():
 
 
   def __init__(self,
