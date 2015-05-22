@@ -33,7 +33,10 @@ from nupic.algorithms.KNNClassifier import KNNClassifier
 
 
 
-class ClassificationModelRandomSDR(ClassificationModel): ## TODO: unpack args from runner
+class ClassificationModelRandomSDR(ClassificationModel):
+  """
+  Class to run the survey response classification task with random SDRs.
+  """
 
   def __init__(self,
       dataDir='data',
@@ -42,6 +45,7 @@ class ClassificationModelRandomSDR(ClassificationModel): ## TODO: unpack args fr
   		kCV=3,  									# If = 1, no cross-validation
   		resultsPath='',
   		train=True,
+      evaluate=True,
   		test=False,
       verbosity=1
   	):
@@ -54,6 +58,7 @@ class ClassificationModelRandomSDR(ClassificationModel): ## TODO: unpack args fr
       raise ValueError("Invalid value for number of cross-validation folds.")
 
     self.encoder      = encoder
+    self.evaluate     = evaluate
     self.dataPath     = dataPath
     self.kCV          = kCV
     self.resultsPath  = resultsPath

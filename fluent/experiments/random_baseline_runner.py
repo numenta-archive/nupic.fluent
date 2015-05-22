@@ -61,10 +61,16 @@ def main(args):
   # Setup directories.
   root = os.path.abspath(os.path.join(os.path.dirname(__file__)))
   dataPath = os.path.abspath(os.path.join(
-    root, '../..', args.dataDir, args.dataFile))
+    root, '../..', args.dataFile))
   resultsPath = os.path.join(root, args.resultsDir, args.name)
 
-  model = ClassificationModelRandomSDR(dataPath=dataPath, resultsPath=resultsPath, kCV=args.kFolds)  ## TODO: pass args
+  model = ClassificationModelRandomSDR(dataPath=dataPath,
+                                       resultsPath=resultsPath,
+                                       kCV=args.kFolds,
+                                       train=args.train,
+                                       evaluate=args.evaluate,
+                                       test=args.test)
+  
   results = model.runExperiment()
   print "RESULTS..."
   print "max, mean, min accuracies = "
@@ -75,6 +81,7 @@ def main(args):
 if __name__ == "__main__":
 
   parser = argparse.ArgumentParser()
+  parser.add_argument("dataFile")
   parser.add_argument("-k", "--kFolds",
   										default=3,
   										type=int,
@@ -84,25 +91,16 @@ if __name__ == "__main__":
                       type=str,
                       help="Experiment name.")
   parser.add_argument("--train",
-                      help="Train the models, but do not run on evaluation data.",
+                      help="Train the model.",
                       default=True)
   parser.add_argument("--evaluate",
-                      help="Run the models on the evaluation data.",
+                      help="Run the model on the evaluation data.",
                       default=True)
-  parser.add_argument("--test",
+  parser.add_argument("--test",  ## TODO: implement this?
                       help="Run the models on the test data.",
                       default=False)
-  parser.add_argument("--dataDir",
-                    	default="data",
-                    	help="This directory holds all data files for this experiment.")
-  parser.add_argument("--dataFile",
-                      default="",
-                      help="Data file to run.")
   parser.add_argument("--resultsDir",
 	                    default="results",
 	                    help="This will hold the evaluation results.")
-  parser.add_argument("--checkpointDir",
-	                    default="checkpoint",
-	                    help="This will save HTM classification models.")
   args = parser.parse_args()
   main(args)
