@@ -23,16 +23,26 @@ import numpy
 import os
 import time
 
-from fluent.models.model import Model
+try:
+  import simplejson as json
+except ImportError:
+  import json
 
 
-
-class ClassificationModel(Model):
+class ClassificationModel(object):
 	"""
-	An NLP model for classification tasks. The subclasses implement methods 
-	specific to their tasks/experiments.
-	"""
+	Base class for NLP models of classification tasks. When inheriting from this
+  class please take note of which methods MUST be overridden, as documented
+  below.
 
+  The Model superclass implements:
+    - 
+    - ...
+
+  Methods/properties that must be implemented by subclasses:
+  	-
+
+	"""
 
 	def evaluateTrialResults(self, actual, predicted, labels):  ## TODO: add precision, recall, F1 score
 		"""
@@ -84,11 +94,22 @@ class ClassificationModel(Model):
 						"mean_cm":numpy.around(cm/k, decimals=3)}
 
 
-	def trainModel(self):
+	def encodePattern(self, pattern):
 		raise NotImplementedError
 
 
-	def testModel(self):
+	def densifyPattern(self, bitmap):
+		"""Return a numpy array of 0s and 1s to represent the input bitmap."""
+		densePattern = numpy.zeros(self.n)
+		densePattern[bitmap] = 1.0
+		return densePattern
+
+
+	def trainModel(self, trainIndices, labels): ## TODO: for this and all superclass methods that raise notImplError, make sure signature is same as subclass methods
+		raise NotImplementedError
+
+
+	def testModel(self): ## ^^
 		raise NotImplementedError
 
 
@@ -96,12 +117,37 @@ class ClassificationModel(Model):
 		raise NotImplementedError
 
 
-	def save(self):
-		super(ClassificationModel, self).save()
+	def save(self):  ## TODO (use pickle?)
+		"""
+		Save the model, returning the file path. If saving fails, an empty string is
+		returned.
+		"""
+
+
+		return filePath
 
 
 	def load(self):
-		super(ClassificationModel, self).load()
+		"""Loads a saved model, returning the name."""
+
+
+		return modelName
+
+
+	def getInfo(self):
+		"""Return info about the model."""
+
+
+		return {}
+
+
+	def printReport(self, results): ## TODO
+		"""
+		"""
+
+
+
+		pass
 
 
 ## THESE COMMENTED OUT METHODS ARE SPECIFIC TO HTM, AND SHOULD BE SUBCLASSED ACCORDINGLY

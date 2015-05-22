@@ -79,7 +79,13 @@ class ClassificationModelRandomSDR(ClassificationModel):
     self.ignore = getFrequentWords()
 
 
-  def _randomSDR(self, string):  ## better to use a 'random encoder' object?
+  def _winningLabel(self, labels):  ## move up to base
+    """Returns the most frequent item in the input list of labels."""
+    data = Counter(labels)
+    return data.most_common(1)[0][0]
+
+
+  def encodePattern(self, string):
     """
     Returns a randomly encoded SDR of the input string, w/ same dimensions 
     as the Cio encoder. We seed the random number generator such that a given 
@@ -92,19 +98,6 @@ class ClassificationModelRandomSDR(ClassificationModel):
     bitmap = random.sample(xrange(self.n), self.w)
     random.setstate(state)
     return sorted(bitmap)
-
-
-  def _densifyPattern(self, bitmap):
-    """Return a numpy array of 0s and 1s to represent the input bitmap."""
-    densePattern = numpy.zeros(self.n)
-    densePattern[bitmap] = 1.0
-    return densePattern
-
-
-  def _winningLabel(self, labels):
-    """Returns the most frequent item in the input list of labels."""
-    data = Counter(labels)
-    return data.most_common(1)[0][0]
 
 
   def trainModel(self, trainIndices, labels):
@@ -127,8 +120,8 @@ class ClassificationModelRandomSDR(ClassificationModel):
             for sample in tokenize(line[2], ignoreCommon=True):
               # Get a random SDR for each nonempty token, and learn w/ kNN.
               if sample == '': continue
-              sampleBitmap = self._randomSDR(sample)
-              for label in line[3].split(','):  ## Can kNN handle multiple classes? If so, no loop
+              sampleBitmap = self.encodePattern(sample)
+              for label in line[3].split(','):
                 numPatterns = self.classifier.learn(sampleBitmap, labels.index(label), isSparse=self.n)
         if self.verbosity > 0:
           print "Cumulative number of patterns classified = %i." % numPatterns
@@ -163,9 +156,9 @@ class ClassificationModelRandomSDR(ClassificationModel):
             for sample in tokenize(line[2], ignoreCommon=True):
               # Get a random SDR for each nonempty token, and infer w/ kNN.
               if sample == '': continue
-              sampleBitmap = self._randomSDR(sample)
+              sampleBitmap = self.encodePattern(sample)
               (tokenLabel, _, _, _) = self.classifier.infer(
-                self._densifyPattern(sampleBitmap))
+                self.densifyPattern(sampleBitmap))
               tokenLabels.append(tokenLabel)
             # Actual labels are all the same for this line, but predicted
             # label for this line is cumulative across the token labels.
