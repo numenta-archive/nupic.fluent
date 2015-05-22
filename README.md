@@ -4,6 +4,18 @@
 
 A platform for building language / NLP-based applications using [NuPIC](https://github.com/numenta/nupic) and Cortical.io's [REST](http://www.cortical.io/developers.html). The current version is v0.2.
 
+###NOTE this repo contains experimental code. A few disclaimers:
+
+- the contents may 
+	- change without warning or explanation
+	- change quickly, or not at all
+	- not function properly
+	- be buggy and sloppy; don't judge :)
+- work with external partners will not be included here
+- we might decide at some point to not do our NLP research in the open anymore and instead delete the whole repository
+
+The motivation here is we would like to move quickly in research while maintaining transparency.
+
 ## Installation
 
 Requirements:

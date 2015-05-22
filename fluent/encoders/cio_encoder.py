@@ -23,12 +23,12 @@ import os
 import random
 
 from cortipy.cortical_client import CorticalClient
-from fluent.encoders.encoder import Encoder
+from fluent.encoders.language_encoder import LanguageEncoder
 
 
 
 ## TODO: add the methods we've run in experiments b/c exp will be run through here, and anything else useful from cortipy.cortical_client.py
-class CioEncoder(Encoder):
+class CioEncoder(LanguageEncoder):
   """
   A language encoder using the Cortical.io API.
 
@@ -47,7 +47,7 @@ class CioEncoder(Encoder):
 
     self.apiKey         = os.environ['CORTICAL_API_KEY']
     self.client         = CorticalClient(self.apiKey,
-                                         cacheDir=os.join("./cache", name)
+                                         cacheDir=os.join("./cache", name))
     self.targetSparsity = 1.0
     self.w              = None
     self.h              = None
@@ -70,7 +70,7 @@ class CioEncoder(Encoder):
     
     try:
       encoding = self.client.getBitmap(string)
-    except: ValueError
+    except ValueError:
       encoding = self.client.getTextBitmap(string)
 
 

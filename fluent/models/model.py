@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
-# Copyright (C) 2014-15, Numenta, Inc.  Unless you have purchased from
+# Copyright (C) 2015, Numenta, Inc.  Unless you have purchased from
 # Numenta, Inc. a separate commercial license for this software code, the
 # following terms and conditions apply:
 #
@@ -21,6 +21,11 @@
 
 import os
 
+try:
+  import simplejson as json
+except ImportError:
+  import json
+
 
 
 class Model(object):
@@ -28,25 +33,79 @@ class Model(object):
   This is the base class for NLP models, where the subclasses implement
   functionalities specific to various NLP problems. When inheriting from this
   class please take note of which methods MUST be overridden, as documented
-  below. The model superclass implements:
+  below.
+
+  The Model superclass implements:
+    - getEncoderDescription()
     - pprint(): prints a description to the terminal
     - ...
+
+  Methods/properties that must be implemented by subclasses:
+
   """
   
-  def __init__(self,
-               dataDir,
-               verbosity):
+  # def __init__(self,
+  #             checkpointDir,
+  #             dataDir,
+  #             resultsDir,
+  #             verbostiy)
+
+  #   self.checkpointDir        = checkpointDir
+  #   self.checkpointDataPath   = None
+  #   self.checkpointJsonPath   = None
+  #   self.dataDir              = dataDir
+  #   self.getEncoder           = None           ####### ???????????
+  #   self.resultsDir           = resultsDir
+  #   self.verbosity            = verbosity
+
+  #   self._initCheckpoint()
+
+
+  # def _initCheckpoint(self):
+  #   if self.checkpointDir:
+  #     if not os.path.exists(self.checkpointDir):
+  #       os.makedirs(self.checkpointDir)
+  #     self.checkpointDataPath = self.checkpointDir + "/model.data"
+  #     self.checkpointJsonPath = self.checkpointDir + "/model.json"
     
-    self.dataDir   = dataDir
-    self.verbosity = verbosity
+
+  # def canCheckpoint(self):
+  #   return self.checkpointDir != None
 
 
-  def getText(self):
-    raise NotImplementedError
+  # def hasCheckpoint(self):
+  #   return (os.path.exists(self.checkpointJsonPath) and
+  #           os.path.exists(self.checkpointDataPath))
 
 
-#  def encodeText(self):
-#    raise NotImplementedError
+  # def save(self):
+  #   """Save the model."""
+  #   if not self.checkpointDir:
+  #     raise(Exception("No checkpoint directory specified"))
+
+  #   self.tp.saveToFile(self.checkpointDataPath)
+
+  #   with open(self.checkpointJsonPath, 'wb') as f:
+  #     json.dump(self.tp, f)
+
+
+  # def load(self):
+  #   """Load the model in the checkpoint path."""
+  #   if not self.checkpointDir:
+  #     raise(Exception("No checkpoint directory specified"))
+
+  #   if not self.hasCheckpoint():
+  #     raise(Exception("Could not find checkpoint file"))
+      
+  #   with open(self.checkpointJsonPath, 'rb') as f:
+  #     self.tp = json.load(f)
+
+  #   self.tp.loadFromFile(self.checkpointDataPath)
+
+
+
+
+
 
 
   def trainModel(self):
@@ -57,9 +116,10 @@ class Model(object):
     raise NotImplementedError
 
 
-  def computeError(self):
+  def evaluateResults(self):
     raise NotImplementedError
 
 
-  def printReport(self):
-    raise NotImplementedError
+  def printReport(self): ## TODO
+    # raise NotImplementedError
+    pass
