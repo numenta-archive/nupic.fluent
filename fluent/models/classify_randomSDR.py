@@ -25,16 +25,18 @@ import os
 import random
 import time
 
-from fluent.bin.utils import getCSVInfo, tokenize 
+from collections import Counter
+from fluent.bin.utils import getCSVInfo, getFrequentWords, tokenize
 # from fluent.encoders.random_encoder import RandomEncoder
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
 
 
 
-class ClassificationModelRandomSDR(ClassificationModel):
+class ClassificationModelRandomSDR(ClassificationModel): ## TODO: unpack args from runner
 
   def __init__(self,
+      dataDir='data',
   		dataPath=None,
       encoder='random',
   		kCV=3,  									# If = 1, no cross-validation
@@ -46,7 +48,8 @@ class ClassificationModelRandomSDR(ClassificationModel):
 
     # Verify input params.
     if not os.path.isfile(dataPath):
-      raise ValueError("Invalid data path; either does not exist or there are no data files.")
+      raise ValueError("Invalid data path; either does not exist or there are "
+                       "no data files.")
     if (not isinstance(kCV, int)) or (kCV < 1):
       raise ValueError("Invalid value for number of cross-validation folds.")
 
@@ -58,14 +61,17 @@ class ClassificationModelRandomSDR(ClassificationModel):
     self.train        = train
     self.verbosity    = verbosity
 
-    # Init kNN classifier
+    # Init kNN classifier:
     # specify 'distanceMethod'='rawOverlap' for overlap; Euclidean is std.
     # pass verbosity=1 for debugging
     self.classifier = KNNClassifier()  
 
-    # SDR dimensions
+    # SDR dimensions:
     self.n = 16384
     self.w = 328
+
+    # Store list of terms that are cut from the data:
+    self.ignore = getFrequentWords()
 
 
   def _randomSDR(self, string):  ## better to use a 'random encoder' object?
@@ -90,6 +96,12 @@ class ClassificationModelRandomSDR(ClassificationModel):
     return densePattern
 
 
+  def _winningLabel(self, labels):
+    """Returns the most frequent item in the input list of labels."""
+    data = Counter(labels)
+    return data.most_common(1)[0][0]
+
+
   def trainModel(self, trainIndices, labels):
     """
     Train the classifier on the input CSV file; expects the following
@@ -107,15 +119,14 @@ class ClassificationModelRandomSDR(ClassificationModel):
         next(reader, None)
         for i, line in enumerate(reader):
           if i in trainIndices:
-            for sample in tokenize(line[2]):
+            for sample in tokenize(line[2], ignoreCommon=True):
               # Get a random SDR for each nonempty token, and learn w/ kNN.
               if sample == '': continue
               sampleBitmap = self._randomSDR(sample)
               for label in line[3].split(','):  ## Can kNN handle multiple classes? If so, no loop
-                # import pdb; pdb.set_trace()
                 numPatterns = self.classifier.learn(sampleBitmap, labels.index(label), isSparse=self.n)
-      if self.verbosity > 0:
-        print "Cumulative number of patterns classified = %i." % numPatterns
+        if self.verbosity > 0:
+          print "Cumulative number of patterns classified = %i." % numPatterns
     except IOError:
       print ("Input file does not exist.")
 
@@ -135,26 +146,33 @@ class ClassificationModelRandomSDR(ClassificationModel):
                                             KNNClassifier.infer() documentation.
     @return labels            (list)        The true classifications.
     """
-    classifications = []
-    labels = []
+    predictLabels = []
+    actualLabels = []
     try:
       with open(self.dataPath) as f:
         reader = csv.reader(f)
         next(reader, None)
         for i, line in enumerate(reader):
+          tokenLabels = []
           if i in evalIndices:
-            for sample in tokenize(line[2]):
+            for sample in tokenize(line[2], ignoreCommon=True):
               # Get a random SDR for each nonempty token, and infer w/ kNN.
               if sample == '': continue
               sampleBitmap = self._randomSDR(sample)
-              (winner, _, _, _) = self.classifier.infer(
+              (tokenLabel, _, _, _) = self.classifier.infer(
                 self._densifyPattern(sampleBitmap))
-              classifications.append(winner)
-              labels.append(line[3].split(','))
+              tokenLabels.append(tokenLabel)
+            # Actual labels are all the same for this line, but predicted
+            # label for this line is cumulative across the token labels.
+            if tokenLabels == []:
+              print "Line skipped b/c kNN returned no classifications."
+              continue
+            actualLabels.append(line[3].split(','))
+            predictLabels.append(self._winningLabel(tokenLabels))
     except IOError:
       print ("Input file does not exist.")
 
-    return classifications, labels
+    return predictLabels, actualLabels
 
 
   def runExperiment(self):

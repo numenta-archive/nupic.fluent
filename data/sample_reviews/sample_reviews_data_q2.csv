@@ -1,1 +1,11 @@
-QID,QuestionText,Response,Classification1,"2. If you could change one thing at the company, what would it be?",Get rid of the terrible odor in the kitchen.,urgent2,"2. If you could change one thing at the company, what would it be?",I don_t care.,not helpful3,"2. If you could change one thing at the company, what would it be?",WFH everyday!!!,4,"2. If you could change one thing at the company, what would it be?",nothing,5,"2. If you could change one thing at the company, what would it be?",blah blah,not helpful6,"2. If you could change one thing at the company, what would it be?",,7,"2. If you could change one thing at the company, what would it be?",,8,"2. If you could change one thing at the company, what would it be?","stay golden, pony boy","unhelpful, funny"9,"2. If you could change one thing at the company, what would it be?",,10,"2. If you could change one thing at the company, what would it be?",,
+QID,QuestionText,Response,Classification
+1,"2. If you could change one thing at the company, what would it be?",Get rid of the terrible odor in the kitchen.,urgent
+2,"2. If you could change one thing at the company, what would it be?",I don't care,not helpful
+3,"2. If you could change one thing at the company, what would it be?",WFH everyday!!!,helpful
+4,"2. If you could change one thing at the company, what would it be?",nothing,none
+5,"2. If you could change one thing at the company, what would it be?",blah blah,not helpful
+6,"2. If you could change one thing at the company, what would it be?",Monday sugestions/vote on the Wednesday lunch,"helpful, food"
+7,"2. If you could change one thing at the company, what would it be?",Better snacks!,"helpful, food"
+8,"2. If you could change one thing at the company, what would it be?","stay golden, pony boy","not helpful, funny"
+9,"2. If you could change one thing at the company, what would it be?","once-a-week show at lunch -- i.e. lecture, tv show, documentary, etc.",entertainment
+10,"2. If you could change one thing at the company, what would it be?",more toys,entertainment

@@ -24,7 +24,6 @@ import os
 import time
 
 from fluent.models.model import Model
-from nupic.engine import Network
 
 
 
@@ -82,7 +81,7 @@ class ClassificationModel(Model):
 		return {"max_accuracy":max(accuracy),
 						"mean_accuracy":sum(accuracy)/float(len(accuracy)),
 						"min_accuracy":min(accuracy),
-						"mean_cm":cm/k}
+						"mean_cm":numpy.around(cm/k, decimals=3)}
 
 
 	def trainModel(self):
@@ -90,6 +89,10 @@ class ClassificationModel(Model):
 
 
 	def testModel(self):
+		raise NotImplementedError
+
+
+	def runExperiment(self):
 		raise NotImplementedError
 
 

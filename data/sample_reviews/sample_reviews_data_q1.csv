@@ -1,11 +1,11 @@
 QID,QuestionText,Response,Classification
 1,1. What do you think of the office decor?,I do not care,not helpful
-2,1. What do you think of the office decor?,Bonzai trees!,art
-3,1. What do you think of the office decor?,I do not care,kitchen
-4,1. What do you think of the office decor?,Bonzai trees!,"lighting, tech"
-5,1. What do you think of the office decor?,I do not care,not helpful
-6,1. What do you think of the office decor?,Bonzai trees!,art
-7,1. What do you think of the office decor?,I do not care,kitchen
-8,1. What do you think of the office decor?,Bonzai trees!,"lighting, tech"
-9,1. What do you think of the office decor?,I do not care,not helpful
-10,1. What do you think of the office decor?,Bonzai trees!,art
+2,1. What do you think of the office decor?,Bonzai trees!,"plants, art"
+3,1. What do you think of the office decor?,I don't care,not helpful
+4,1. What do you think of the office decor?,It's perfect!,helpful
+5,1. What do you think of the office decor?,I wish to work in a unicorn-free environment,"not helpful, funny"
+6,1. What do you think of the office decor?,What about some Palm artifacts? That'd be cool.,helpful
+7,1. What do you think of the office decor?,The haikus are offensive.,urgent
+8,1. What do you think of the office decor?,snack-suggestion box please,kitchen
+9,1. What do you think of the office decor?,Better chairs,furniture
+10,1. What do you think of the office decor?,We want lounge chairs to lay/work on!,"furniture, helpful"

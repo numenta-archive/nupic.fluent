@@ -61,6 +61,13 @@ class Model(object):
   #   self._initCheckpoint()
 
 
+  def getInfo(self):
+    """Return info about the model."""
+
+
+    return {}
+
+
   # def _initCheckpoint(self):
   #   if self.checkpointDir:
   #     if not os.path.exists(self.checkpointDir):
