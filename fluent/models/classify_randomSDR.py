@@ -19,15 +19,10 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import csv
 import numpy
-import os
 import random
-import time
 
 from collections import Counter
-from fluent.bin.utils import getCSVInfo, getFrequentWords, tokenize
-# from fluent.encoders.random_encoder import RandomEncoder
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
 
@@ -39,31 +34,16 @@ class ClassificationModelRandomSDR(ClassificationModel):
   """
 
   def __init__(self,
-      dataDir='data',
-  		dataPath=None,
-      encoder='random',
-  		kCV=3,  									# If = 1, no cross-validation
-  		resultsPath='',
-  		train=True,
-      evaluate=True,
-  		test=False,
+      encoder='random',     # in this case, only for model info
+  		kCV=3,  						  # if = 1, no cross-validation
+      paths={},
       verbosity=1
   	):
 
-    # Verify input params.
-    if not os.path.isfile(dataPath):
-      raise ValueError("Invalid data path; either does not exist or there are "
-                       "no data files.")
-    if (not isinstance(kCV, int)) or (kCV < 1):
-      raise ValueError("Invalid value for number of cross-validation folds.")
-
+    # Unpack params:
     self.encoder      = encoder
-    self.evaluate     = evaluate
-    self.dataPath     = dataPath
     self.kCV          = kCV
-    self.resultsPath  = resultsPath
-    self.test         = test
-    self.train        = train
+    self.paths        = paths
     self.verbosity    = verbosity
 
     # Init kNN classifier:
@@ -75,14 +55,14 @@ class ClassificationModelRandomSDR(ClassificationModel):
     self.n = 16384
     self.w = 328
 
-    # Store list of terms that are cut from the data:
-    self.ignore = getFrequentWords()
-
 
   def _winningLabel(self, labels):  ## move up to base
     """Returns the most frequent item in the input list of labels."""
-    data = Counter(labels)
-    return data.most_common(1)[0][0]
+    try:
+      data = Counter(labels)
+      return data.most_common(1)[0][0]
+    except IndexError:
+      import pdb; pdb.set_trace()
 
 
   def encodePattern(self, string):
@@ -100,105 +80,38 @@ class ClassificationModelRandomSDR(ClassificationModel):
     return sorted(bitmap)
 
 
-  def trainModel(self, trainIndices, labels):
+  def trainModel(self, sample, label):
     """
-    Train the classifier on the input CSV file; expects the following
-    formatting:
-    - one header row
-    - one page
-    - headers: 'index', 'question', 'response', 'classifications'
+    Train the classifier on the input sample and label.
 
-    @param evalIndices    (list)            Indices to specify which lines in
-                                            the data file are for training.
+    @param sample     (list)            List of bitmaps, each representing the
+                                        encoding of one token in the sample.
+    @param label      (int)             Reference index for the classification
+                                        of this sample.
     """
-    try:
-      with open(self.dataPath) as f:
-        reader = csv.reader(f)
-        next(reader, None)
-        for i, line in enumerate(reader):
-          if i in trainIndices:
-            for sample in tokenize(line[2], ignoreCommon=True):
-              # Get a random SDR for each nonempty token, and learn w/ kNN.
-              if sample == '': continue
-              sampleBitmap = self.encodePattern(sample)
-              for label in line[3].split(','):
-                numPatterns = self.classifier.learn(sampleBitmap, labels.index(label), isSparse=self.n)
-        if self.verbosity > 0:
-          print "Cumulative number of patterns classified = %i." % numPatterns
-    except IOError:
-      print ("Input file does not exist.")
+    # This experiment classifies individual tokens w/in each sample. Train the
+    # kNN classifier on each token.
+    for bitmap in sample:
+      if bitmap == []: continue
+      p = self.classifier.learn(bitmap, label, isSparse=self.n)
+      if self.verbosity > 0:
+        print "\tcumulative number of patterns classified = %i" % p
 
 
-  def testModel(self, evalIndices):
+  def testModel(self, sample):
     """
-    Test the classifier on the input CSV file; expects the following
-    formatting:
-    - one header row
-    - one page
-    - headers: 'index', 'question', 'response', 'classifications'
-
-    @param evalIndices        (list)        Indices to specify which lines in
-                                            the data file are for testing.
-    @return classifications   (list)        The 'winner' classifications for the
-                                            data samples; for more, see the
-                                            KNNClassifier.infer() documentation.
-    @return labels            (list)        The true classifications.
+    Test the kNN classifier on the input sample. Returns the classification most
+    frequent amongst the classifications of the sample's individual tokens.
+    @param sample           (list)        List of bitmaps, each representing the
+                                          encoding of one token in the sample.
+    @return classification  (int)         The 'winner' classifications for the
+                                          data samples; for more, see the
+                                          KNNClassifier.infer() documentation.
     """
-    predictLabels = []
-    actualLabels = []
-    try:
-      with open(self.dataPath) as f:
-        reader = csv.reader(f)
-        next(reader, None)
-        for i, line in enumerate(reader):
-          tokenLabels = []
-          if i in evalIndices:
-            for sample in tokenize(line[2], ignoreCommon=True):
-              # Get a random SDR for each nonempty token, and infer w/ kNN.
-              if sample == '': continue
-              sampleBitmap = self.encodePattern(sample)
-              (tokenLabel, _, _, _) = self.classifier.infer(
-                self.densifyPattern(sampleBitmap))
-              tokenLabels.append(tokenLabel)
-            # Actual labels are all the same for this line, but predicted
-            # label for this line is cumulative across the token labels.
-            if tokenLabels == []:
-              print "Line skipped b/c kNN returned no classifications."
-              continue
-            actualLabels.append(line[3].split(','))
-            predictLabels.append(self._winningLabel(tokenLabels))
-    except IOError:
-      print ("Input file does not exist.")
-
-    return predictLabels, actualLabels
-
-
-  def runExperiment(self):
-    """
-    Run k-fold cross-validation on a single survey question -- expects one data
-    file for the survey question.
-    Note: if self.kCV = 1 there will be no cross-validation
-    """
-    # Get some info about the input data.
-    labels, numSamples = getCSVInfo(self.dataPath)
-
-    # Run kCV trials of different data splits for k-fold cross validation.
-    split = numSamples/self.kCV  # this will approximate k-folds; partitions the training data based on survey responsees, not the individual tokens
-    intermResults = []
-    for k in range(self.kCV):
-      # Train the model on a subset, and hold the evaluation subset.
-      evalIndices = range(k*split, (k+1)*split)
-      trainIndices = [i for i in range(numSamples) if not i in evalIndices]
-
-      print "Training for CV fold %i." % k
-      self.trainModel(trainIndices, labels)
-
-      print "Evaluating for trial %i." % k
-      predicted, actual = self.testModel(evalIndices)
-
-      print "Calculating intermediate results..."
-      actual = [labels.index(c[0]) for c in actual]
-      intermResults.append(self.evaluateTrialResults(actual, predicted, labels))
-
-    print "Calculating cumulative results for %i trials..." % k
-    return self.evaluateResults(intermResults)
+    tokenLabels = []
+    for bitmap in sample:
+      if bitmap == []: continue
+      (tokenLabel, _, _, _) = self.classifier.infer(self.densifyPattern(bitmap))
+      tokenLabels.append(tokenLabel)
+    if tokenLabels == []: return []
+    return self._winningLabel(tokenLabels)

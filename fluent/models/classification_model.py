@@ -19,14 +19,10 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import cPickle as pickle
 import numpy
 import os
-import time
-
-try:
-  import simplejson as json
-except ImportError:
-  import json
+import shutil
 
 
 class ClassificationModel(object):
@@ -36,32 +32,39 @@ class ClassificationModel(object):
   below.
 
   The Model superclass implements:
-    - 
-    - ...
+    - evaluateTrialResults calcualtes result stats
+    - evaluateResults() calculates result stats for a list of trial results
+    - densifyPattern() returns a binary SDR vector for a given bitmap
+    - save()/load() saves/loads a serialized model checkpoint
 
   Methods/properties that must be implemented by subclasses:
-  	-
+  	- encodePattern()
+  	- trainModel()
+  	- testModel()
 
 	"""
 
-	def evaluateTrialResults(self, actual, predicted, labels):  ## TODO: add precision, recall, F1 score
+################################################################################
+# Experiment methods
+
+	def evaluateTrialResults(self, classifications, n):  ## TODO: add precision, recall, F1 score
 		"""
 		Calculate statistics for the predicted classifications against the actual.
 
-		@param predicted				(list)						Predicted classifications.
-		@param actual						(list)						Actual (true) classifications.
+		@param classifications	(list)						Two lists: (0) predictions and (1)
+																							actual classifications.
 		@return									(tuple)						Returns a 2-item tuple w/ the
 																							accuracy (float) and confusion
 																							matrix (numpy array).
 		"""
-		if len(predicted) != len(actual):
+		if len(classifications[0]) != len(classifications[1]):
 			raise ValueError("Classification lists must have same length.")
-		actual = numpy.array(actual)
-		predicted = numpy.array(predicted)
+		actual = numpy.array(classifications[1])
+		predicted = numpy.array(classifications[0])
 		
 		accuracy = (actual == predicted).sum() / float(len(actual))
 
-		cm = numpy.zeros((len(labels), len(labels)))
+		cm = numpy.zeros((n, n))
 		for a, p in zip(actual, predicted):
 			cm[a][p] += 1
 
@@ -94,10 +97,6 @@ class ClassificationModel(object):
 						"mean_cm":numpy.around(cm/k, decimals=3)}
 
 
-	def encodePattern(self, pattern):
-		raise NotImplementedError
-
-
 	def densifyPattern(self, bitmap):
 		"""Return a numpy array of 0s and 1s to represent the input bitmap."""
 		densePattern = numpy.zeros(self.n)
@@ -105,34 +104,106 @@ class ClassificationModel(object):
 		return densePattern
 
 
-	def trainModel(self, trainIndices, labels): ## TODO: for this and all superclass methods that raise notImplError, make sure signature is same as subclass methods
+	def encodePattern(self, pattern):
 		raise NotImplementedError
 
 
-	def testModel(self): ## ^^
+	def trainModel(self, sample, label):
 		raise NotImplementedError
 
 
-	def runExperiment(self):
+	def testModel(self, sample):
 		raise NotImplementedError
 
 
-	def save(self):  ## TODO (use pickle?)
+################################################################################
+# Model checkpoint methods
+
+	def save(self, saveModelDir):  ## TODO (use pickle?)
 		"""
-		Save the model, returning the file path. If saving fails, an empty string is
-		returned.
+		Save the model in the given directory.
+
+		@param saveModelDir 		(string)				Absolute directory path for saving
+																						the experiment. If the directory
+		        																already exists, it must contain a
+		        																valid local checkpoint of a model.
 		"""
+		modelPklFilePath = self._getModelPklFilePath(saveModelDir)
+
+		# Clean up old saved state, if any
+		self._cleanSaveModelDirectory(saveModelDir, modelPklFilePath)
+
+		# Create a new directory for saving state
+		self._makeSaveModelDirectory(saveModelDir)
+
+		try:
+			with open(modelPklFilePath, 'wb') as f:
+				pickle.dump(self, f)
+		except IOError("Could not open and dump model pickle file."):
+			return
 
 
-		return filePath
+	def load(self, loadModelDir):
+		"""
+		Load saved model.
+		@param loadModelDir  (string)			Directory of where the experiment is to 
+																		be, or was previously saved.
+		@returns 							(Model) 			The loaded model instance
+		"""
+		modelPklFilePath = self._getModelPklFilePath(loadModelDir)
+		try:
+			with open(modelPklFilePath, 'rb') as f:
+				return pickle.load(f)
+		except IOError("Could not open and dump model pickle file."):
+			return []
 
 
-	def load(self):
-		"""Loads a saved model, returning the name."""
+	@staticmethod
+	def _getModelPklFilePath(saveModelDir):
+		"""
+		Return the absolute path ot the model's pickle file.
+		@param saveModelDir 	(string)			Directory of where the experiment is to 
+	  																	be, or was previously saved.
+		@returns 							(string) 			An absolute path.
+		"""
+		return os.path.abspath(os.path.join(saveModelDir, "model.pkl"))
 
 
-		return modelName
+	@staticmethod
+	def _cleanSaveModelDirectory(dirPath, filePath):
+		"""
+		Cleans directory with saved file, if it exists.
 
+		"""
+		if os.path.exists(dirPath):
+			assert(os.path.isdir(dirPath),
+				"Directory \'%s\' is not a model checkpoint. Not deleting." % dirPath)
+			assert(os.path.isfile(filePath),
+				"File \'%s\' is not a model checkpoint. Not deleting." % filePath)
+
+			shutil.rmtree(dirPath)
+
+
+	@staticmethod
+	def _makeSaveModelDirectory(dirPath):
+		"""
+		Makes directory if it doesn't already exist.
+
+		@param dirPath			 		(str)					Absolute path of directory to create.
+		@exception							(Exception)		OSError if directory creation fails.
+		"""
+		assert os.path.isabs(dirPath)
+		try:
+			os.makedirs(dirPath)
+		except OSError as e:
+			if e.errno != os.errno.EEXIST:
+				raise
+		return
+
+
+################################################################################
+# Model details methods
+## TODO: implement these???
 
 	def getInfo(self):
 		"""Return info about the model."""
