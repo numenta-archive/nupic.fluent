@@ -1,11 +1,33 @@
 QID,QuestionText,Response,Classification
-1,"2. If you could change one thing at the company, what would it be?",Get rid of the terrible odor in the kitchen.,urgent
-2,"2. If you could change one thing at the company, what would it be?",I don't care,not helpful
-3,"2. If you could change one thing at the company, what would it be?",WFH everyday!!!,helpful
-4,"2. If you could change one thing at the company, what would it be?",nothing,none
-5,"2. If you could change one thing at the company, what would it be?",blah blah,not helpful
-6,"2. If you could change one thing at the company, what would it be?",Monday sugestions/vote on the Wednesday lunch,"helpful, food"
-7,"2. If you could change one thing at the company, what would it be?",Better snacks!,"helpful, food"
-8,"2. If you could change one thing at the company, what would it be?","stay golden, pony boy","not helpful, funny"
-9,"2. If you could change one thing at the company, what would it be?","once-a-week show at lunch -- i.e. lecture, tv show, documentary, etc.",entertainment
-10,"2. If you could change one thing at the company, what would it be?",more toys,entertainment
+1,2. What change(s) would you like to see at the office?,Get rid of the terrible odor in the kitchen.,"sanitation,kitchen"
+2,2. What change(s) would you like to see at the office?,I don't care,not helpful
+3,2. What change(s) would you like to see at the office?,WFH everyday!!!,work-life balance
+4,2. What change(s) would you like to see at the office?,nothing,thumbs-up
+5,2. What change(s) would you like to see at the office?,"blah blah, like anyone will read this anyway",not helpful
+6,2. What change(s) would you like to see at the office?,Monday sugestions/vote on the Wednesday lunch. The chairs are uncomfortable.,"food,furniture"
+7,2. What change(s) would you like to see at the office?,Better snacks!,food
+8,2. What change(s) would you like to see at the office?,"stay golden, pony boy","not helpful,funny"
+9,2. What change(s) would you like to see at the office?,"once-a-week show at lunch -- i.e. lecture, tv show, documentary, etc.",entertainment
+10,2. What change(s) would you like to see at the office?,more gams,entertainment
+11,2. What change(s) would you like to see at the office?,I wouldn't change a thing!,thumbs-up
+12,2. What change(s) would you like to see at the office?,Better/more HEALTHY snacks. Otherwise the office is perfect.,"food, thumbs-up"
+13,2. What change(s) would you like to see at the office?,I can't think of a better workplace environment!,thumbs-up
+14,2. What change(s) would you like to see at the office?,"[identifier deleted] gives each employee $10,000 to decorate their workspace… just sayin!",
+15,2. What change(s) would you like to see at the office?,"they've moved my desk four times already this year, and I used to be over by the window, and I could see the squirrels, and they were merry, but then, they switched from the Swingline to the Boston stapler, but I kept my Swingline stapler because it didn't bind up as much, and I kept the staples for the Swingline stapler and it's not okay because if they take my stapler then I'll set the building on fire... ","not helpful,funny"
+16,2. What change(s) would you like to see at the office?,I wouldn't say no to trying tellpresience robots…,tech
+17,2. What change(s) would you like to see at the office?,The projector is misaligned and it BUGS the hell out of me. There should be more coffess shop meetings. Why don’t we bring in food mor often? Guest lectures would be cool.,"tech,work-life balance, food"
+18,2. What change(s) would you like to see at the office?,"The office is great, don’t change anything. We should do more offsite activities though. Like a Giants game!","thumbs-up, work-life balance"
+19,2. What change(s) would you like to see at the office?,"Showers. A lot of us bike to/from work and wouldn’t mind cleaning up. We could also workout before work, or even at lunchtime if we want to.","sanitation,work-life balance"
+20,2. What change(s) would you like to see at the office?,I wish to work in a unicorn-free environment,"not helpful,funny"
+21,2. What change(s) would you like to see at the office?,* snack-suggestion box  * bar  * office cat,food
+22,2. What change(s) would you like to see at the office?,Move the office to SF :),not helpful
+23,2. What change(s) would you like to see at the office?,The Keurig is no good. We should have an arrngment with [identifier deleted] for discounts. Or at least we could have meetings at [identifier deleted].,food
+24,2. What change(s) would you like to see at the office?,"fresher fruit, actual coffee, drones, video games, graph paper","food,entertainment,supplies"
+25,2. What change(s) would you like to see at the office?,I want to sit down druing stand up.,not helpful
+26,2. What change(s) would you like to see at the office?,"Sonos speakers, then a few of us could play some music and work together in a conference room. Otherwise all is well!","entertainment,productivity"
+27,2. What change(s) would you like to see at the office?,1) personal whiteboards at each desk 2) a different person picks a new snack for each week 3) Friday happy hour 4) webcams in the confrnce rooms,"tech,supplies,food,productivity"
+28,2. What change(s) would you like to see at the office?,fewer surveys,not helpful
+29,2. What change(s) would you like to see at the office?,"lecture series; guest lectures, videos, or we give them oursleves",productivity
+30,2. What change(s) would you like to see at the office?,Retrofit a conference room for a nap room,"productivity,work-life balance"
+31,2. What change(s) would you like to see at the office?,"I love the office, wouldn't want to work anywere else",thumbs-up
+32,2. What change(s) would you like to see at the office?,"1- healthier snacks, 2- bring in dinner when working late, 3- allow for lunchtime workout; and maybe a gym membership at [identifier deleted] down the street?","food,work-life balance"

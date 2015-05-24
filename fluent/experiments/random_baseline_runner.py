@@ -51,14 +51,15 @@ from fluent.models.classify_randomSDR import ClassificationModelRandomSDR
 from fluent.models.classification_model import ClassificationModel
 
 
-def main(args):
+def run(args):
   """
   The experiment is configured to run on question response data.
 
   The runner sets up the data path to such that the experiment runs on a single
-  data file located in the nupic.fluent/data directory. The cmd line argument
-  dataFile MUST BE SPECIFIED with the experiment folder and specific datafile, 
-  e.g. 'sample_reviews/sample_reviews_data_q1.csv'.
+  data file located in the nupic.fluent/data directory.
+  The data path MUST BE SPECIFIED at the cmd line, e.g. from the fluent dir:
+  
+  python experiments/random_baseline_runner.py data/sample_reviews/sample_reviews_data_q2.csv
   """
   start = time.time()
 
@@ -77,8 +78,10 @@ def main(args):
   # Load or init model:
   if args.load:
     model = ClassificationModel().load(resultsPath)
+    print "Model loaded from \'{0}\'.".format(resultsPath)
   else:
     model = ClassificationModelRandomSDR(kCV=args.kFolds,
+                                         name=args.name,
                                          paths={"data":dataPath,
                                                 "results":resultsPath},
                                          verbosity=args.verbosity)
@@ -98,16 +101,17 @@ def main(args):
     evalIndices = range(k*split, (k+1)*split)
     trainIndices = [i for i in range(len(samples)) if not i in evalIndices]
 
-    print "Training for CV fold %i." % k
+    print "Training for CV fold {0}.".format(k)
     for i in trainIndices:
       model.trainModel(patterns[i], labels[i])
 
-    print "Evaluating for trial %i." % k
+    print "Evaluating for trial {0}.".format(k)
     trialResults = [[], []]
     for i in evalIndices:
       predicted = model.testModel(patterns[i])
       if predicted == []:
-        print "Skipping sample %i b/c no classification for this sample." % i
+        print("\tNote: skipping sample {0} b/c no classification for this "
+              "sample.".format(k))
         continue
       trialResults[0].append(predicted)
       trialResults[1].append(labels[i])
@@ -116,17 +120,18 @@ def main(args):
     intermResults.append(
       model.evaluateTrialResults(trialResults, len(labelReference)))
 
-  print "Calculating cumulative results for %i trials..." % k
+  print "Calculating cumulative results for {0} trials.".format(k)
   results = model.evaluateResults(intermResults)
 
   print "RESULTS..."
   print "max, mean, min accuracies = "
-  print "%0.2f, %0.2f, %0.2f" % (results["max_accuracy"], results["mean_accuracy"], results["min_accuracy"])
+  print "{0:.3f}, {1:.3f}, {2:.3f}".format(
+    results["max_accuracy"], results["mean_accuracy"], results["min_accuracy"])
   print "mean confusion matrix =\n", results["mean_cm"]
 
-  print "Saving model to \'%s\' directory." % resultsPath
+  print "Saving model to \'{0}\' directory.".format(resultsPath)
   model.save(resultsPath)
-  print "Experiment complete in %0.2f seconds." % (time.time() - start)
+  print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 
 
 if __name__ == "__main__":
@@ -157,11 +162,8 @@ if __name__ == "__main__":
   parser.add_argument("--resultsDir",
 	                    default="results",
 	                    help="This will hold the evaluation results.")
-  parser.add_argument("--loadPath",
-                      default=None,
-                      help="Model checkpoint.")
   parser.add_argument("--verbosity",
                       help="Verbosity >0 will print out experiment progress.",
                       default=1)
   args = parser.parse_args()
-  main(args)
+  run(args)

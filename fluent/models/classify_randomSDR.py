@@ -36,6 +36,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
   def __init__(self,
       encoder='random',     # in this case, only for model info
   		kCV=3,  						  # if = 1, no cross-validation
+      name='',
       paths={},
       verbosity=1
   	):
@@ -43,6 +44,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
     # Unpack params:
     self.encoder      = encoder
     self.kCV          = kCV
+    self.name         = name
     self.paths        = paths
     self.verbosity    = verbosity
 
@@ -58,11 +60,8 @@ class ClassificationModelRandomSDR(ClassificationModel):
 
   def _winningLabel(self, labels):  ## move up to base
     """Returns the most frequent item in the input list of labels."""
-    try:
-      data = Counter(labels)
-      return data.most_common(1)[0][0]
-    except IndexError:
-      import pdb; pdb.set_trace()
+    data = Counter(labels)
+    return data.most_common(1)[0][0]
 
 
   def encodePattern(self, string):
@@ -91,11 +90,12 @@ class ClassificationModelRandomSDR(ClassificationModel):
     """
     # This experiment classifies individual tokens w/in each sample. Train the
     # kNN classifier on each token.
+    p = 0
     for bitmap in sample:
       if bitmap == []: continue
       p = self.classifier.learn(bitmap, label, isSparse=self.n)
-      if self.verbosity > 0:
-        print "\tcumulative number of patterns classified = %i" % p
+    if self.verbosity > 0:
+      print "\tcumulative number of patterns classified = {0}".format(p)
 
 
   def testModel(self, sample):

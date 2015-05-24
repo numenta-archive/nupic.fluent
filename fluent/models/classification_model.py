@@ -177,9 +177,10 @@ class ClassificationModel(object):
 		"""
 		if os.path.exists(dirPath):
 			assert(os.path.isdir(dirPath),
-				"Directory \'%s\' is not a model checkpoint. Not deleting." % dirPath)
+				"Directory \'{0}\' is not a model checkpoint. Not deleting.".format(
+				dirPath)
 			assert(os.path.isfile(filePath),
-				"File \'%s\' is not a model checkpoint. Not deleting." % filePath)
+				"File \'{0}\' is not a model checkpoint. Not deleting.".format(filePath)
 
 			shutil.rmtree(dirPath)
 
