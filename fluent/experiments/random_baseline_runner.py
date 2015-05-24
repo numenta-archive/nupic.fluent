@@ -64,10 +64,9 @@ def run(args):
   start = time.time()
 
   # Setup directories:
-  root = os.path.abspath(os.path.join(os.path.dirname(__file__)))
-  dataPath = os.path.abspath(os.path.join(
-    root, '../..', args.dataFile))
-  resultsPath = os.path.join(root, args.resultsDir, args.name)
+  root = os.path.dirname(__file__)
+  dataPath = os.path.abspath(os.path.join(root, '../..', args.dataFile))
+  resultsPath = os.path.abspath(os.path.join(root, args.resultsDir, args.name))
 
   # Verify input params.
   if not os.path.isfile(dataPath):

@@ -129,7 +129,7 @@ class ClassificationModel(object):
 		        																valid local checkpoint of a model.
 		"""
 		modelPklFilePath = self._getModelPklFilePath(saveModelDir)
-
+		
 		# Clean up old saved state, if any
 		self._cleanSaveModelDirectory(saveModelDir, modelPklFilePath)
 
@@ -178,9 +178,10 @@ class ClassificationModel(object):
 		if os.path.exists(dirPath):
 			assert(os.path.isdir(dirPath),
 				"Directory \'{0}\' is not a model checkpoint. Not deleting.".format(
-				dirPath)
+				dirPath))
 			assert(os.path.isfile(filePath),
-				"File \'{0}\' is not a model checkpoint. Not deleting.".format(filePath)
+				"File \'{0}\' is not a model checkpoint. Not deleting.".format(
+				filePath))
 
 			shutil.rmtree(dirPath)
 
