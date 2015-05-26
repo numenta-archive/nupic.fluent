@@ -25,7 +25,7 @@ import random
 from cortipy.cortical_client import CorticalClient
 
 
-TARGET_SPARSITY = 3.0
+TARGET_SPARSITY = 1.0
 
 def termJSONEncoder(obj):
   """
@@ -60,7 +60,7 @@ class Term():
         "http://www.cortical.io/resources_apikey.html")
       raise Exception("Missing API key.")
 
-    self.apiKey  = os.environ['CORTICAL_API_KEY']
+    self.apiKey   = os.environ['CORTICAL_API_KEY']
     self.client   = CorticalClient(self.apiKey, cacheDir="./cache")  # TO DO: name cache by experiment
     
     self.bitmap   = None
@@ -79,11 +79,12 @@ class Term():
     self.sparsity = response['sparsity']
     self.width    = response['width']
     self.height   = response['height']
+
     if enablePlaceholder and self.sparsity == 0:
       # No fingerprint so fill w/ random bitmap, seeded for each specific term.
-      print ("The client returned a bitmap with sparsity=0 for the string "
+      print ("\tThe client returned a bitmap with sparsity=0 for the string "
             "\'%s\', so we'll generate a pseudo-random SDR with the target "
-            "sparsity=%f." % (string, TARGET_SPARSITY))
+            "sparsity=%0.1f." % (string, TARGET_SPARSITY))
       state = random.getstate()
       random.seed(string)
       num = self.width * self.height

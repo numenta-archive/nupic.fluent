@@ -113,5 +113,11 @@ class ClassificationModelRandomSDR(ClassificationModel):
       if bitmap == []: continue
       (tokenLabel, _, _, _) = self.classifier.infer(self.densifyPattern(bitmap))
       tokenLabels.append(tokenLabel)
+<<<<<<< Updated upstream
     if tokenLabels == []: return []
+=======
+    if tokenLabels == []:
+      import pdb; pdb.set_trace()
+      return []
+>>>>>>> Stashed changes
     return self._winningLabel(tokenLabels)

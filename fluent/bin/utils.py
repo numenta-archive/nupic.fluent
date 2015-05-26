@@ -25,13 +25,19 @@ This file contains utility functions to use with nupic.fluent experiments.
 import csv
 import os
 
+<<<<<<< Updated upstream
 from collections import Counter
 
+=======
+>>>>>>> Stashed changes
 
 
 exclusions = ('!', '.', ':', ',', '"', '\'', '\n', '?')
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 ################################################################################
 # Text processing functions:
 
@@ -55,9 +61,18 @@ def getFrequentWords(n=200):
 	if n>1000:
 		raise ValueError("Max number of words is 1000.")
 	datafile = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..', 'data/etc/word_frequencies.txt'))
+<<<<<<< Updated upstream
 	try:
 		with open(datafile) as f:
 			lst = []
+=======
+
+	import pdb; pdb.set_trace()
+	try:
+		with open(datafile) as f:
+			lst = []
+			import pdb; pdb.set_trace()
+>>>>>>> Stashed changes
 			for i, line in enumerate(f):
 				if i==0: continue
 				if i>99:
@@ -68,8 +83,13 @@ def getFrequentWords(n=200):
 					lst.append(line.split(' ')[5])
 				if i==n: break
 			return lst
+<<<<<<< Updated upstream
 	except IOError:
 		print ("Cannot find the word frequencies data file.")
+=======
+	except IOError as e:
+		print e
+>>>>>>> Stashed changes
 
 
 ################################################################################
@@ -125,8 +145,13 @@ def readCSV(csvFile):
 					sampleList.append(line[2])
 					labelList.append(label)
 			return sampleList, labelList
+<<<<<<< Updated upstream
 	except IOError:
 		print ("Input file does not exist.")
+=======
+	except IOError as e:
+		print e
+>>>>>>> Stashed changes
 
 
 def getClassTokens(csvFile, ignoreCommon=True):
@@ -158,8 +183,13 @@ def getClassTokens(csvFile, ignoreCommon=True):
 					line[2] = tokenize(line[2], ignoreCommon)
 					[dataDict[label].append(token) for token in line[2] if token not in dataDict[label]]
 			return dataDict
+<<<<<<< Updated upstream
 	except IOError:
 		print ("Input file does not exist.")
+=======
+	except IOError as e:
+		print e
+>>>>>>> Stashed changes
 
 
 def getCSVInfo(csvFile):
@@ -186,5 +216,10 @@ def getCSVInfo(csvFile):
 					if not label in labels:
 						labels.append(label)
 			return labels, numSamples
+<<<<<<< Updated upstream
 	except IOError:
 		print ("Input file does not exist.")
+=======
+	except IOError as e:
+		print e
+>>>>>>> Stashed changes
