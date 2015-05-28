@@ -42,7 +42,7 @@ class LSAEncoder(LanguageEncoder):
   each topic. The top `w` topics are set to 1.
   """
 
-  def __init__(self, name="LSA"):
+  def __init__(self):
     self.dictionary = gensim.corpora.Dictionary.load_from_text(
         "wiki/wiki_en_wordids.txt")
     self.tfidf = gensim.models.TfidfModel.load(tfidfModelPath)
@@ -53,7 +53,6 @@ class LSAEncoder(LanguageEncoder):
       self.w = w
     else:
       self.w = int(float(self.n) * 0.05)
-    self.description = [name]
 
   
   def _tokenize(self, text):

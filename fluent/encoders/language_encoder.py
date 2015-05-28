@@ -88,7 +88,7 @@ class LanguageEncoder(object):
 
   def bitmapToSDR(self, bitmap):
     """Convert SDR encoding from bitmap to binary numpy array."""
-    sdr = numpy.zeros(self.w)
+    sdr = numpy.zeros(self.n)
     for i in self.bitmap:
       sdr[i] = 1
     return sdr

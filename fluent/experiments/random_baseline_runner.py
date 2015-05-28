@@ -43,12 +43,13 @@ response is then labeled with the top classification(s).
 
 import argparse
 import csv
+import cPickle as pkl
 import os
 import time
 
-from fluent.bin.utils import readCSV, tokenize
+from fluent.utils.read import readCSV
+from fluent.utils.text_preprocess import TextPreprocess
 from fluent.models.classify_randomSDR import ClassificationModelRandomSDR
-from fluent.models.classification_model import ClassificationModel
 
 
 def run(args):
@@ -76,21 +77,19 @@ def run(args):
 
   # Load or init model:
   if args.load:
-    model = ClassificationModel().load(resultsPath)
+    with open(os.path.join(resultsPath, "model.pkl"), "rb") as f:
+      model = pkl.load(f)
     print "Model loaded from \'{0}\'.".format(resultsPath)
   else:
-    model = ClassificationModelRandomSDR(kCV=args.kFolds,
-                                         name=args.name,
-                                         paths={"data":dataPath,
-                                                "results":resultsPath},
-                                         verbosity=args.verbosity)
-  
+    model = ClassificationModelRandomSDR(verbosity=args.verbosity)
+
   # Get and prep data:
+  texter = TextPreprocess()
   samples, labels = readCSV(dataPath)
   labelReference = list(set(labels))
   labels = [labelReference.index(l) for l in labels]
   split = len(samples)/args.kFolds
-  samples = [tokenize(sample, ignoreCommon=True) for sample in samples]
+  samples = [texter.tokenize(sample, ignoreCommon=100) for sample in samples]
   patterns = [[model.encodePattern(t) for t in tokens] for tokens in samples]
 
   # Run k-fold cross-validation:
@@ -100,36 +99,34 @@ def run(args):
     evalIndices = range(k*split, (k+1)*split)
     trainIndices = [i for i in range(len(samples)) if not i in evalIndices]
 
-    print "Training for CV fold {0}.".format(k)
-    for i in trainIndices:
-      model.trainModel(patterns[i], labels[i])
+    if args.train:
+      print "Training for CV fold {0}.".format(k)
+      for i in trainIndices:
+        model.trainModel(patterns[i], labels[i])
 
-    print "Evaluating for trial {0}.".format(k)
-    trialResults = [[], []]
-    for i in evalIndices:
-      predicted = model.testModel(patterns[i])
-      if predicted == []:
-        print("\tNote: skipping sample {0} b/c no classification for this "
-              "sample.".format(k))
-        continue
-      trialResults[0].append(predicted)
-      trialResults[1].append(labels[i])
+    if args.evaluate:
+      print "Evaluating for trial {0}.".format(k)
+      trialResults = [[], []]
+      for i in evalIndices:
+        predicted = model.testModel(patterns[i])
+        if predicted == []:
+          print("\tNote: skipping sample {0} b/c no classification for this "
+                "sample.".format(k))
+          continue
+        trialResults[0].append(predicted)
+        trialResults[1].append(labels[i])
 
-    print "Calculating intermediate results for this fold."
-    intermResults.append(
-      model.evaluateTrialResults(trialResults, len(labelReference)))
+      print "Calculating intermediate results for this fold."
+      intermResults.append(
+        model.evaluateTrialResults(trialResults, len(labelReference)))
 
   print "Calculating cumulative results for {0} trials.".format(k)
   results = model.evaluateResults(intermResults)
-
-  print "RESULTS..."
-  print "max, mean, min accuracies = "
-  print "{0:.3f}, {1:.3f}, {2:.3f}".format(
-    results["max_accuracy"], results["mean_accuracy"], results["min_accuracy"])
-  print "mean confusion matrix =\n", results["mean_cm"]
+  model._printReport(results)
 
   print "Saving model to \'{0}\' directory.".format(resultsPath)
-  model.save(resultsPath)
+  with open(os.path.join(resultsPath, "model.pkl"), "wb") as f:
+    pkl.dump(model, f)
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 
 
@@ -147,7 +144,7 @@ if __name__ == "__main__":
                       type=str,
                       help="Experiment name.")
   parser.add_argument("--load",
-                      help="Load the checkpoint model.",
+                      help="Load the serialized model.",
                       default=False)
   parser.add_argument("--train",
                       help="Train the model.",
@@ -155,9 +152,6 @@ if __name__ == "__main__":
   parser.add_argument("--evaluate",
                       help="Run the model on the evaluation data.",
                       default=True)
-  parser.add_argument("--test",  ## TODO: implement this?
-                      help="Run the models on the test data.",
-                      default=False)
   parser.add_argument("--resultsDir",
 	                    default="results",
 	                    help="This will hold the evaluation results.")

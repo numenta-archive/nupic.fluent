@@ -19,10 +19,10 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import cPickle as pickle
 import numpy
 import os
 import shutil
+
 
 
 class ClassificationModel(object):
@@ -35,7 +35,6 @@ class ClassificationModel(object):
     - evaluateTrialResults calcualtes result stats
     - evaluateResults() calculates result stats for a list of trial results
     - densifyPattern() returns a binary SDR vector for a given bitmap
-    - save()/load() saves/loads a serialized model checkpoint
 
   Methods/properties that must be implemented by subclasses:
   	- encodePattern()
@@ -44,8 +43,6 @@ class ClassificationModel(object):
 
 	"""
 
-################################################################################
-# Experiment methods
 
 	def evaluateTrialResults(self, classifications, n):  ## TODO: add precision, recall, F1 score
 		"""
@@ -53,6 +50,8 @@ class ClassificationModel(object):
 
 		@param classifications	(list)						Two lists: (0) predictions and (1)
 																							actual classifications.
+		@param n 								(int)							Number of classification labels 
+																							possible in the dataset.
 		@return									(tuple)						Returns a 2-item tuple w/ the
 																							accuracy (float) and confusion
 																							matrix (numpy array).
@@ -97,6 +96,16 @@ class ClassificationModel(object):
 						"mean_cm":numpy.around(cm/k, decimals=3)}
 
 
+	@staticmethod
+	def _printReport(results):  ## TODO: pprint
+		"""Prints results as returned by evaluateResults()."""
+		print "---------- RESULTS ----------"
+		print "max, mean, min accuracies = "
+		print "{0:.3f}, {1:.3f}, {2:.3f}".format(
+			results["max_accuracy"], results["mean_accuracy"], results["min_accuracy"])
+		print "mean confusion matrix =\n", results["mean_cm"]
+
+
 	def densifyPattern(self, bitmap):
 		"""Return a numpy array of 0s and 1s to represent the input bitmap."""
 		densePattern = numpy.zeros(self.n)
@@ -114,130 +123,3 @@ class ClassificationModel(object):
 
 	def testModel(self, sample):
 		raise NotImplementedError
-
-
-################################################################################
-# Model checkpoint methods
-
-	def save(self, saveModelDir):  ## TODO (use pickle?)
-		"""
-		Save the model in the given directory.
-
-		@param saveModelDir 		(string)				Absolute directory path for saving
-																						the experiment. If the directory
-		        																already exists, it must contain a
-		        																valid local checkpoint of a model.
-		"""
-		modelPklFilePath = self._getModelPklFilePath(saveModelDir)
-		
-		# Clean up old saved state, if any
-		self._cleanSaveModelDirectory(saveModelDir, modelPklFilePath)
-
-		# Create a new directory for saving state
-		self._makeSaveModelDirectory(saveModelDir)
-
-		try:
-			with open(modelPklFilePath, 'wb') as f:
-				pickle.dump(self, f)
-		except IOError("Could not open and dump model pickle file."):
-			return
-
-
-	def load(self, loadModelDir):
-		"""
-		Load saved model.
-		@param loadModelDir  (string)			Directory of where the experiment is to 
-																		be, or was previously saved.
-		@returns 							(Model) 			The loaded model instance
-		"""
-		modelPklFilePath = self._getModelPklFilePath(loadModelDir)
-		try:
-			with open(modelPklFilePath, 'rb') as f:
-				return pickle.load(f)
-		except IOError("Could not open and dump model pickle file."):
-			return []
-
-
-	@staticmethod
-	def _getModelPklFilePath(saveModelDir):
-		"""
-		Return the absolute path ot the model's pickle file.
-		@param saveModelDir 	(string)			Directory of where the experiment is to 
-	  																	be, or was previously saved.
-		@returns 							(string) 			An absolute path.
-		"""
-		return os.path.abspath(os.path.join(saveModelDir, "model.pkl"))
-
-
-	@staticmethod
-	def _cleanSaveModelDirectory(dirPath, filePath):
-		"""
-		Cleans directory with saved file, if it exists.
-
-		"""
-		if os.path.exists(dirPath):
-			assert(os.path.isdir(dirPath),
-				"Directory \'{0}\' is not a model checkpoint. Not deleting.".format(
-				dirPath))
-			assert(os.path.isfile(filePath),
-				"File \'{0}\' is not a model checkpoint. Not deleting.".format(
-				filePath))
-
-			shutil.rmtree(dirPath)
-
-
-	@staticmethod
-	def _makeSaveModelDirectory(dirPath):
-		"""
-		Makes directory if it doesn't already exist.
-
-		@param dirPath			 		(str)					Absolute path of directory to create.
-		@exception							(Exception)		OSError if directory creation fails.
-		"""
-		assert os.path.isabs(dirPath)
-		try:
-			os.makedirs(dirPath)
-		except OSError as e:
-			if e.errno != os.errno.EEXIST:
-				raise
-		return
-
-
-################################################################################
-# Model details methods
-## TODO: implement these???
-
-	def getInfo(self):
-		"""Return info about the model."""
-
-
-		return {}
-
-
-	def printReport(self, results): ## TODO
-		"""
-		"""
-
-
-
-		pass
-
-
-## THESE COMMENTED OUT METHODS ARE SPECIFIC TO HTM, AND SHOULD BE SUBCLASSED ACCORDINGLY
-
-	# def createNetwork():
-	#   """Set up a network and return it"""
-	#   raise NotImplementedError
-
-
-	# def feedText(self, text): ##########????????????
-	# 	super(ClassificationModel, self).feedText(text)
-
-
-	# def computeAnomalyScores(self):
-	# 	super(ClassificationModel, self).computeAnomalyScores()
-
-
-	# def resetSequence(self):
-	# 	super(ClassificationModel, self).resetSequence()
-

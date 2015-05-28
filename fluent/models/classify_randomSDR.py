@@ -33,19 +33,9 @@ class ClassificationModelRandomSDR(ClassificationModel):
   Class to run the survey response classification task with random SDRs.
   """
 
-  def __init__(self,
-      encoder='random',     # in this case, only for model info
-  		kCV=3,  						  # if = 1, no cross-validation
-      name='',
-      paths={},
-      verbosity=1
-  	):
+  def __init__(self, verbosity=1):
 
     # Unpack params:
-    self.encoder      = encoder
-    self.kCV          = kCV
-    self.name         = name
-    self.paths        = paths
     self.verbosity    = verbosity
 
     # Init kNN classifier:
@@ -102,6 +92,8 @@ class ClassificationModelRandomSDR(ClassificationModel):
     """
     Test the kNN classifier on the input sample. Returns the classification most
     frequent amongst the classifications of the sample's individual tokens.
+    We ignore the terms that are unclassified, picking the most frequent
+    classification among those that are detected.
     @param sample           (list)        List of bitmaps, each representing the
                                           encoding of one token in the sample.
     @return classification  (int)         The 'winner' classifications for the
@@ -112,12 +104,9 @@ class ClassificationModelRandomSDR(ClassificationModel):
     for bitmap in sample:
       if bitmap == []: continue
       (tokenLabel, _, _, _) = self.classifier.infer(self.densifyPattern(bitmap))
-      tokenLabels.append(tokenLabel)
-<<<<<<< Updated upstream
-    if tokenLabels == []: return []
-=======
+      if tokenLabel:
+        # Only include classified tokens.
+        tokenLabels.append(tokenLabel)
     if tokenLabels == []:
-      import pdb; pdb.set_trace()
       return []
->>>>>>> Stashed changes
     return self._winningLabel(tokenLabels)

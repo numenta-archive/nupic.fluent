@@ -37,7 +37,7 @@ class CioEncoder(LanguageEncoder):
   converted to binary SDR arrays with this Cio encoder.
   """
 
-  def __init__(self, name="Cio"):
+  def __init__(self, w=128, h=128):
     if 'CORTICAL_API_KEY' not in os.environ:
       print ("Missing CORTICAL_API_KEY environment variable. If you have a "
         "key, set it with $ export CORTICAL_API_KEY=api_key\n"
@@ -47,11 +47,11 @@ class CioEncoder(LanguageEncoder):
 
     self.apiKey         = os.environ['CORTICAL_API_KEY']
     self.client         = CorticalClient(self.apiKey,
-                                         cacheDir=os.join("./cache", name))
+                                         cacheDir=os.join("./cache"))
     self.targetSparsity = 1.0
-    self.w              = None
-    self.h              = None
-    self.description    = [name]
+    self.w              = w  ## Alternatively get dimensions from cortipy client object?
+    self.h              = h
+    self.n = w*h
     
     
   def encode(self, text):
@@ -78,11 +78,11 @@ class CioEncoder(LanguageEncoder):
       # No fingerprint so fill w/ random bitmap, seeded for each specific term.
       print ("\tThe client returned a bitmap with sparsity=0 for the string "
             "\'%s\', so we'll generate a pseudo-random SDR with the target "
-            "sparsity=%0.1f." % (string, TARGET_SPARSITY))
+            "sparsity=%0.1f." % (string, self.targetSparsity))
       state = random.getstate()
       random.seed(string)
       num = self.w * self.h
-      bitmap = random.sample(range(num), int(TARGET_SPARSITY * num / 100))
+      bitmap = random.sample(range(num), int(self.targetSparsity * num / 100))
       self._createFromBitmap(bitmap, self.w, self.h)
       random.setstate(state)
 
@@ -139,10 +139,8 @@ class CioEncoder(LanguageEncoder):
       }
     """
     # Format input SDRs as Cio fingerprints
-    fp1 = {"fingerprint":
-      {"positions":super(CioEncoder, self).bitmapFromSDR(encoding1)}}
-    fp2 = {"fingerprint":
-      {"positions":super(CioEncoder, self).bitmapFromSDR(encoding2)}}
+    fp1 = {"fingerprint": {"positions":self.bitmapFromSDR(encoding1)}}
+    fp2 = {"fingerprint": {"positions":self.bitmapFromSDR(encoding2)}}
 
     return self.client.compare(fp1, fp2)
   
