@@ -18,8 +18,10 @@
 #
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
+"""
+This file contains text pre-processing functions for NLP experiments.
+"""
 
-import csv
 import os
 import re
 import string
@@ -39,11 +41,11 @@ class TextPreprocess(object):
     # compilation.txt is a compilation of most frequent words from both British
     # National Corpus and Wiktionary, and books from Project Guttenberg.
 
-    corpusPath = os.path.abspath(os.path.join(
+    self.corpusPath = os.path.abspath(os.path.join(
       os.path.dirname(__file__), '../..', 'data/etc', corpusTxt))
 
     try:
-      self.corpus = file(corpusPath).read()
+      self.corpus = file(self.corpusPath).read()
     except IOError("Could not open corpus text."):
       raise
 
@@ -108,12 +110,14 @@ class TextPreprocess(object):
     - transposition(x,y) is the count(xy typed as yx)
     """
     # First split the word into tuples of all possible pairs.
-    splits = [(word[:i], word[i:]) for i in range(len(word)+1)]  # need +1 so we can perform edits at front and back end of the word.
+    # Note: need +1 so we can perform edits at front and back end of the word.
+    splits = [(word[:i], word[i:]) for i in range(len(word)+1)]
 
     # Now perform the edits at every possible split location.
+    # Substitution is essentially a deletion and insertion.
     delete = [a+b[1:] for a,b in splits if b]
     insert = [a+b+c for a,b in splits for c in alphabet]
-    subs = [a+c+b[1:] for a,b in splits for c in alphabet if b]  # essentially a deletion and insertion
+    subs = [a+c+b[1:] for a,b in splits for c in alphabet if b]
     trans = [a+b[1]+b[0]+b[2:] for a,b in splits if len(b)>1]
 
     return set(delete + insert + subs + trans)

@@ -20,8 +20,8 @@
 # ----------------------------------------------------------------------
 
 import numpy
-import os
-import shutil
+
+from collections import Counter
 
 
 
@@ -32,8 +32,10 @@ class ClassificationModel(object):
   below.
 
   The Model superclass implements:
-    - evaluateTrialResults calcualtes result stats
+    - evaluateTrialResults() calcualtes result stats
     - evaluateResults() calculates result stats for a list of trial results
+    - printTrialReport() prints classifications of an evaluation trial
+    - printFinalReport() prints evaluation metrics and confusion matrix
     - densifyPattern() returns a binary SDR vector for a given bitmap
 
   Methods/properties that must be implemented by subclasses:
@@ -43,8 +45,7 @@ class ClassificationModel(object):
 
 	"""
 
-
-	def evaluateTrialResults(self, classifications, n):  ## TODO: add precision, recall, F1 score
+	def evaluateTrialResults(self, classifications, references, idx):  ## TODO: add precision, recall, F1 score
 		"""
 		Calculate statistics for the predicted classifications against the actual.
 
@@ -60,17 +61,20 @@ class ClassificationModel(object):
 			raise ValueError("Classification lists must have same length.")
 		actual = numpy.array(classifications[1])
 		predicted = numpy.array(classifications[0])
-		
+
+		if self.verbosity > 0:
+			self._printTrialReport(classifications, references, idx)
+
 		accuracy = (actual == predicted).sum() / float(len(actual))
 
-		cm = numpy.zeros((n, n))
+		cm = numpy.zeros((len(references), len(references)))
 		for a, p in zip(actual, predicted):
 			cm[a][p] += 1
 
 		return (accuracy, cm)
 
 
-	def evaluateResults(self, intermResults):
+	def evaluateFinalResults(self, intermResults):
 		"""
 		Cumulative statistics for the outputs of evaluateTrialResults().
 
@@ -90,14 +94,29 @@ class ClassificationModel(object):
 			cm = numpy.add(cm, result[1])
 			k += 1
 
-		return {"max_accuracy":max(accuracy),
-						"mean_accuracy":sum(accuracy)/float(len(accuracy)),
-						"min_accuracy":min(accuracy),
-						"mean_cm":numpy.around(cm/k, decimals=3)}
+		results = {"max_accuracy":max(accuracy),
+							 "mean_accuracy":sum(accuracy)/float(len(accuracy)),
+							 "min_accuracy":min(accuracy),
+							 "mean_cm":numpy.around(cm/k, decimals=3)}
+
+		if self.verbosity > 0:
+			self._printFinalReport(results)
+
+		return results
 
 
 	@staticmethod
-	def _printReport(results):  ## TODO: pprint
+	def _printTrialReport(labels, refs, idx):
+		"""Print columns for sample #, actual label, and predicted label."""
+		template = "{0:5}|{1:20}|{2:20}"
+		print "Evaluation results for this fold:"
+		print template.format("#", "Actual", "Predicted")
+		for i in xrange(len(labels[0])):
+			print template.format(idx[i], refs[labels[1][i]], refs[labels[0][i]])
+
+
+	@staticmethod
+	def _printFinalReport(results):  ## TODO: pprint
 		"""Prints results as returned by evaluateResults()."""
 		print "---------- RESULTS ----------"
 		print "max, mean, min accuracies = "
@@ -106,14 +125,24 @@ class ClassificationModel(object):
 		print "mean confusion matrix =\n", results["mean_cm"]
 
 
-	def densifyPattern(self, bitmap):
+	def _densifyPattern(self, bitmap):
 		"""Return a numpy array of 0s and 1s to represent the input bitmap."""
 		densePattern = numpy.zeros(self.n)
 		densePattern[bitmap] = 1.0
 		return densePattern
 
 
+	def _winningLabel(self, labels):
+		"""Returns the most frequent item in the input list of labels."""
+		data = Counter(labels)
+		return data.most_common(1)[0][0]
+
+
 	def encodePattern(self, pattern):
+		raise NotImplementedError
+
+
+	def resetModel(self):
 		raise NotImplementedError
 
 

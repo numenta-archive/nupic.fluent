@@ -42,7 +42,6 @@ response is then labeled with the top classification(s).
 """
 
 import argparse
-import csv
 import cPickle as pkl
 import os
 import time
@@ -59,15 +58,16 @@ def run(args):
   The runner sets up the data path to such that the experiment runs on a single
   data file located in the nupic.fluent/data directory.
   The data path MUST BE SPECIFIED at the cmd line, e.g. from the fluent dir:
-  
-  python experiments/random_baseline_runner.py data/sample_reviews/sample_reviews_data_q2.csv
+
+  python experiments/random_baseline_runner.py data/sample_reviews/sample_reviews_data_training.csv
   """
   start = time.time()
 
-  # Setup directories:
+  # Setup directories.
   root = os.path.dirname(__file__)
   dataPath = os.path.abspath(os.path.join(root, '../..', args.dataFile))
-  resultsPath = os.path.abspath(os.path.join(root, args.resultsDir, args.name))
+  checkpointPklPath = os.path.abspath(
+    os.path.join(root, args.resultsDir, args.name))
 
   # Verify input params.
   if not os.path.isfile(dataPath):
@@ -75,15 +75,15 @@ def run(args):
   if (not isinstance(args.kFolds, int)) or (args.kFolds < 1):
     raise ValueError("Invalid value for number of cross-validation folds.")
 
-  # Load or init model:
+  # Load or init model.
   if args.load:
-    with open(os.path.join(resultsPath, "model.pkl"), "rb") as f:
+    with open(os.path.join(checkpointPklPath, "model.pkl"), "rb") as f:
       model = pkl.load(f)
-    print "Model loaded from \'{0}\'.".format(resultsPath)
+    print "Model loaded from \'{0}\'.".format(checkpointPklPath)
   else:
     model = ClassificationModelRandomSDR(verbosity=args.verbosity)
 
-  # Get and prep data:
+  # Get and prep data.
   texter = TextPreprocess()
   samples, labels = readCSV(dataPath)
   labelReference = list(set(labels))
@@ -92,7 +92,7 @@ def run(args):
   samples = [texter.tokenize(sample, ignoreCommon=100) for sample in samples]
   patterns = [[model.encodePattern(t) for t in tokens] for tokens in samples]
 
-  # Run k-fold cross-validation:
+  # Run k-fold cross-validation.
   intermResults = []
   for k in range(args.kFolds):
     # Train the model on a subset, and hold the evaluation subset.
@@ -100,6 +100,8 @@ def run(args):
     trainIndices = [i for i in range(len(samples)) if not i in evalIndices]
 
     if args.train:
+      # First reset the model.
+      model.resetModel()
       print "Training for CV fold {0}.".format(k)
       for i in trainIndices:
         model.trainModel(patterns[i], labels[i])
@@ -111,21 +113,23 @@ def run(args):
         predicted = model.testModel(patterns[i])
         if predicted == []:
           print("\tNote: skipping sample {0} b/c no classification for this "
-                "sample.".format(k))
+            "sample.".format(k))
           continue
         trialResults[0].append(predicted)
         trialResults[1].append(labels[i])
 
+      # Evaluate this fold.
       print "Calculating intermediate results for this fold."
       intermResults.append(
-        model.evaluateTrialResults(trialResults, len(labelReference)))
+        model.evaluateTrialResults(trialResults, labelReference, evalIndices))
 
   print "Calculating cumulative results for {0} trials.".format(k)
-  results = model.evaluateResults(intermResults)
-  model._printReport(results)
+  results = model.evaluateFinalResults(intermResults)  ## TODO: model.writeResults to csv?
 
-  print "Saving model to \'{0}\' directory.".format(resultsPath)
-  with open(os.path.join(resultsPath, "model.pkl"), "wb") as f:
+  print "Saving model to \'{0}\' directory.".format(checkpointPklPath)
+  if not os.path.exists(checkpointPklPath):
+    os.makedirs(checkpointPklPath)
+  with open(os.path.join(checkpointPklPath, "model.pkl"), "wb") as f:
     pkl.dump(model, f)
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 
@@ -135,7 +139,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("dataFile")
   parser.add_argument("-k", "--kFolds",
-  										default=3,
+  										default=5,
   										type=int,
   										help="Number of folds for cross validation; k=1 will "
                       "run no cross-validation.")
@@ -156,7 +160,9 @@ if __name__ == "__main__":
 	                    default="results",
 	                    help="This will hold the evaluation results.")
   parser.add_argument("--verbosity",
-                      help="Verbosity >0 will print out experiment progress.",
-                      default=1)
+                      default=1,
+                      type=int,
+                      help="verbosity 0 will print out experiment results, "
+                      "verbosity 1 will print out training progress.")
   args = parser.parse_args()
   run(args)

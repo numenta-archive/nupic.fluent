@@ -25,8 +25,6 @@ This file contains utility functions to use with nupic.fluent experiments.
 import csv
 import os
 
-from collections import Counter
-
 
 def readCSV(csvFile):
 	"""
@@ -53,7 +51,6 @@ def readCSV(csvFile):
 			sampleList = []
 			labelList = []
 			for line in reader:
-				# import pdb; pdb.set_trace()
 				for label in line[3].split(','):
 					# may be multiple labels for this sample
 					sampleList.append(line[2])

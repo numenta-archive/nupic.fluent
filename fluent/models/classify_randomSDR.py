@@ -19,10 +19,8 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import numpy
 import random
 
-from collections import Counter
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
 
@@ -48,12 +46,6 @@ class ClassificationModelRandomSDR(ClassificationModel):
     self.w = 328
 
 
-  def _winningLabel(self, labels):  ## move up to base
-    """Returns the most frequent item in the input list of labels."""
-    data = Counter(labels)
-    return data.most_common(1)[0][0]
-
-
   def encodePattern(self, string):
     """
     Returns a randomly encoded SDR of the input string, w/ same dimensions 
@@ -67,6 +59,11 @@ class ClassificationModelRandomSDR(ClassificationModel):
     bitmap = random.sample(xrange(self.n), self.w)
     random.setstate(state)
     return sorted(bitmap)
+
+
+  def resetModel(self):
+    """Reset the model by clearing the classifier."""
+    self.classifier.clear()
 
 
   def trainModel(self, sample, label):
@@ -84,7 +81,8 @@ class ClassificationModelRandomSDR(ClassificationModel):
     for bitmap in sample:
       if bitmap == []: continue
       p = self.classifier.learn(bitmap, label, isSparse=self.n)
-    if self.verbosity > 0:
+
+    if self.verbosity > 1:
       print "\tcumulative number of patterns classified = {0}".format(p)
 
 
@@ -103,10 +101,11 @@ class ClassificationModelRandomSDR(ClassificationModel):
     tokenLabels = []
     for bitmap in sample:
       if bitmap == []: continue
-      (tokenLabel, _, _, _) = self.classifier.infer(self.densifyPattern(bitmap))
+      (tokenLabel, _, _, _) = self.classifier.infer(
+        self._densifyPattern(bitmap))
       if tokenLabel:
         # Only include classified tokens.
-        tokenLabels.append(tokenLabel)
+        tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
     if tokenLabels == []:
       return []
     return self._winningLabel(tokenLabels)
