@@ -45,6 +45,10 @@ class ClassificationModel(object):
 
 	"""
 
+	def __init__(self, verbosity=1):
+		self.verbosity = verbosity
+
+
 	def evaluateTrialResults(self, classifications, references, idx):  ## TODO: add precision, recall, F1 score
 		"""
 		Calculate statistics for the predicted classifications against the actual.

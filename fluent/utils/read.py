@@ -23,20 +23,22 @@ This file contains utility functions to use with nupic.fluent experiments.
 """
 
 import csv
-import os
 
 
-def readCSV(csvFile):
+def readCSV(csvFile, indices=[2,3]):
 	"""
 	Read in a CSV file w/ the following formatting:
 	- one header row
 	- one page
-	- headers: 'index', 'question', 'response', 'classification'
 
 	Note: if a given sample has >1 labels, the sample will be repeated, once for
 	each label.
 
 	@param csvFile						(str)							File name for the input CSV.
+	@param indices						(list)						List of two items, where the first
+																							specifies the column index for the
+																							data samples, and the second for
+																							the labels.
 	@return sampleList				(list)						List of str items, one for each
 																							sample.
 	@return labelList					(list)						List of str items, where each item
@@ -47,13 +49,13 @@ def readCSV(csvFile):
 	try:
 		with open(csvFile) as f:
 			reader = csv.reader(f)
-			next(reader, None)  # skip the headers row
+			next(reader, None)
 			sampleList = []
 			labelList = []
 			for line in reader:
-				for label in line[3].split(','):
-					# may be multiple labels for this sample
-					sampleList.append(line[2])
+				for label in line[indices[1]].split(','):
+					# May be multiple labels for this sample.
+					sampleList.append(line[indices[0]])
 					labelList.append(label)
 			return sampleList, labelList
 	except IOError as e:

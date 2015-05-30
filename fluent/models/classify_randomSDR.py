@@ -31,10 +31,8 @@ class ClassificationModelRandomSDR(ClassificationModel):
   Class to run the survey response classification task with random SDRs.
   """
 
-  def __init__(self, verbosity=1):
-
-    # Unpack params:
-    self.verbosity    = verbosity
+  def __init__(self, verbosity):
+    super(ClassificationModelRandomSDR, self).__init__(verbosity)
 
     # Init kNN classifier:
     # specify 'distanceMethod'='rawOverlap' for overlap; Euclidean is std.
