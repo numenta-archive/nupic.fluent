@@ -4,6 +4,18 @@
 
 A platform for building language / NLP-based applications using [NuPIC](https://github.com/numenta/nupic) and Cortical.io's [REST](http://www.cortical.io/developers.html). The current version is v0.2.
 
+###NOTE this repo contains experimental code. A few disclaimers:
+
+- the contents may 
+	- change without warning or explanation
+	- change quickly, or not at all
+	- not function properly
+	- be buggy and sloppy; don't judge :)
+- work with external partners will not be included here
+- we might decide at some point to not do our NLP research in the open anymore and instead delete the whole repository
+
+The motivation here is we would like to move quickly in research while maintaining transparency.
+
 ## Installation
 
 Requirements:
@@ -23,7 +35,7 @@ Then, set up the following environment variables with your REST API credentials:
 
 ## Usage
 
-### Example
+### Example -- CURRENTLY BROKEN
 
     from fluent.model import Model
     from fluent.term import Term
@@ -50,7 +62,7 @@ Then, set up the following environment variables with your REST API credentials:
     print prediction.closestString()
     # => "mouse"
 
-### Tool: read
+### Tool: read -- CURRENTLY BROKEN
 
 The `read` tool can read a text document word-by-word, predicting each next word as it goes. You can find it at `tools/read.py`.
 
@@ -83,7 +95,7 @@ Here is an example (after some training):
 
 ## Demos
 
-### Fox demo
+### Fox demo -- CURRENTLY BROKEN
 
 To run the [Fox demo](http://numenta.org/blog/2013/11/06/2013-fall-hackathon-outcome.html#fox):
 
