@@ -19,6 +19,7 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import numpy
 import random
 
 from fluent.models.classification_model import ClassificationModel
@@ -31,32 +32,39 @@ class ClassificationModelRandomSDR(ClassificationModel):
   Class to run the survey response classification task with random SDRs.
   """
 
-  def __init__(self, verbosity):
+  def __init__(self, 
+               exact=True,
+               verbosity=1):
     super(ClassificationModelRandomSDR, self).__init__(verbosity)
 
     # Init kNN classifier:
-    # specify 'distanceMethod'='rawOverlap' for overlap; Euclidean is std.
-    # pass verbosity=1 for debugging
-    self.classifier = KNNClassifier()  
+    #   specify 'distanceMethod'='rawOverlap' for overlap; Euclidean is std.
+    #   verbosity=1 for debugging
+    #   standard k is 1
+    self.classifier = KNNClassifier(exact=exact, verbosity=verbosity-1)
 
     # SDR dimensions:
-    self.n = 16384
-    self.w = 328
+    self.n = 100
+    self.w = 20
 
 
   def encodePattern(self, string):
     """
-    Returns a randomly encoded SDR of the input string, w/ same dimensions 
-    as the Cio encoder. We seed the random number generator such that a given 
+    Randomly encode an SDR of the input string, w/ same dimensions 
+    We seed the random number generator such that a given 
     string will yield the same SDR each time this function is called.
     Saving the internal state of the generator reduces the likelihood of
     repeating values from previous inputs.
+
+    @param string     (str)             Text to encode.
+    @return           (numpy.array)     Bitmap of the SDR, as a numpy array of
+                                        integers.
     """
     state = random.getstate()
     random.seed(string)
-    bitmap = random.sample(xrange(self.n), self.w)
+    bitmap = numpy.array(random.sample(xrange(self.n), self.w), dtype=int)
     random.setstate(state)
-    return sorted(bitmap)
+    return numpy.sort(bitmap)
 
 
   def resetModel(self):
@@ -79,9 +87,6 @@ class ClassificationModelRandomSDR(ClassificationModel):
     for bitmap in sample:
       if bitmap == []: continue
       p = self.classifier.learn(bitmap, label, isSparse=self.n)
-
-    if self.verbosity > 1:
-      print "\tcumulative number of patterns classified = {0}".format(p)
 
 
   def testModel(self, sample):

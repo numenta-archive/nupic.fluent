@@ -43,6 +43,7 @@ response is then labeled with the top classification(s).
 
 import argparse
 import cPickle as pkl
+import numpy
 import os
 import time
 
@@ -81,13 +82,14 @@ def run(args):
       model = pkl.load(f)
     print "Model loaded from \'{0}\'.".format(checkpointPklPath)
   else:
-    model = ClassificationModelRandomSDR(verbosity=args.verbosity)
+    model = ClassificationModelRandomSDR(exact=args.exact,
+                                         verbosity=args.verbosity)
 
   # Get and prep data.
   texter = TextPreprocess()
   samples, labels = readCSV(dataPath)
   labelReference = list(set(labels))
-  labels = [labelReference.index(l) for l in labels]
+  labels = numpy.array([labelReference.index(l) for l in labels], dtype=int)
   split = len(samples)/args.kFolds
   samples = [texter.tokenize(sample, ignoreCommon=100) for sample in samples]
   patterns = [[model.encodePattern(t) for t in tokens] for tokens in samples]
@@ -109,17 +111,20 @@ def run(args):
     if args.evaluate:
       print "Evaluating for trial {0}.".format(k)
       trialResults = [[], []]
+      skippedIndices = []
       for i in evalIndices:
         predicted = model.testModel(patterns[i])
         if predicted == []:
           print("\tNote: skipping sample {0} b/c no classification for this "
-            "sample.".format(k))
+            "sample.".format(i))
+          skippedIndices.append(i)
           continue
         trialResults[0].append(predicted)
         trialResults[1].append(labels[i])
 
       # Evaluate this fold.
       print "Calculating intermediate results for this fold."
+      [evalIndices.remove(idx) for idx in skippedIndices]
       intermResults.append(
         model.evaluateTrialResults(trialResults, labelReference, evalIndices))
 
@@ -143,6 +148,9 @@ if __name__ == "__main__":
   										type=int,
   										help="Number of folds for cross validation; k=1 will "
                       "run no cross-validation.")
+  parser.add_argument("--exact",
+                      help="Specifies exact matching for kNN classification.",
+                      default=True)
   parser.add_argument("--name",
                       default="survey_response_random_sdr",
                       type=str,
