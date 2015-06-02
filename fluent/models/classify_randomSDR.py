@@ -106,7 +106,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
       if bitmap == []: continue
       (tokenLabel, _, _, _) = self.classifier.infer(
         self._densifyPattern(bitmap))
-      if tokenLabel:
+      if tokenLabel != None:
         # Only include classified tokens.
         tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
     if tokenLabels == []:
