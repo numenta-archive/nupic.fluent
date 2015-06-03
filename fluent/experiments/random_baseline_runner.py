@@ -82,8 +82,7 @@ def run(args):
       model = pkl.load(f)
     print "Model loaded from \'{0}\'.".format(checkpointPklPath)
   else:
-    model = ClassificationModelRandomSDR(exact=args.exact,
-                                         verbosity=args.verbosity)
+    model = ClassificationModelRandomSDR(verbosity=args.verbosity)
 
   # Get and prep data.
   texter = TextPreprocess()
@@ -148,9 +147,6 @@ if __name__ == "__main__":
   										type=int,
   										help="Number of folds for cross validation; k=1 will "
                       "run no cross-validation.")
-  parser.add_argument("--exact",
-                      help="Specifies exact matching for kNN classification.",
-                      default=True)
   parser.add_argument("--name",
                       default="survey_response_random_sdr",
                       type=str,
