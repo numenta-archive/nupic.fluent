@@ -43,6 +43,7 @@ response is then labeled with the top classification(s).
 
 import argparse
 import cPickle as pkl
+import numpy
 import os
 import time
 
@@ -87,7 +88,7 @@ def run(args):
   texter = TextPreprocess()
   samples, labels = readCSV(dataPath)
   labelReference = list(set(labels))
-  labels = [labelReference.index(l) for l in labels]
+  labels = numpy.array([labelReference.index(l) for l in labels], dtype=int)
   split = len(samples)/args.kFolds
   samples = [texter.tokenize(sample, ignoreCommon=100) for sample in samples]
   patterns = [[model.encodePattern(t) for t in tokens] for tokens in samples]
@@ -109,17 +110,20 @@ def run(args):
     if args.evaluate:
       print "Evaluating for trial {0}.".format(k)
       trialResults = [[], []]
+      skippedIndices = []
       for i in evalIndices:
         predicted = model.testModel(patterns[i])
         if predicted == []:
           print("\tNote: skipping sample {0} b/c no classification for this "
-            "sample.".format(k))
+            "sample.".format(i))
+          skippedIndices.append(i)
           continue
         trialResults[0].append(predicted)
         trialResults[1].append(labels[i])
 
       # Evaluate this fold.
       print "Calculating intermediate results for this fold."
+      [evalIndices.remove(idx) for idx in skippedIndices]
       intermResults.append(
         model.evaluateTrialResults(trialResults, labelReference, evalIndices))
 
