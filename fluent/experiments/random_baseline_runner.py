@@ -92,7 +92,8 @@ def run(args):
   split = len(samples)/args.kFolds
   samples = [texter.tokenize(sample, 
                              ignoreCommon=100, 
-                             removeStrings=["[identifier deleted]"]) 
+                             removeStrings=["[identifier deleted]"],
+                             correctSpell=True) 
              for sample in samples]
   patterns = [[model.encodePattern(t) for t in tokens] for tokens in samples]
 

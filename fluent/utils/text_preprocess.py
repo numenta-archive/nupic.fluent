@@ -54,7 +54,8 @@ class TextPreprocess(object):
     self.bagOfWords = Counter(self.txtCorpus)
 
 
-  def tokenize(self, string, ignoreCommon=None, removeStrings=[]):
+  def tokenize(self, string, 
+               ignoreCommon=None, removeStrings=[], correctSpell=False):
     """
     Tokenize, returning only lower-case letters and "$". Apostrophes are 
     deleted; e.g. "didn't" becomes "didnt".
@@ -71,6 +72,8 @@ class TextPreprocess(object):
     for removal in removeStrings:
       string = string.replace(removal, "")
     tokens = re.findall('[a-z$]+', string.lower())
+    if correctSpell:
+      tokens = [self.correct(t) for t in tokens]
     if ignoreCommon:
       tokens = self.removeMostCommon(tokens, n=ignoreCommon)
     return tokens
@@ -122,8 +125,8 @@ class TextPreprocess(object):
     # Now perform the edits at every possible split location.
     # Substitution is essentially a deletion and insertion.
     delete = [a+b[1:] for a,b in splits if b]
-    insert = [a+b+c for a,b in splits for c in alphabet]
-    subs = [a+c+b[1:] for a,b in splits for c in alphabet if b]
+    insert = [a+b+c for a,b in splits for c in TextPreprocess.alphabet]
+    subs = [a+c+b[1:] for a,b in splits for c in TextPreprocess.alphabet if b]
     trans = [a+b[1]+b[0]+b[2:] for a,b in splits if len(b)>1]
 
     return set(delete + insert + subs + trans)
