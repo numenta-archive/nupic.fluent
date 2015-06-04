@@ -90,7 +90,10 @@ def run(args):
   labelReference = list(set(labels))
   labels = numpy.array([labelReference.index(l) for l in labels], dtype=int)
   split = len(samples)/args.kFolds
-  samples = [texter.tokenize(sample, ignoreCommon=100) for sample in samples]
+  samples = [texter.tokenize(sample, 
+                             ignoreCommon=100, 
+                             removeStrings=["[identifier deleted]"]) 
+             for sample in samples]
   patterns = [[model.encodePattern(t) for t in tokens] for tokens in samples]
 
   # Run k-fold cross-validation.

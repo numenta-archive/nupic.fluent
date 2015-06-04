@@ -54,17 +54,23 @@ class TextPreprocess(object):
     self.bagOfWords = Counter(self.txtCorpus)
 
 
-  def tokenize(self, string, ignoreCommon=None):
+  def tokenize(self, string, ignoreCommon=None, removeStrings=[]):
     """
-    Tokenize, returning only lower-case letters.
+    Tokenize, returning only lower-case letters and "$". Apostrophes are 
+    deleted; e.g. "didn't" becomes "didnt".
     @param string             (str)             Single string to tokenize.
     @param ignoreCommon       (int)             This many most frequent words
                                                 will be filtered out from the
                                                 returned tokens.
+    @param removeStrings      (list)            List of strings to delete from 
+                                                the text.
     """
     if not isinstance(string, str):
       raise ValueError("Must input a single string object to tokenize.")
-    tokens = re.findall('[a-z]+', string.lower())
+    removeStrings.append("'")
+    for removal in removeStrings:
+      string = string.replace(removal, "")
+    tokens = re.findall('[a-z$]+', string.lower())
     if ignoreCommon:
       tokens = self.removeMostCommon(tokens, n=ignoreCommon)
     return tokens
