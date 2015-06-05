@@ -32,16 +32,16 @@ class ClassificationModel(object):
 	below.
 
 	The Model superclass implements:
-	- evaluateTrialResults() calcualtes result stats
-	- evaluateResults() calculates result stats for a list of trial results
-	- printTrialReport() prints classifications of an evaluation trial
-	- printFinalReport() prints evaluation metrics and confusion matrix
-	- densifyPattern() returns a binary SDR vector for a given bitmap
+		- evaluateTrialResults() calcualtes result stats
+		- evaluateResults() calculates result stats for a list of trial results
+		- printTrialReport() prints classifications of an evaluation trial
+		- printFinalReport() prints evaluation metrics and confusion matrix
+		- densifyPattern() returns a binary SDR vector for a given bitmap
 
 	Methods/properties that must be implemented by subclasses:
-	- encodePattern()
-	- trainModel()
-	- testModel()
+		- encodePattern()
+		- trainModel()
+		- testModel()
 	"""
 
 	def __init__(self, verbosity=1):
