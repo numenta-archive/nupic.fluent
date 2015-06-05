@@ -28,21 +28,20 @@ from collections import Counter
 class ClassificationModel(object):
 	"""
 	Base class for NLP models of classification tasks. When inheriting from this
-  class please take note of which methods MUST be overridden, as documented
-  below.
+	class please take note of which methods MUST be overridden, as documented
+	below.
 
-  The Model superclass implements:
-    - evaluateTrialResults() calcualtes result stats
-    - evaluateResults() calculates result stats for a list of trial results
-    - printTrialReport() prints classifications of an evaluation trial
-    - printFinalReport() prints evaluation metrics and confusion matrix
-    - densifyPattern() returns a binary SDR vector for a given bitmap
+	The Model superclass implements:
+	- evaluateTrialResults() calcualtes result stats
+	- evaluateResults() calculates result stats for a list of trial results
+	- printTrialReport() prints classifications of an evaluation trial
+	- printFinalReport() prints evaluation metrics and confusion matrix
+	- densifyPattern() returns a binary SDR vector for a given bitmap
 
-  Methods/properties that must be implemented by subclasses:
-  	- encodePattern()
-  	- trainModel()
-  	- testModel()
-
+	Methods/properties that must be implemented by subclasses:
+	- encodePattern()
+	- trainModel()
+	- testModel()
 	"""
 
 	def __init__(self, verbosity=1):
@@ -99,7 +98,7 @@ class ClassificationModel(object):
 			k += 1
 
 		results = {"max_accuracy":max(accuracy),
-							 "mean_accuracy":sum(accuracy)/float(len(accuracy)),
+					 		 "mean_accuracy":sum(accuracy)/float(len(accuracy)),
 							 "min_accuracy":min(accuracy),
 							 "mean_cm":numpy.around(cm/k, decimals=3)}
 
@@ -125,7 +124,7 @@ class ClassificationModel(object):
 		print "---------- RESULTS ----------"
 		print "max, mean, min accuracies = "
 		print "{0:.3f}, {1:.3f}, {2:.3f}".format(
-			results["max_accuracy"], results["mean_accuracy"], results["min_accuracy"])
+		results["max_accuracy"], results["mean_accuracy"], results["min_accuracy"])
 		print "mean confusion matrix =\n", results["mean_cm"]
 
 
