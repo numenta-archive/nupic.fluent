@@ -22,20 +22,20 @@
 Experiment runner for classification survey question responses.
 Please note the following definitions:
 - Training dataset: all the data files used for experimentally building the NLP
-	system. During k-fold cross validation, the training dataset is split 
-	differently for each of the k trials. The majority of the dataset is used for 
-	training, and a small portion (1/k) is held out for evaluation; this
-	evaluation data is different from the test data.
+  system. During k-fold cross validation, the training dataset is split
+  differently for each of the k trials. The majority of the dataset is used for
+  training, and a small portion (1/k) is held out for evaluation; this
+  evaluation data is different from the test data.
 - Testing dataset: the data files held out until the NLP system is complete.
-	That is, the system should never see this testing data and then go back and 
-	change models/params/methods/etc. at the risk of overfitting.
+  That is, the system should never see this testing data and then go back and
+  change models/params/methods/etc. at the risk of overfitting.
 - Classification and label are used interchangeably.
 
 Each sample is a token of text, for which there are multiple within a single
 question response. The samples of a single response all correspond to the
 classifications for the response; there can be one or more.
 
-The model learns each sample (token) independently, encoding each w/ a 
+The model learns each sample (token) independently, encoding each w/ a
 random SDR, which is fed into a kNN classifier. For a given response in a
 evaluation (and test) dataset, each token is independently classified, and the
 response is then labeled with the top classification(s).
@@ -90,7 +90,11 @@ def run(args):
   labelReference = list(set(labels))
   labels = numpy.array([labelReference.index(l) for l in labels], dtype=int)
   split = len(samples)/args.kFolds
-  samples = [texter.tokenize(sample, ignoreCommon=100) for sample in samples]
+  samples = [texter.tokenize(sample,
+                             ignoreCommon=100,
+                             removeStrings=["[identifier deleted]"],
+                             correctSpell=True)
+             for sample in samples]
   patterns = [[model.encodePattern(t) for t in tokens] for tokens in samples]
 
   # Run k-fold cross-validation.
@@ -143,9 +147,9 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("dataFile")
   parser.add_argument("-k", "--kFolds",
-  										default=5,
-  										type=int,
-  										help="Number of folds for cross validation; k=1 will "
+                      default=5,
+                      type=int,
+                      help="Number of folds for cross validation; k=1 will "
                       "run no cross-validation.")
   parser.add_argument("--name",
                       default="survey_response_random_sdr",
@@ -161,8 +165,8 @@ if __name__ == "__main__":
                       help="Run the model on the evaluation data.",
                       default=True)
   parser.add_argument("--resultsDir",
-	                    default="results",
-	                    help="This will hold the evaluation results.")
+                      default="results",
+                      help="This will hold the evaluation results.")
   parser.add_argument("--verbosity",
                       default=1,
                       type=int,

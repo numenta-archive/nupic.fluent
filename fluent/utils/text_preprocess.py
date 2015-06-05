@@ -54,17 +54,28 @@ class TextPreprocess(object):
     self.bagOfWords = Counter(self.txtCorpus)
 
 
-  def tokenize(self, string, ignoreCommon=None):
+  def tokenize(self, string,
+               ignoreCommon=None, removeStrings=[], correctSpell=False):
     """
-    Tokenize, returning only lower-case letters.
+    Tokenize, returning only lower-case letters and "$". Apostrophes are
+    deleted; e.g. "didn't" becomes "didnt".
     @param string             (str)             Single string to tokenize.
     @param ignoreCommon       (int)             This many most frequent words
                                                 will be filtered out from the
                                                 returned tokens.
+    @param removeStrings      (list)            List of strings to delete from
+                                                the text.
+    @param correctSpell       (boolean)         Run tokens through spelling
+                                                correction.
     """
     if not isinstance(string, str):
       raise ValueError("Must input a single string object to tokenize.")
-    tokens = re.findall('[a-z]+', string.lower())
+    removeStrings.append("'")
+    for removal in removeStrings:
+      string = string.replace(removal, "")
+    tokens = re.findall('[a-z$]+', string.lower())
+    if correctSpell:
+      tokens = [self.correct(t) for t in tokens]
     if ignoreCommon:
       tokens = self.removeMostCommon(tokens, n=ignoreCommon)
     return tokens
@@ -72,7 +83,7 @@ class TextPreprocess(object):
 
   def removeMostCommon(self, tokenList, n=100):
     """
-    Remove the n most common tokens as counted in the big.txt corpus.
+    Remove the n most common tokens as counted in the bag-of-words corpus.
 
     @param tokenList        (list)              List of token strings.
     @param n                (int)               Will filter out the n-most
@@ -88,8 +99,8 @@ class TextPreprocess(object):
     then one, then two; otherwise default to the word itself.
     """
     candidates = (self._known({word}) or
-                  self._known(self._editDistance1(word)) or 
-                  self._known(self._editDistance2(word)) or 
+                  self._known(self._editDistance1(word)) or
+                  self._known(self._editDistance2(word)) or
                   [word])
 
     return max(candidates, key=self.bagOfWords.get)
@@ -116,8 +127,8 @@ class TextPreprocess(object):
     # Now perform the edits at every possible split location.
     # Substitution is essentially a deletion and insertion.
     delete = [a+b[1:] for a,b in splits if b]
-    insert = [a+b+c for a,b in splits for c in alphabet]
-    subs = [a+c+b[1:] for a,b in splits for c in alphabet if b]
+    insert = [a+b+c for a,b in splits for c in TextPreprocess.alphabet]
+    subs = [a+c+b[1:] for a,b in splits for c in TextPreprocess.alphabet if b]
     trans = [a+b[1]+b[0]+b[2:] for a,b in splits if len(b)>1]
 
     return set(delete + insert + subs + trans)
@@ -128,5 +139,5 @@ class TextPreprocess(object):
     Return all strings that are edit distance =2 from the input word; i.e. call
     the _editDistance1() method twice for edits with distances of two.
     """
-    return {edits2 for edits1 in self._editDistance1(word) 
+    return {edits2 for edits1 in self._editDistance1(word)
             for edits2 in self._editDistance1(edits1)}
