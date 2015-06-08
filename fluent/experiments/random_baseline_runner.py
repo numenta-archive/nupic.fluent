@@ -33,23 +33,48 @@ Please note the following definitions:
 
 Each sample is a token of text, for which there are multiple within a single
 question response. The samples of a single response all correspond to the
-classifications for the response; there can be one or more.
+classification(s) for the response. There can be one or more classifications per
+sample, which are in separate columns of the input CSV.
 
 The model learns each sample (token) independently, encoding each w/ a
-random SDR, which is fed into a kNN classifier. For a given response in a
+random SDR, which is fed into a kNN classifier. For a given response in an
 evaluation (and test) dataset, each token is independently classified, and the
-response is then labeled with the top classification(s).
+response is then labeled with the top classification(s) amongst its tokens.
 """
 
 import argparse
 import cPickle as pkl
+import itertools
 import numpy
 import os
 import time
 
-from fluent.utils.read import readCSV
+from fluent.utils.csv_helper import readCSV, writeCSV
 from fluent.utils.text_preprocess import TextPreprocess
 from fluent.models.classify_randomSDR import ClassificationModelRandomSDR
+
+
+def training(model, patterns, labels):
+  """Trains model on the bitmap patterns and corresponding labels lists."""
+  for p, l in itertools.izip(patterns,labels):
+    model.trainModel(p, l)
+
+
+def testing(model, patterns, labels):
+  """
+  Tests model on the bitmap patterns and corresponding labels lists.
+
+  @return trialResults    (list)            List of lists, where the first list
+                                            is the model's predicted
+                                            classifications, and the second list
+                                            is the actual classifications.
+  """
+  trialResults = [[], []]
+  for i, p in enumerate(patterns):
+    predicted = model.testModel(p)
+    trialResults[0].append(predicted)
+    trialResults[1].append(labels[i])
+  return trialResults
 
 
 def run(args):
@@ -61,32 +86,44 @@ def run(args):
   The data path MUST BE SPECIFIED at the cmd line, e.g. from the fluent dir:
 
   python experiments/random_baseline_runner.py data/sample_reviews/sample_reviews_data_training.csv
+
+  To run k-folds cross validation, arguments must be: kFolds > 1, train = False,
+  test = False. To run either training or testing, kFolds = 1.
   """
   start = time.time()
 
   # Setup directories.
   root = os.path.dirname(__file__)
   dataPath = os.path.abspath(os.path.join(root, '../..', args.dataFile))
-  checkpointPklPath = os.path.abspath(
-    os.path.join(root, args.resultsDir, args.name))
+  modelPath = os.path.abspath(
+    os.path.join(root, args.resultsDir, args.expName, args.modelName))
+  if not os.path.exists(modelPath):
+    os.makedirs(modelPath)
 
   # Verify input params.
   if not os.path.isfile(dataPath):
     raise ValueError("Invalid data path.")
   if (not isinstance(args.kFolds, int)) or (args.kFolds < 1):
     raise ValueError("Invalid value for number of cross-validation folds.")
+  if args.train and args.test:
+    raise ValueError("Run training and testing independently.")
+  if (args.train or args.test) and args.kFolds > 1:
+    raise ValueError("Experiment runs either k-folds CV or training/testing, "
+                     "not both.")
 
   # Load or init model.
   if args.load:
-    with open(os.path.join(checkpointPklPath, "model.pkl"), "rb") as f:
+    with open(
+      os.path.join(modelPath, "model.pkl"), "rb") as f:
       model = pkl.load(f)
-    print "Model loaded from \'{0}\'.".format(checkpointPklPath)
+    print "Model loaded from \'{0}\'.".format(modelPath)
   else:
     model = ClassificationModelRandomSDR(verbosity=args.verbosity)
 
   # Get and prep data.
   texter = TextPreprocess()
-  samples, labels = readCSV(dataPath)
+  # samples, labels = readCSV(dataPath, 2, range(3,6))  # Y data
+  samples, labels = readCSV(dataPath, 2, [3])  # sample data
   labelReference = list(set(labels))
   labels = numpy.array([labelReference.index(l) for l in labels], dtype=int)
   split = len(samples)/args.kFolds
@@ -95,49 +132,46 @@ def run(args):
                              removeStrings=["[identifier deleted]"],
                              correctSpell=True)
              for sample in samples]
+  if args.verbosity > 1:
+    for i, s in enumerate(samples): print i, s, labelReference[labels[i]]
   patterns = [[model.encodePattern(t) for t in tokens] for tokens in samples]
 
-  # Run k-fold cross-validation.
-  intermResults = []
-  for k in range(args.kFolds):
-    # Train the model on a subset, and hold the evaluation subset.
-    evalIndices = range(k*split, (k+1)*split)
-    trainIndices = [i for i in range(len(samples)) if not i in evalIndices]
+  # Either we train on all the data, test on all the data, or run k-fold CV.
+  if args.train:
+    training(model, patterns, labels)
+  elif args.test:
+    trialResults = testing(model, patterns, labels)
+  elif args.kFolds>1:
+    intermResults = []
+    for k in range(args.kFolds):
+      # Train the model on a subset, and hold the evaluation subset.
+      evalIndices = range(k*split, (k+1)*split)
+      trainIndices = [i for i in range(len(samples)) if not i in evalIndices]
 
-    if args.train:
-      # First reset the model.
       model.resetModel()
       print "Training for CV fold {0}.".format(k)
-      for i in trainIndices:
-        model.trainModel(patterns[i], labels[i])
+      training(model,
+        [patterns[i] for i in trainIndices],
+        [labels[i] for i in trainIndices])
 
-    if args.evaluate:
       print "Evaluating for trial {0}.".format(k)
-      trialResults = [[], []]
-      skippedIndices = []
-      for i in evalIndices:
-        predicted = model.testModel(patterns[i])
-        if predicted == []:
-          print("\tNote: skipping sample {0} b/c no classification for this "
-            "sample.".format(i))
-          skippedIndices.append(i)
-          continue
-        trialResults[0].append(predicted)
-        trialResults[1].append(labels[i])
+      trialResults = testing(model,
+        [patterns[i] for i in evalIndices],
+        [labels[i] for i in evalIndices])
 
-      # Evaluate this fold.
       print "Calculating intermediate results for this fold."
-      [evalIndices.remove(idx) for idx in skippedIndices]
-      intermResults.append(
-        model.evaluateTrialResults(trialResults, labelReference, evalIndices))
+      result = model.evaluateTrialResults(trialResults, labelReference, evalIndices)
+      intermResults.append(result)
+      result[1].to_csv(os.path.join(
+        modelPath, "evaluation_fold_" + str(k) + ".csv"))
 
-  print "Calculating cumulative results for {0} trials.".format(k)
-  results = model.evaluateFinalResults(intermResults)  ## TODO: model.writeResults to csv?
+    print "Calculating cumulative results for {0} trials.".format(args.kFolds)
+    results = model.evaluateFinalResults(intermResults)
+    results["total_cm"].to_csv(os.path.join(modelPath, "evaluation_totals.csv"))
 
-  print "Saving model to \'{0}\' directory.".format(checkpointPklPath)
-  if not os.path.exists(checkpointPklPath):
-    os.makedirs(checkpointPklPath)
-  with open(os.path.join(checkpointPklPath, "model.pkl"), "wb") as f:
+  print "Saving model to \'{0}\' directory.".format(modelPath)
+  with open(
+    os.path.join(modelPath, "model.pkl"), "wb") as f:
     pkl.dump(model, f)
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 
@@ -150,27 +184,34 @@ if __name__ == "__main__":
                       default=5,
                       type=int,
                       help="Number of folds for cross validation; k=1 will "
+                      "train on "
                       "run no cross-validation.")
-  parser.add_argument("--name",
+  parser.add_argument("--expName",
                       default="survey_response_random_sdr",
                       type=str,
                       help="Experiment name.")
+  parser.add_argument("--modelName",
+                      default="",
+                      type=str,
+                      help="Model name for pickle file.")
   parser.add_argument("--load",
                       help="Load the serialized model.",
                       default=False)
   parser.add_argument("--train",
-                      help="Train the model.",
-                      default=True)
-  parser.add_argument("--evaluate",
-                      help="Run the model on the evaluation data.",
-                      default=True)
+                      help="Train the model on all the data.",
+                      default=False)
+  parser.add_argument("--test",
+                      help="Test the model on all the data.",
+                      default=False)
   parser.add_argument("--resultsDir",
                       default="results",
                       help="This will hold the evaluation results.")
   parser.add_argument("--verbosity",
                       default=1,
                       type=int,
-                      help="verbosity 0 will print out experiment results, "
-                      "verbosity 1 will print out training progress.")
+                      help="verbosity 0 will print out experiment steps, "
+                      "verbosity 1 will include results, and verbosity > 1 "
+                      "will print out preprocessed tokens and kNN inference "
+                      "metrics.")
   args = parser.parse_args()
   run(args)

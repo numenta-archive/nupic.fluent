@@ -48,8 +48,8 @@ class ClassificationModelRandomSDR(ClassificationModel):
 
   def encodePattern(self, string):
     """
-    Randomly encode an SDR of the input string, w/ same dimensions 
-    We seed the random number generator such that a given 
+    Randomly encode an SDR of the input string, w/ same dimensions
+    We seed the random number generator such that a given
     string will yield the same SDR each time this function is called.
     Saving the internal state of the generator reduces the likelihood of
     repeating values from previous inputs.
@@ -108,5 +108,5 @@ class ClassificationModelRandomSDR(ClassificationModel):
         # Only include classified tokens.
         tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
     if tokenLabels == []:
-      return []
+      return None
     return self._winningLabel(tokenLabels)

@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 import numpy
+import pandas
 
 from collections import Counter
 
@@ -48,31 +49,41 @@ class ClassificationModel(object):
     self.verbosity = verbosity
 
 
-  def evaluateTrialResults(self, classifications, references, idx):  ## TODO: add precision, recall, F1 score
+  def evaluateTrialResults(self, classifications, references, idx):
     """
     Calculate statistics for the predicted classifications against the actual.
+    None predictions are not included in the confusion matrix.
 
     @param classifications  (list)            Two lists: (0) predictions and (1)
                                               actual classifications.
-    @param n                (int)             Number of classification labels
-                                              possible in the dataset.
+    @param references       (list)            Classification label strings.
     @return                 (tuple)           Returns a 2-item tuple w/ the
                                               accuracy (float) and confusion
                                               matrix (numpy array).
     """
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
-    actual = numpy.array(classifications[1])
-    predicted = numpy.array(classifications[0])
-
     if self.verbosity > 0:
       self._printTrialReport(classifications, references, idx)
 
+    actual = numpy.array(classifications[1])
+    predicted = numpy.array(classifications[0])
     accuracy = (actual == predicted).sum() / float(len(actual))
 
-    cm = numpy.zeros((len(references), len(references)))
-    for a, p in zip(actual, predicted):
-      cm[a][p] += 1
+    # Calculate confusion matrix.
+    total = len(references)
+    cm = numpy.zeros((total, total+1))
+    for i, p in enumerate(predicted):
+      if p:
+        cm[actual[i]][p] += 1
+      else:
+        cm[actual[i]][total] += 1
+    cm = numpy.vstack((cm, numpy.sum(cm, axis=0)))
+    cm = numpy.hstack((cm, numpy.sum(cm, axis=1).reshape(total+1,1)))
+    cm = pandas.DataFrame(
+      data=cm,
+      columns=references+["(none)"]+["Actual Totals"],
+      index=references+["Prediction Totals"])
 
     return (accuracy, cm)
 
@@ -88,19 +99,18 @@ class ClassificationModel(object):
                                               and the mean confusion matrix.
     """
     accuracy = []
-    cm = numpy.zeros((len(intermResults[0][1]), len(intermResults[0][1])))
+    cm = numpy.zeros((intermResults[0][1].shape))
 
     # Find mean, max, and min values for the metrics.
-    k = 0
     for result in intermResults:
       accuracy.append(result[0])
       cm = numpy.add(cm, result[1])
-      k += 1
+    ## TODO: add rows for Precision and Recall
 
     results = {"max_accuracy":max(accuracy),
                "mean_accuracy":sum(accuracy)/float(len(accuracy)),
                "min_accuracy":min(accuracy),
-               "mean_cm":numpy.around(cm/k, decimals=3)}
+               "total_cm":cm}
 
     if self.verbosity > 0:
       self._printFinalReport(results)
@@ -111,12 +121,14 @@ class ClassificationModel(object):
   @staticmethod
   def _printTrialReport(labels, refs, idx):
     """Print columns for sample #, actual label, and predicted label."""
-    template = "{0:5}|{1:20}|{2:20}"
+    template = "{0:10}|{1:30}|{2:30}"
     print "Evaluation results for this fold:"
     print template.format("#", "Actual", "Predicted")
     for i in xrange(len(labels[0])):
-      print template.format(idx[i], refs[labels[1][i]], refs[labels[0][i]])
-
+      if labels[0][i]:
+        print template.format(idx[i], refs[labels[1][i]], refs[labels[0][i]])
+      else:
+        print template.format(idx[i], refs[labels[1][i]], "(none)")
 
   @staticmethod
   def _printFinalReport(results):  ## TODO: pprint
@@ -125,7 +137,7 @@ class ClassificationModel(object):
     print "max, mean, min accuracies = "
     print "{0:.3f}, {1:.3f}, {2:.3f}".format(
     results["max_accuracy"], results["mean_accuracy"], results["min_accuracy"])
-    print "mean confusion matrix =\n", results["mean_cm"]
+    print "total confusion matrix =\n", results["total_cm"]
 
 
   def _densifyPattern(self, bitmap):
