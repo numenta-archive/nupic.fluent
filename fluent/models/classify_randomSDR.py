@@ -48,8 +48,8 @@ class ClassificationModelRandomSDR(ClassificationModel):
 
   def encodePattern(self, string):
     """
-    Randomly encode an SDR of the input string, w/ same dimensions 
-    We seed the random number generator such that a given 
+    Randomly encode an SDR of the input string, w/ same dimensions
+    We seed the random number generator such that a given
     string will yield the same SDR each time this function is called.
     Saving the internal state of the generator reduces the likelihood of
     repeating values from previous inputs.
@@ -95,9 +95,12 @@ class ClassificationModelRandomSDR(ClassificationModel):
     classification among those that are detected.
     @param sample           (list)        List of bitmaps, each representing the
                                           encoding of one token in the sample.
-    @return classification  (int)         The 'winner' classifications for the
-                                          data samples; for more, see the
-                                          KNNClassifier.infer() documentation.
+    @return classification  (list)        The n most-frequent classifications
+                                          for the data samples; for more, see
+                                          the KNNClassifier.infer()
+                                          documentation. Values are int or None.
+    Note: to return multiple winner classifications, modify the return statement
+    accordingly.
     """
     tokenLabels = []
     for bitmap in sample:
@@ -108,5 +111,5 @@ class ClassificationModelRandomSDR(ClassificationModel):
         # Only include classified tokens.
         tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
     if tokenLabels == []:
-      return []
-    return self._winningLabel(tokenLabels)
+      return [None]
+    return self._winningLabels(tokenLabels, n=2)

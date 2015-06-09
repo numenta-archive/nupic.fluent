@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 import numpy
+import pandas
 
 from collections import Counter
 
@@ -48,31 +49,50 @@ class ClassificationModel(object):
     self.verbosity = verbosity
 
 
-  def evaluateTrialResults(self, classifications, references, idx):  ## TODO: add precision, recall, F1 score
+  def classifyRandomly(self, labels):
+    """Return accuracy of random classifications for the labels."""
+    randomLabels = numpy.random.randint(0, labels.max(), labels.shape)
+    return (randomLabels == labels).sum() / float(labels.shape[0])
+
+
+  def evaluateTrialResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations
     """
     Calculate statistics for the predicted classifications against the actual.
 
     @param classifications  (list)            Two lists: (0) predictions and (1)
-                                              actual classifications.
-    @param n                (int)             Number of classification labels
-                                              possible in the dataset.
+                                              actual classifications. Items in
+                                              the predictions list are lists of
+                                              ints or None, and items in actual
+                                              classifications list are ints.
+    @param references       (list)            Classification label strings.
     @return                 (tuple)           Returns a 2-item tuple w/ the
                                               accuracy (float) and confusion
                                               matrix (numpy array).
     """
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
-    actual = numpy.array(classifications[1])
-    predicted = numpy.array(classifications[0])
-
     if self.verbosity > 0:
       self._printTrialReport(classifications, references, idx)
 
+    actual = numpy.array(classifications[1])
+    predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: see above; this forces evaluation metrics to consider only the first predicted classification
     accuracy = (actual == predicted).sum() / float(len(actual))
 
-    cm = numpy.zeros((len(references), len(references)))
-    for a, p in zip(actual, predicted):
-      cm[a][p] += 1
+    # Calculate confusion matrix.
+    total = len(references)
+    cm = numpy.zeros((total, total+1))
+    for i, p in enumerate(predicted):
+      if p:
+        cm[actual[i]][p] += 1
+      else:
+        # No predicted label, so increment the "(none)" column.
+        cm[actual[i]][total] += 1
+    cm = numpy.vstack((cm, numpy.sum(cm, axis=0)))
+    cm = numpy.hstack((cm, numpy.sum(cm, axis=1).reshape(total+1,1)))
+    cm = pandas.DataFrame(
+      data=cm,
+      columns=references+["(none)"]+["Actual Totals"],
+      index=references+["Prediction Totals"])
 
     return (accuracy, cm)
 
@@ -88,19 +108,18 @@ class ClassificationModel(object):
                                               and the mean confusion matrix.
     """
     accuracy = []
-    cm = numpy.zeros((len(intermResults[0][1]), len(intermResults[0][1])))
+    cm = numpy.zeros((intermResults[0][1].shape))
 
     # Find mean, max, and min values for the metrics.
-    k = 0
     for result in intermResults:
       accuracy.append(result[0])
       cm = numpy.add(cm, result[1])
-      k += 1
+    ## TODO: add rows for Precision and Recall
 
     results = {"max_accuracy":max(accuracy),
                "mean_accuracy":sum(accuracy)/float(len(accuracy)),
                "min_accuracy":min(accuracy),
-               "mean_cm":numpy.around(cm/k, decimals=3)}
+               "total_cm":cm}
 
     if self.verbosity > 0:
       self._printFinalReport(results)
@@ -111,11 +130,15 @@ class ClassificationModel(object):
   @staticmethod
   def _printTrialReport(labels, refs, idx):
     """Print columns for sample #, actual label, and predicted label."""
-    template = "{0:5}|{1:20}|{2:20}"
+    template = "{0:10}|{1:30}|{2:30}"
     print "Evaluation results for this fold:"
     print template.format("#", "Actual", "Predicted")
     for i in xrange(len(labels[0])):
-      print template.format(idx[i], refs[labels[1][i]], refs[labels[0][i]])
+      if labels[0][i][0] == None:
+        print template.format(idx[i], refs[labels[1][i]], "(none)")
+      else:
+        print template.format(
+          idx[i], refs[labels[1][i]], [refs[l] for l in labels[0][i]])
 
 
   @staticmethod
@@ -125,7 +148,7 @@ class ClassificationModel(object):
     print "max, mean, min accuracies = "
     print "{0:.3f}, {1:.3f}, {2:.3f}".format(
     results["max_accuracy"], results["mean_accuracy"], results["min_accuracy"])
-    print "mean confusion matrix =\n", results["mean_cm"]
+    print "total confusion matrix =\n", results["total_cm"]
 
 
   def _densifyPattern(self, bitmap):
@@ -135,10 +158,20 @@ class ClassificationModel(object):
     return densePattern
 
 
-  def _winningLabel(self, labels):
-    """Returns the most frequent item in the input list of labels."""
-    data = Counter(labels)
-    return data.most_common(1)[0][0]
+  def _winningLabels(self, labels, n=3):
+    """
+    Returns the most frequent item in the input list of labels. If there are
+    ties for the most frequent item, the x most frequent are returned,
+    where x<=n.
+    """
+    labelCount = Counter(labels).most_common()
+    maxCount = 0
+    for c in labelCount:  ## TODO: better way to do this?
+      if c[1] > maxCount:
+        maxCount = c[1]
+    winners = [c[0] for c in labelCount if c[1]==maxCount]
+
+    return winners if len(winners) <= n else winners[:n]
 
 
   def encodePattern(self, pattern):
