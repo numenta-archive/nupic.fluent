@@ -162,7 +162,7 @@ class ClassificationModel(object):
     return densePattern
 
 
-  def _winningLabel(self, labels, n=3):
+  def _winningLabels(self, labels, n=3):
     """
     Returns the most frequent item in the input list of labels. If there are
     ties for the most frequent item, the x most frequent are returned,

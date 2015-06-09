@@ -80,7 +80,7 @@ def testing(model, evalSet):
 def computeExpectedAccuracy(predictedLabels, dataPath):
   """
   Compute the accuracy of the models predictions against what we expect it to
-  predict.
+  predict; considers only single classification.
   """
   _, expectedLabels = readCSV(dataPath, 2, [3])
   if len(expectedLabels) != len(predictedLabels):
@@ -88,6 +88,7 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
 
   accuracy = len([i for i in xrange(len(expectedLabels))
     if expectedLabels[i]==predictedLabels[i]]) / float(len(expectedLabels))
+
   print "Accuracy against expected classifications = ", accuracy
 
 
@@ -173,12 +174,10 @@ def run(args):
       trialResults = testing(model,
         [(patterns[i], labels[i]) for i in evalIndices])
 
-      # if args.expectationDataPath:
-      #   # Keep the predicted labels for later.
-      #   import pdb; pdb.set_trace()
-      #   predictions.append(
-      #     [labelReference[l[0]] if l else '(none)' for l in trialResults[0]])
-      #   [l if l else [None] for l in trialResults[0]]  ##... [[6], [6], [None], [None], [None], [3], [4]]
+      if args.expectationDataPath:
+        # Keep the predicted labels (top prediction only) for later.
+        p = [l if l else [None] for l in trialResults[0]]
+        predictions.append([labelReference[idx[0]] if idx[0] != None else '(none)' for idx in p])
 
       print "Calculating intermediate results for this fold."
       result = model.evaluateTrialResults(
@@ -190,9 +189,9 @@ def run(args):
     print "Calculating cumulative results for {0} trials.".format(args.kFolds)
     results = model.evaluateFinalResults(intermResults)
     results["total_cm"].to_csv(os.path.join(modelPath, "evaluation_totals.csv"))
-    # if args.expectationDataPath:
-    #   computeExpectedAccuracy(list(itertools.chain.from_iterable(predictions)),
-    #     os.path.abspath(os.path.join(root, '../..', args.expectationDataPath)))
+    if args.expectationDataPath:
+      computeExpectedAccuracy(list(itertools.chain.from_iterable(predictions)),
+        os.path.abspath(os.path.join(root, '../..', args.expectationDataPath)))
 
     print "Calculating random classifier results for comparison."
     # model.classifyRandomly(samples, labels)
