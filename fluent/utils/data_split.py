@@ -33,7 +33,23 @@ class DataSplit(object):
 
 
 class KFolds(DataSplit):
-  """Implementation of k-folds cross validation algorithm."""
+  """Implementation of k-folds cross validation algorithm.
+
+  Sample usage:
+
+      data = [
+          ("My manager is bad", "management"),
+          ("the equipment needs to be replaced", "facilities"),
+          ("I'm not getting paid enough", "compensation"),
+          ...,
+      ]
+      kfolds = KFolds(5)
+      splits = kfolds.split(data)
+      for trainSamples, testSamples in splits:
+        results = runExperiment(trainSamples, testSamples)
+        ...
+
+  """
 
 
   def __init__(self, k):
@@ -46,6 +62,17 @@ class KFolds(DataSplit):
 
 
   def split(self, samples):
+    """Split the given samples into k train/test sets.
+
+    Each train/test split will have len(samples)/k elements in the test set
+    and the rest in the train set. Each fold has a distinct, non-overlapping
+    test set from the other folds. The samples themselves can be any type.
+
+    @param samples list of sample elements of any type
+    @returns a list of splits where each split is 2-tuple (training, test)
+        where each element is a list of elements from samples. Each training/
+        test pair contains all elements from samples.
+    """
     if len(samples) < self.k:
       raise ValueError(
           "Must have as many samples as number of folds %i" % self.k)
