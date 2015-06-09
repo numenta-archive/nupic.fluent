@@ -6,11 +6,11 @@ A platform for building language / NLP-based applications using [NuPIC](https://
 
 ###NOTE this repo contains experimental code. A few disclaimers:
 
-- the contents may 
-	- change without warning or explanation
-	- change quickly, or not at all
-	- not function properly
-	- be buggy and sloppy; don't judge :)
+- the contents may
+    - change without warning or explanation
+    - change quickly, or not at all
+    - not function properly
+    - be buggy and sloppy; don't judge :)
 - work with external partners will not be included here
 - we might decide at some point to not do our NLP research in the open anymore and instead delete the whole repository
 
