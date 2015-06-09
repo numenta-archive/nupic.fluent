@@ -49,14 +49,10 @@ class ClassificationModel(object):
     self.verbosity = verbosity
 
 
-  def classifyRandomly(self, samples, labels):
-    """
-    """
-
-    if self.verbosity > 1:
-      print "stuff"
-
-    return
+  def classifyRandomly(self, labels):
+    """Return accuracy of random classifications for the labels."""
+    randomLabels = numpy.random.randint(0, labels.max(), labels.shape)
+    return (randomLabels == labels).sum() / float(labels.shape[0])
 
 
   def evaluateTrialResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations

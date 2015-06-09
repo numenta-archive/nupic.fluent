@@ -193,8 +193,8 @@ def run(args):
       computeExpectedAccuracy(list(itertools.chain.from_iterable(predictions)),
         os.path.abspath(os.path.join(root, '../..', args.expectationDataPath)))
 
-    print "Calculating random classifier results for comparison."
-    # model.classifyRandomly(samples, labels)
+  print "Calculating random classifier results for comparison."
+  print model.classifyRandomly(labels)
 
   print "Saving model to \'{0}\' directory.".format(modelPath)
   with open(
