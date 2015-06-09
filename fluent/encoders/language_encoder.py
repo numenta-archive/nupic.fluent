@@ -49,10 +49,10 @@ class LanguageEncoder(object):
     Encodes inputText and puts the encoded value into the numpy output array,
     which is a 1-D array of length returned by getWidth().
     Note: The numpy output array is reused, so clear it before updating it.
-    
-    @param inputData      (str)     Data to encode. This should be validated by 
+
+    @param inputData      (str)     Data to encode. This should be validated by
                                     the encoder subclass.
-    @param output         (numpy)   1-D array of same length returned by 
+    @param output         (numpy)   1-D array of same length returned by
                                     getWidth().
     """
     raise NotImplementedError
@@ -62,9 +62,9 @@ class LanguageEncoder(object):
     """
     Decodes the SDR encoded. See subclass implementation for details; the
     decoding approaches and return objects vary depending on the encoder.
-    
+
     To pretty print the return value from this method, use decodedToStr().
-    
+
     @param encoded        (numpy)     Encoded 1-d array (an SDR).
     """
     raise NotImplementedError
@@ -72,7 +72,7 @@ class LanguageEncoder(object):
 
   def getWidth(self):
     """
-    Get an encoding's output width in bits. See subclass implementation for 
+    Get an encoding's output width in bits. See subclass implementation for
     details.
     """
     raise NotImplementedError()

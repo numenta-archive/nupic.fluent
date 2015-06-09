@@ -54,10 +54,12 @@ from fluent.utils.text_preprocess import TextPreprocess
 from fluent.models.classify_randomSDR import ClassificationModelRandomSDR
 
 
+
 def training(model, trainSet):
   """Trains model on the bitmap patterns and corresponding labels lists."""
   for x in trainSet:
     model.trainModel(x[0], x[1])
+
 
 
 def testing(model, evalSet):
@@ -77,6 +79,7 @@ def testing(model, evalSet):
   return trialResults
 
 
+
 def computeExpectedAccuracy(predictedLabels, dataPath):
   """
   Compute the accuracy of the models predictions against what we expect it to
@@ -90,6 +93,7 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
     if expectedLabels[i]==predictedLabels[i]]) / float(len(expectedLabels))
 
   print "Accuracy against expected classifications = ", accuracy
+
 
 
 def run(args):
@@ -201,6 +205,7 @@ def run(args):
     os.path.join(modelPath, "model.pkl"), "wb") as f:
     pkl.dump(model, f)
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
+
 
 
 if __name__ == "__main__":

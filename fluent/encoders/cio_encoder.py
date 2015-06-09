@@ -32,8 +32,8 @@ class CioEncoder(LanguageEncoder):
   """
   A language encoder using the Cortical.io API.
 
-  The encoder queries the Cortical.io REST API via the cortipy module, which 
-  returns data in the form of "fingerprints". These representations are 
+  The encoder queries the Cortical.io REST API via the cortipy module, which
+  returns data in the form of "fingerprints". These representations are
   converted to binary SDR arrays with this Cio encoder.
   """
 
@@ -52,13 +52,13 @@ class CioEncoder(LanguageEncoder):
     self.w              = w  ## Alternatively get dimensions from cortipy client object?
     self.h              = h
     self.n = w*h
-    
-    
+
+
   def encode(self, text):
     """
     Encodes the input text w/ a cortipy client. The client returns a
     dictionary of "fingerprint" info, including the SDR bitmap.
-    
+
     @param  text    (str, list)       If the input is type str, the encoder
                                       assumes it has not yet been tokenized. A
                                       list input will skip the tokenization
@@ -67,20 +67,20 @@ class CioEncoder(LanguageEncoder):
     """
     if isinstance(text, str):
       text = self.client.tokenize(text)
-    
+
     try:
-      encoding = self.client.getBitmap(string)
+      encoding = self.client.getBitmap(text)
     except ValueError:
-      encoding = self.client.getTextBitmap(string)
+      encoding = self.client.getTextBitmap(text)
 
 
     if encoding.sparsity == 0:  ##TODO: test again when/if this happens
       # No fingerprint so fill w/ random bitmap, seeded for each specific term.
       print ("\tThe client returned a bitmap with sparsity=0 for the string "
             "\'%s\', so we'll generate a pseudo-random SDR with the target "
-            "sparsity=%0.1f." % (string, self.targetSparsity))
+            "sparsity=%0.1f." % (text, self.targetSparsity))
       state = random.getstate()
-      random.seed(string)
+      random.seed(text)
       num = self.w * self.h
       bitmap = random.sample(range(num), int(self.targetSparsity * num / 100))
       self._createFromBitmap(bitmap, self.w, self.h)
@@ -88,7 +88,7 @@ class CioEncoder(LanguageEncoder):
 
 
     return self.client.getSDR(encoding["fingerprint"]["positions"])
-      
+
 
   def decode(self, encoding, numTerms=None):
     """
@@ -96,10 +96,10 @@ class CioEncoder(LanguageEncoder):
 
     By default, the most likely term will be returned. If numTerms is
     specified, then the Cortical.io API will attempt to return that many;
-    otherwise the standard is 10. The return value will be a sequence of 
-    (term, weight) tuples, where higher weights imply the corresponding term 
+    otherwise the standard is 10. The return value will be a sequence of
+    (term, weight) tuples, where higher weights imply the corresponding term
     better matches the encoding.
-    
+
     @param  encoding        (list)             SDR.
     @param  numTerms        (int)              The max number of terms to
                                                return.
@@ -111,8 +111,8 @@ class CioEncoder(LanguageEncoder):
       super(CioEncoder, self).bitmapFromSDR(encoding))
     # Convert cortipy response to list of tuples (term, weight)
     return [((term["term"], term["score"])) for term in terms]
-    
-  
+
+
   ## TODO: redo fields? delete (see line 81 TODO)?
   def _createFromBitmap(self, bitmap, width, height):
     self.bitmap = bitmap
@@ -143,7 +143,7 @@ class CioEncoder(LanguageEncoder):
     fp2 = {"fingerprint": {"positions":self.bitmapFromSDR(encoding2)}}
 
     return self.client.compare(fp1, fp2)
-  
+
 
   def getWidth(self):
     return self.w
