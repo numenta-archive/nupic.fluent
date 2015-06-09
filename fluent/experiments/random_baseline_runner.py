@@ -49,32 +49,46 @@ import numpy
 import os
 import time
 
-from fluent.utils.csv_helper import readCSV, writeCSV
+from fluent.utils.csv_helper import readCSV
 from fluent.utils.text_preprocess import TextPreprocess
 from fluent.models.classify_randomSDR import ClassificationModelRandomSDR
 
 
-def training(model, patterns, labels):
+def training(model, trainSet):
   """Trains model on the bitmap patterns and corresponding labels lists."""
-  for p, l in itertools.izip(patterns,labels):
-    model.trainModel(p, l)
+  for x in trainSet:
+    model.trainModel(x[0], x[1])
 
 
-def testing(model, patterns, labels):
+def testing(model, evalSet):
   """
   Tests model on the bitmap patterns and corresponding labels lists.
 
-  @return trialResults    (list)            List of lists, where the first list
-                                            is the model's predicted
+  @return trialResults    (list)            List of two lists, where the first
+                                            list is the model's predicted
                                             classifications, and the second list
                                             is the actual classifications.
   """
   trialResults = [[], []]
-  for i, p in enumerate(patterns):
-    predicted = model.testModel(p)
+  for x in evalSet:
+    predicted = model.testModel(x[0])
     trialResults[0].append(predicted)
-    trialResults[1].append(labels[i])
+    trialResults[1].append(x[1])
   return trialResults
+
+
+def computeExpectedAccuracy(predictedLabels, dataPath):
+  """
+  Compute the accuracy of the models predictions against what we expect it to
+  predict.
+  """
+  _, expectedLabels = readCSV(dataPath, 2, [3])
+  if len(expectedLabels) != len(predictedLabels):
+    raise ValueError("Lists of labels must have the same length.")
+
+  accuracy = len([i for i in xrange(len(expectedLabels))
+    if expectedLabels[i]==predictedLabels[i]]) / float(len(expectedLabels))
+  print "Accuracy against expected classifications = ", accuracy
 
 
 def run(args):
@@ -122,8 +136,7 @@ def run(args):
 
   # Get and prep data.
   texter = TextPreprocess()
-  # samples, labels = readCSV(dataPath, 2, range(3,6))  # Y data
-  samples, labels = readCSV(dataPath, 2, [3])  # sample data
+  samples, labels = readCSV(dataPath, 2, [3])  # Y data, [3] -> range(3,6)
   labelReference = list(set(labels))
   labels = numpy.array([labelReference.index(l) for l in labels], dtype=int)
   split = len(samples)/args.kFolds
@@ -138,29 +151,38 @@ def run(args):
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:
-    training(model, patterns, labels)
+    training(model,
+      [(p, labels[i]) for i, p in enumerate(patterns)])
   elif args.test:
-    trialResults = testing(model, patterns, labels)
+    trialResults = testing(model,
+      [(p, labels[i]) for i, p in enumerate(patterns)])
   elif args.kFolds>1:
     intermResults = []
+    predictions = []
     for k in range(args.kFolds):
       # Train the model on a subset, and hold the evaluation subset.
+      model.resetModel()
       evalIndices = range(k*split, (k+1)*split)
       trainIndices = [i for i in range(len(samples)) if not i in evalIndices]
 
-      model.resetModel()
       print "Training for CV fold {0}.".format(k)
       training(model,
-        [patterns[i] for i in trainIndices],
-        [labels[i] for i in trainIndices])
+        [(patterns[i], labels[i]) for i in trainIndices])
 
       print "Evaluating for trial {0}.".format(k)
       trialResults = testing(model,
-        [patterns[i] for i in evalIndices],
-        [labels[i] for i in evalIndices])
+        [(patterns[i], labels[i]) for i in evalIndices])
+
+      # if args.expectationDataPath:
+      #   # Keep the predicted labels for later.
+      #   import pdb; pdb.set_trace()
+      #   predictions.append(
+      #     [labelReference[l[0]] if l else '(none)' for l in trialResults[0]])
+      #   [l if l else [None] for l in trialResults[0]]  ##... [[6], [6], [None], [None], [None], [3], [4]]
 
       print "Calculating intermediate results for this fold."
-      result = model.evaluateTrialResults(trialResults, labelReference, evalIndices)
+      result = model.evaluateTrialResults(
+        trialResults, labelReference, evalIndices)
       intermResults.append(result)
       result[1].to_csv(os.path.join(
         modelPath, "evaluation_fold_" + str(k) + ".csv"))
@@ -168,6 +190,12 @@ def run(args):
     print "Calculating cumulative results for {0} trials.".format(args.kFolds)
     results = model.evaluateFinalResults(intermResults)
     results["total_cm"].to_csv(os.path.join(modelPath, "evaluation_totals.csv"))
+    # if args.expectationDataPath:
+    #   computeExpectedAccuracy(list(itertools.chain.from_iterable(predictions)),
+    #     os.path.abspath(os.path.join(root, '../..', args.expectationDataPath)))
+
+    print "Calculating random classifier results for comparison."
+    # model.classifyRandomly(samples, labels)
 
   print "Saving model to \'{0}\' directory.".format(modelPath)
   with open(
@@ -180,6 +208,11 @@ if __name__ == "__main__":
 
   parser = argparse.ArgumentParser()
   parser.add_argument("dataFile")
+  parser.add_argument("--expectationDataPath",
+                      default="",
+                      type=str,
+                      help="Path from fluent root directory to the file with "
+                      " expected labels.")
   parser.add_argument("-k", "--kFolds",
                       default=5,
                       type=int,
@@ -187,7 +220,7 @@ if __name__ == "__main__":
                       "train on "
                       "run no cross-validation.")
   parser.add_argument("--expName",
-                      default="survey_response_random_sdr",
+                      default="survey_response_random_sdr_training",
                       type=str,
                       help="Experiment name.")
   parser.add_argument("--modelName",

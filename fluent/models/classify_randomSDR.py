@@ -95,9 +95,12 @@ class ClassificationModelRandomSDR(ClassificationModel):
     classification among those that are detected.
     @param sample           (list)        List of bitmaps, each representing the
                                           encoding of one token in the sample.
-    @return classification  (int)         The 'winner' classifications for the
-                                          data samples; for more, see the
-                                          KNNClassifier.infer() documentation.
+    @return classification  (list)        The n most-frequent classifications
+                                          for the data samples; for more, see
+                                          the KNNClassifier.infer()
+                                          documentation. Values are int or None.
+    Note: to return multiple winner classifications, modify the return statement
+    accordingly.
     """
     tokenLabels = []
     for bitmap in sample:
@@ -108,5 +111,5 @@ class ClassificationModelRandomSDR(ClassificationModel):
         # Only include classified tokens.
         tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
     if tokenLabels == []:
-      return None
-    return self._winningLabel(tokenLabels)
+      return [None]
+    return self._winningLabel(tokenLabels, n=2)

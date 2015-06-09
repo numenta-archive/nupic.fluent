@@ -36,7 +36,7 @@ def readCSV(csvFile, sampleIdx, labelIdx):
 
   @param csvFile            (str)             File name for the input CSV.
   @param sampleIdx          (int)             Column number of the text samples.
-  @param sampleIdx          (list)            List of integers specifying the
+  @param labelIdx          (list)            List of integers specifying the
                                               columns of the labels.
   @return sampleList        (list)            List of str items, one for each
                                               sample.

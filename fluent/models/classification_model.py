@@ -49,13 +49,25 @@ class ClassificationModel(object):
     self.verbosity = verbosity
 
 
-  def evaluateTrialResults(self, classifications, references, idx):
+  def classifyRandomly(self, samples, labels):
+    """
+    """
+
+    if self.verbosity > 1:
+      print "stuff"
+
+    return
+
+
+  def evaluateTrialResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations
     """
     Calculate statistics for the predicted classifications against the actual.
-    None predictions are not included in the confusion matrix.
 
     @param classifications  (list)            Two lists: (0) predictions and (1)
-                                              actual classifications.
+                                              actual classifications. Items in
+                                              the predictions list are lists of
+                                              ints or None, and items in actual
+                                              classifications list are ints.
     @param references       (list)            Classification label strings.
     @return                 (tuple)           Returns a 2-item tuple w/ the
                                               accuracy (float) and confusion
@@ -67,7 +79,7 @@ class ClassificationModel(object):
       self._printTrialReport(classifications, references, idx)
 
     actual = numpy.array(classifications[1])
-    predicted = numpy.array(classifications[0])
+    predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: see above; this forces evaluation metrics to consider only the first predicted classification
     accuracy = (actual == predicted).sum() / float(len(actual))
 
     # Calculate confusion matrix.
@@ -77,6 +89,7 @@ class ClassificationModel(object):
       if p:
         cm[actual[i]][p] += 1
       else:
+        # No predicted label, so increment the "(none)" column.
         cm[actual[i]][total] += 1
     cm = numpy.vstack((cm, numpy.sum(cm, axis=0)))
     cm = numpy.hstack((cm, numpy.sum(cm, axis=1).reshape(total+1,1)))
@@ -125,10 +138,12 @@ class ClassificationModel(object):
     print "Evaluation results for this fold:"
     print template.format("#", "Actual", "Predicted")
     for i in xrange(len(labels[0])):
-      if labels[0][i]:
-        print template.format(idx[i], refs[labels[1][i]], refs[labels[0][i]])
-      else:
+      if labels[0][i][0] == None:
         print template.format(idx[i], refs[labels[1][i]], "(none)")
+      else:
+        print template.format(
+          idx[i], refs[labels[1][i]], [refs[l] for l in labels[0][i]])
+
 
   @staticmethod
   def _printFinalReport(results):  ## TODO: pprint
@@ -147,10 +162,20 @@ class ClassificationModel(object):
     return densePattern
 
 
-  def _winningLabel(self, labels):
-    """Returns the most frequent item in the input list of labels."""
-    data = Counter(labels)
-    return data.most_common(1)[0][0]
+  def _winningLabel(self, labels, n=3):
+    """
+    Returns the most frequent item in the input list of labels. If there are
+    ties for the most frequent item, the x most frequent are returned,
+    where x<=n.
+    """
+    labelCount = Counter(labels).most_common()
+    maxCount = 0
+    for c in labelCount:  ## TODO: better way to do this?
+      if c[1] > maxCount:
+        maxCount = c[1]
+    winners = [c[0] for c in labelCount if c[1]==maxCount]
+
+    return winners if len(winners) <= n else winners[:n]
 
 
   def encodePattern(self, pattern):
