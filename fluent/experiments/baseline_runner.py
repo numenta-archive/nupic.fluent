@@ -53,7 +53,7 @@ import time
 from fluent.utils.csv_helper import readCSV
 from fluent.utils.data_split import KFolds
 from fluent.utils.text_preprocess import TextPreprocess
-from fluent.models.classify_randomSDR import ClassificationModelRandomSDR
+# from fluent.models.classify_random_sdr import ClassificationModelRandomSDR
 
 
 def runExperiment(model, patterns, labels, idxSplits):
@@ -161,7 +161,13 @@ def run(args):
       model = pkl.load(f)
     print "Model loaded from \'{0}\'.".format(modelPath)
   else:
-    model = ClassificationModelRandomSDR(verbosity=args.verbosity)
+    try:
+      module = __import__(args.modelModuleName, {}, {}, args.modelName)
+      modelClass = getattr(module, args.modelName)
+      model = modelClass(verbosity=args.verbosity)
+    except ImportError:
+      raise RuntimeError("Could not find model class \'%s\' to import."
+                         % args.modelName)
 
   print "Reading in data and preprocessing."
   texter = TextPreprocess()
@@ -242,9 +248,14 @@ if __name__ == "__main__":
                       type=str,
                       help="Experiment name.")
   parser.add_argument("--modelName",
-                      default="",
+                      default="ClassificationModelRandomSDR",
                       type=str,
-                      help="Model name for pickle file.")
+                      help="Name of model class. Also used for model "
+                      "pickle checkpoint name.")
+  parser.add_argument("--modelModuleName",
+                      default="fluent.models.classify_random_sdr",
+                      type=str,
+                      help="Model module (location of model class).")
   parser.add_argument("--load",
                       help="Load the serialized model.",
                       default=False)
