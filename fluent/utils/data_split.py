@@ -28,6 +28,12 @@ class DataSplit(object):
 
 
   def split(self, samples):
+    """Split the given samples into train/test sets.
+
+    @param samples list of sample elements of any type
+    @returns a list of splits where each split is 2-tuple (training, test)
+        where each element is a list of elements from samples
+    """
     return NotImplementedError()
 
 
