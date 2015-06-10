@@ -167,7 +167,7 @@ def run(args):
   texter = TextPreprocess()
   samples, labels = readCSV(dataPath, 2, [3])  # Y data, [3] -> range(3,6)
   labelReference = list(set(labels))
-  labels = numpy.array([labelReference.index(l) for l in labels], dtype=int)
+  labels = numpy.array([labelReference.index(l) for l in labels], dtype="int8")
   samples = [texter.tokenize(sample,
                              ignoreCommon=100,
                              removeStrings=["[identifier deleted]"],
