@@ -79,12 +79,10 @@ class CioEncoder(LanguageEncoder):
       print ("\tThe client returned a bitmap with sparsity=0 for the string "
             "\'%s\', so we'll generate a pseudo-random SDR with the target "
             "sparsity=%0.1f." % (text, self.targetSparsity))
-      state = random.getstate()
       random.seed(text)
       num = self.w * self.h
       bitmap = random.sample(range(num), int(self.targetSparsity * num / 100))
       self._createFromBitmap(bitmap, self.w, self.h)
-      random.setstate(state)
 
 
     return self.client.getSDR(encoding["fingerprint"]["positions"])

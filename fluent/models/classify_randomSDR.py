@@ -46,22 +46,18 @@ class ClassificationModelRandomSDR(ClassificationModel):
     self.w = 20
 
 
-  def encodePattern(self, string):
+  def encodePattern(self, text):
     """
     Randomly encode an SDR of the input string, w/ same dimensions
     We seed the random number generator such that a given
     string will yield the same SDR each time this function is called.
-    Saving the internal state of the generator reduces the likelihood of
-    repeating values from previous inputs.
 
-    @param string     (str)             Text to encode.
+    @param text       (str)             String to encode.
     @return           (numpy.array)     Bitmap of the SDR, as a numpy array of
                                         integers.
     """
-    state = random.getstate()
-    random.seed(string)
-    bitmap = numpy.array(random.sample(xrange(self.n), self.w), dtype=int)
-    random.setstate(state)
+    random.seed(text)
+    bitmap = numpy.array(random.sample(xrange(self.n), self.w), dtype="int8")
     return numpy.sort(bitmap)
 
 

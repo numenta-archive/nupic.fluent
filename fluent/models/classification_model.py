@@ -138,7 +138,7 @@ class ClassificationModel(object):
         print template.format(idx[i], refs[labels[1][i]], "(none)")
       else:
         print template.format(
-          idx[i], refs[labels[1][i]], [refs[l] for l in labels[0][i]])
+          idx[i], refs[labels[1][i]], [refs[label] for label in labels[0][i]])
 
 
   @staticmethod
