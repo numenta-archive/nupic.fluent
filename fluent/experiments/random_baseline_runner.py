@@ -20,16 +20,6 @@
 # ----------------------------------------------------------------------
 """
 Experiment runner for classification survey question responses.
-Please note the following definitions:
-- Training dataset: all the data files used for experimentally building the NLP
-  system. During k-fold cross validation, the training dataset is split
-  differently for each of the k trials. The majority of the dataset is used for
-  training, and a small portion (1/k) is held out for evaluation; this
-  evaluation data is different from the test data.
-- Testing dataset: the data files held out until the NLP system is complete.
-  That is, the system should never see this testing data and then go back and
-  change models/params/methods/etc. at the risk of overfitting.
-- Classification and label are used interchangeably.
 
 Each sample is a token of text, for which there are multiple within a single
 question response. The samples of a single response all correspond to the
@@ -40,6 +30,17 @@ The model learns each sample (token) independently, encoding each w/ a
 random SDR, which is fed into a kNN classifier. For a given response in an
 evaluation (and test) dataset, each token is independently classified, and the
 response is then labeled with the top classification(s) amongst its tokens.
+
+Please note the following definitions:
+- Training dataset: all the data files used for experimentally building the NLP
+  system. During k-fold cross validation, the training dataset is split
+  differently for each of the k trials. The majority of the dataset is used for
+  training, and a small portion (1/k) is held out for evaluation; this
+  evaluation data is different from the test data.
+- Testing dataset: the data files held out until the NLP system is complete.
+  That is, the system should never see this testing data and then go back and
+  change models/params/methods/etc. at the risk of overfitting.
+- Classification and label are used interchangeably.
 """
 
 import argparse
@@ -50,16 +51,31 @@ import os
 import time
 
 from fluent.utils.csv_helper import readCSV
+from fluent.utils.data_split import KFolds
 from fluent.utils.text_preprocess import TextPreprocess
 from fluent.models.classify_randomSDR import ClassificationModelRandomSDR
 
 
+def runExperiment(model, patterns, labels, idxSplits):
+  """
+  @param model          (Model)               Classification model instance.
+  @param patterns       (numpy.array)         Each item is a list representings
+                                              a sample. Within each sample the
+                                              items are numpy array bitmaps.
+  @param labels         (numpy.array)         Ints specifying classifications.
+  @return                                     Return same as testing().
+  """
+  model.resetModel()
+  training(model, [(patterns[i], labels[i]) for i in idxSplits[0]])
+  return testing(model, [(patterns[i], labels[i]) for i in idxSplits[1]])
 
+
+# training() and testing() methods send one data sample at a time to the model,
+# i.e. streaming input.
 def training(model, trainSet):
   """Trains model on the bitmap patterns and corresponding labels lists."""
   for x in trainSet:
     model.trainModel(x[0], x[1])
-
 
 
 def testing(model, evalSet):
@@ -79,6 +95,15 @@ def testing(model, evalSet):
   return trialResults
 
 
+def calculateTrialResults(model, results, refs, indices, fileName):
+  """
+  Evaluate the results, returning accuracy and confusion matrix, and writing
+  the confusion matrix to a CSV.
+  """
+  result = model.evaluateTrialResults(results, refs, indices)
+  result[1].to_csv(fileName)
+  return result
+
 
 def computeExpectedAccuracy(predictedLabels, dataPath):
   """
@@ -93,7 +118,6 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
     if expectedLabels[i]==predictedLabels[i]]) / float(len(expectedLabels))
 
   print "Accuracy against expected classifications = ", accuracy
-
 
 
 def run(args):
@@ -139,12 +163,11 @@ def run(args):
   else:
     model = ClassificationModelRandomSDR(verbosity=args.verbosity)
 
-  # Get and prep data.
+  print "Reading in data and preprocessing."
   texter = TextPreprocess()
   samples, labels = readCSV(dataPath, 2, [3])  # Y data, [3] -> range(3,6)
   labelReference = list(set(labels))
-  labels = numpy.array([labelReference.index(l) for l in labels], dtype=int)
-  split = len(samples)/args.kFolds
+  labels = numpy.array([labelReference.index(l) for l in labels], dtype="int8")
   samples = [texter.tokenize(sample,
                              ignoreCommon=100,
                              removeStrings=["[identifier deleted]"],
@@ -156,39 +179,31 @@ def run(args):
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:
-    training(model,
-      [(p, labels[i]) for i, p in enumerate(patterns)])
+    training(model, [(p, labels[i]) for i, p in enumerate(patterns)])
   elif args.test:
-    trialResults = testing(model,
-      [(p, labels[i]) for i, p in enumerate(patterns)])
+    results = testing(model, [(p, labels[i]) for i, p in enumerate(patterns)])
+    calculateTrialResults(model, results, labelReference, xrange(len(samples)),
+      os.path.join(modelPath, "test_results.csv"))
   elif args.kFolds>1:
+    # Run k-folds cross validation -- train the model on a subset, and evaluate
+    # on the remaining subset.patterns
+    partitions = KFolds(args.kFolds).split(xrange(len(samples)))
     intermResults = []
     predictions = []
-    for k in range(args.kFolds):
-      # Train the model on a subset, and hold the evaluation subset.
-      model.resetModel()
-      evalIndices = range(k*split, (k+1)*split)
-      trainIndices = [i for i in range(len(samples)) if not i in evalIndices]
-
-      print "Training for CV fold {0}.".format(k)
-      training(model,
-        [(patterns[i], labels[i]) for i in trainIndices])
-
-      print "Evaluating for trial {0}.".format(k)
-      trialResults = testing(model,
-        [(patterns[i], labels[i]) for i in evalIndices])
+    for k in xrange(args.kFolds):
+      print "Training and testing for CV fold {0}.".format(k)
+      trialResults = runExperiment(model, patterns, labels, partitions[k])
 
       if args.expectationDataPath:
         # Keep the predicted labels (top prediction only) for later.
         p = [l if l else [None] for l in trialResults[0]]
-        predictions.append([labelReference[idx[0]] if idx[0] != None else '(none)' for idx in p])
+        predictions.append(
+          [labelReference[idx[0]] if idx[0] != None else '(none)' for idx in p])
 
-      print "Calculating intermediate results for this fold."
-      result = model.evaluateTrialResults(
-        trialResults, labelReference, evalIndices)
-      intermResults.append(result)
-      result[1].to_csv(os.path.join(
-        modelPath, "evaluation_fold_" + str(k) + ".csv"))
+      print "Calculating intermediate results for this fold. Writing to CSV."
+      intermResults.append(calculateTrialResults(model,
+        trialResults, labelReference, partitions[k][1],
+        os.path.join(modelPath, "evaluation_fold_" + str(k) + ".csv")))
 
     print "Calculating cumulative results for {0} trials.".format(args.kFolds)
     results = model.evaluateFinalResults(intermResults)
@@ -205,7 +220,6 @@ def run(args):
     os.path.join(modelPath, "model.pkl"), "wb") as f:
     pkl.dump(model, f)
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
-
 
 
 if __name__ == "__main__":
