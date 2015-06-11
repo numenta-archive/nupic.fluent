@@ -30,6 +30,8 @@ from nupic.algorithms.KNNClassifier import KNNClassifier
 class ClassificationModelRandomSDR(ClassificationModel):
   """
   Class to run the survey response classification task with random SDRs.
+
+  From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
   def __init__(self, verbosity=1):
@@ -46,19 +48,23 @@ class ClassificationModelRandomSDR(ClassificationModel):
     self.w = 20
 
 
-  def encodePattern(self, text):
+  def encodePattern(self, sample):
     """
-    Randomly encode an SDR of the input string, w/ same dimensions
-    We seed the random number generator such that a given
-    string will yield the same SDR each time this function is called.
+    Randomly encode an SDR of the input strings. We seed the random number
+    generator such that a given string will yield the same SDR each time this
+    method is called.
 
-    @param text       (str)             String to encode.
-    @return           (numpy.array)     Bitmap of the SDR, as a numpy array of
-                                        integers.
+    @param sample     (list)            Tokenized sample, where each item is a
+                                        string token.
+    @return           (list)            Numpy arrays, each with a bitmap of the
+                                        encoding.
     """
-    random.seed(text)
-    bitmap = numpy.array(random.sample(xrange(self.n), self.w), dtype="int8")
-    return numpy.sort(bitmap)
+    patterns = []
+    for text in sample:
+      random.seed(text)
+      patterns.append(numpy.sort(numpy.array(
+        random.sample(xrange(self.n), self.w), dtype="int8")))
+    return patterns
 
 
   def resetModel(self):
@@ -77,10 +83,9 @@ class ClassificationModelRandomSDR(ClassificationModel):
     """
     # This experiment classifies individual tokens w/in each sample. Train the
     # kNN classifier on each token.
-    p = 0
     for bitmap in sample:
       if bitmap == []: continue
-      p = self.classifier.learn(bitmap, label, isSparse=self.n)
+      _ = self.classifier.learn(bitmap, label, isSparse=self.n)
 
 
   def testModel(self, sample):
@@ -108,4 +113,4 @@ class ClassificationModelRandomSDR(ClassificationModel):
         tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
     if tokenLabels == []:
       return [None]
-    return self._winningLabels(tokenLabels, n=2)
+    return self._winningLabels(tokenLabels, n=1)

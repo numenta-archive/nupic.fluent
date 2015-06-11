@@ -19,6 +19,7 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import itertools
 import os
 import random
 
@@ -37,7 +38,7 @@ class CioEncoder(LanguageEncoder):
   converted to binary SDR arrays with this Cio encoder.
   """
 
-  def __init__(self, w=128, h=128):
+  def __init__(self, w=128, h=128, cacheDir="./cache"):
     if 'CORTICAL_API_KEY' not in os.environ:
       print ("Missing CORTICAL_API_KEY environment variable. If you have a "
         "key, set it with $ export CORTICAL_API_KEY=api_key\n"
@@ -46,10 +47,9 @@ class CioEncoder(LanguageEncoder):
       raise Exception("Missing API key.")
 
     self.apiKey         = os.environ['CORTICAL_API_KEY']
-    self.client         = CorticalClient(self.apiKey,
-                                         cacheDir=os.join("./cache"))
-    self.targetSparsity = 1.0
-    self.w              = w  ## Alternatively get dimensions from cortipy client object?
+    self.client         = CorticalClient(self.apiKey, cacheDir=cacheDir)
+    self.targetSparsity = 5.0
+    self.w              = w
     self.h              = h
     self.n = w*h
 
@@ -59,24 +59,24 @@ class CioEncoder(LanguageEncoder):
     Encodes the input text w/ a cortipy client. The client returns a
     dictionary of "fingerprint" info, including the SDR bitmap.
 
-    @param  text    (str, list)       If the input is type str, the encoder
-                                      assumes it has not yet been tokenized. A
-                                      list input will skip the tokenization
-                                      step.
-    @return         (list)            SDR.
+    @param  text    (str)             A non-tokenized sample of text.
+    @return         (dict)            Result from the cortipy client. The bitmap
+                                      encoding is at
+                                      encoding["fingerprint"]["positions"].
     """
-    if isinstance(text, str):
-      text = self.client.tokenize(text)
-
     try:
-      encoding = self.client.getBitmap(text)
-    except ValueError:
       encoding = self.client.getTextBitmap(text)
+    except Exception:
+      print("\tThe client returned no encoding for the text, so we'll use the "
+        "encoding of the least frequent token instead.")
+      tokens = list(itertools.chain.from_iterable(
+        [t.split(',') for t in self.client.tokenize(text)]))
+      encoding = min([self.client.getBitmap(t) for t in tokens],
+        key=lambda x: x["df"])
 
-
-    if encoding.sparsity == 0:  ##TODO: test again when/if this happens
+    if not encoding["fingerprint"]["positions"]:
       # No fingerprint so fill w/ random bitmap, seeded for each specific term.
-      print ("\tThe client returned a bitmap with sparsity=0 for the string "
+      print ("\tThe client returned an empty fingerprint for the text "
             "\'%s\', so we'll generate a pseudo-random SDR with the target "
             "sparsity=%0.1f." % (text, self.targetSparsity))
       random.seed(text)
@@ -84,8 +84,7 @@ class CioEncoder(LanguageEncoder):
       bitmap = random.sample(range(num), int(self.targetSparsity * num / 100))
       self._createFromBitmap(bitmap, self.w, self.h)
 
-
-    return self.client.getSDR(encoding["fingerprint"]["positions"])
+    return encoding
 
 
   def decode(self, encoding, numTerms=None):

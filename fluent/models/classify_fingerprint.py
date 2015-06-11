@@ -21,7 +21,9 @@
 
 import numpy
 import random
+import string
 
+from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
 
@@ -31,31 +33,36 @@ class ClassificationModelFingerprint(ClassificationModel):
   """
   Class to run the survey response classification task with Coritcal.io
   fingerprint encodings.
+
+  From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
   def __init__(self, verbosity=1):
     super(ClassificationModelFingerprint, self).__init__(verbosity)
 
-    # Init kNN classifier:
-    #   specify 'distanceMethod'='rawOverlap' for overlap; Euclidean is std.
-    #   verbosity=1 for debugging
-    #   standard k is 1
-    self.classifier = KNNClassifier(exact=True, verbosity=verbosity-1)
+    # Init kNN classifier and Cortical.io encoder; need valid API key (see
+    # CioEncoder init for details).
+    self.classifier = KNNClassifier(k=1, exact=False, verbosity=verbosity-1)
+    self.encoder = CioEncoder(cacheDir="./experiments/cache")
+    self.n = self.encoder.n
+    self.w = int((self.encoder.targetSparsity/100)*self.n)
 
 
-  def encodePattern(self, text):
+  def encodePattern(self, sample):
     """
-    Randomly encode an SDR of the input string, w/ same dimensions
-    We seed the random number generator such that a given
-    string will yield the same SDR each time this function is called.
+    Encode an SDR of the input string by querying the Cortical.io API.
 
-    @param text       (str)             String to encode.
-    @return           (numpy.array)     Bitmap of the SDR, as a numpy array of
-                                        integers.
+    @param sample     (list)            Tokenized sample, where each item is a
+                                        string token.
+    @return           (list)            Numpy arrays, each with a bitmap of the
+                                        encoding.
     """
-    random.seed(text)
-    bitmap = numpy.array(random.sample(xrange(self.n), self.w), dtype="int8")
-    return numpy.sort(bitmap)
+    print "========"
+    fpInfo = self.encoder.encode(string.join(sample))
+    print fpInfo
+    if self.verbosity > 1:
+      print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
+    return numpy.array(fpInfo["fingerprint"]["positions"], dtype="uint32")
 
 
   def resetModel(self):
@@ -67,17 +74,11 @@ class ClassificationModelFingerprint(ClassificationModel):
     """
     Train the classifier on the input sample and label.
 
-    @param sample     (list)            List of bitmaps, each representing the
-                                        encoding of one token in the sample.
+    @param sample     (numpy.array)     Bitmap encoding of the sample.
     @param label      (int)             Reference index for the classification
                                         of this sample.
     """
-    # This experiment classifies individual tokens w/in each sample. Train the
-    # kNN classifier on each token.
-    p = 0
-    for bitmap in sample:
-      if bitmap == []: continue
-      p = self.classifier.learn(bitmap, label, isSparse=self.n)
+    _ = self.classifier.learn(sample, label, isSparse=self.n)
 
 
   def testModel(self, sample):
@@ -86,23 +87,16 @@ class ClassificationModelFingerprint(ClassificationModel):
     frequent amongst the classifications of the sample's individual tokens.
     We ignore the terms that are unclassified, picking the most frequent
     classification among those that are detected.
-    @param sample           (list)        List of bitmaps, each representing the
-                                          encoding of one token in the sample.
-    @return classification  (list)        The n most-frequent classifications
-                                          for the data samples; for more, see
-                                          the KNNClassifier.infer()
-                                          documentation. Values are int or None.
+
+    @param sample     (numpy.array)     Bitmap encoding of the sample.
+    @return           (list)            The n most-frequent classifications
+                                        for the data samples; for more, see the
+                                        KNNClassifier.infer() documentation.
+                                        Values are int or None.
     Note: to return multiple winner classifications, modify the return statement
     accordingly.
     """
     tokenLabels = []
-    for bitmap in sample:
-      if bitmap == []: continue
-      (tokenLabel, _, _, _) = self.classifier.infer(
-        self._densifyPattern(bitmap))
-      if tokenLabel != None:
-        # Only include classified tokens.
-        tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
-    if tokenLabels == []:
-      return [None]
-    return self._winningLabels(tokenLabels, n=2)
+    (tokenLabel, _, _, _) = self.classifier.infer(self._densifyPattern(sample))
+    ## TODO: get list of closest classifications, not just the winner
+    return [tokenLabel]
