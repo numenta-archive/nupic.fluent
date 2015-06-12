@@ -37,7 +37,7 @@ class CioEncoder(LanguageEncoder):
   converted to binary SDR arrays with this Cio encoder.
   """
 
-  def __init__(self, w=128, h=128, cacheDir="./cache"):
+  def __init__(self, w=128, h=128, cacheDir="./cache", verbosity=0):
     if 'CORTICAL_API_KEY' not in os.environ:
       print ("Missing CORTICAL_API_KEY environment variable. If you have a "
         "key, set it with $ export CORTICAL_API_KEY=api_key\n"
@@ -51,6 +51,7 @@ class CioEncoder(LanguageEncoder):
     self.w              = w
     self.h              = h
     self.n              = w*h
+    self.verbosity      = verbosity
 
 
   def encode(self, text):
@@ -66,8 +67,9 @@ class CioEncoder(LanguageEncoder):
     try:
       encoding = self.client.getTextBitmap(text)
     except Exception:
-      print("\tThe client returned no encoding for the text, so we'll use the "
-        "encoding of the token that is least frequent in the corpus.")
+      if self.verbosity > 0:
+        print("\tThe client returned no encoding for the text, so we'll use "
+          "the encoding of the token that is least frequent in the corpus.")
       encoding = self._subEncoding(text)
 
     return encoding
