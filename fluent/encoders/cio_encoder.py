@@ -19,6 +19,7 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import itertools
 import os
 import random
 
@@ -27,7 +28,6 @@ from fluent.encoders.language_encoder import LanguageEncoder
 
 
 
-## TODO: add the methods we've run in experiments b/c exp will be run through here, and anything else useful from cortipy.cortical_client.py
 class CioEncoder(LanguageEncoder):
   """
   A language encoder using the Cortical.io API.
@@ -37,7 +37,7 @@ class CioEncoder(LanguageEncoder):
   converted to binary SDR arrays with this Cio encoder.
   """
 
-  def __init__(self, w=128, h=128):
+  def __init__(self, w=128, h=128, cacheDir="./cache", verbosity=0):
     if 'CORTICAL_API_KEY' not in os.environ:
       print ("Missing CORTICAL_API_KEY environment variable. If you have a "
         "key, set it with $ export CORTICAL_API_KEY=api_key\n"
@@ -46,12 +46,12 @@ class CioEncoder(LanguageEncoder):
       raise Exception("Missing API key.")
 
     self.apiKey         = os.environ['CORTICAL_API_KEY']
-    self.client         = CorticalClient(self.apiKey,
-                                         cacheDir=os.join("./cache"))
-    self.targetSparsity = 1.0
-    self.w              = w  ## Alternatively get dimensions from cortipy client object?
+    self.client         = CorticalClient(self.apiKey, cacheDir=cacheDir)
+    self.targetSparsity = 5.0
+    self.w              = w
     self.h              = h
-    self.n = w*h
+    self.n              = w*h
+    self.verbosity      = verbosity
 
 
   def encode(self, text):
@@ -59,33 +59,20 @@ class CioEncoder(LanguageEncoder):
     Encodes the input text w/ a cortipy client. The client returns a
     dictionary of "fingerprint" info, including the SDR bitmap.
 
-    @param  text    (str, list)       If the input is type str, the encoder
-                                      assumes it has not yet been tokenized. A
-                                      list input will skip the tokenization
-                                      step.
-    @return         (list)            SDR.
+    @param  text    (str)             A non-tokenized sample of text.
+    @return         (dict)            Result from the cortipy client. The bitmap
+                                      encoding is at
+                                      encoding["fingerprint"]["positions"].
     """
-    if isinstance(text, str):
-      text = self.client.tokenize(text)
-
     try:
-      encoding = self.client.getBitmap(text)
-    except ValueError:
       encoding = self.client.getTextBitmap(text)
+    except Exception:
+      if self.verbosity > 0:
+        print("\tThe client returned no encoding for the text, so we'll use "
+          "the encoding of the token that is least frequent in the corpus.")
+      encoding = self._subEncoding(text)
 
-
-    if encoding.sparsity == 0:  ##TODO: test again when/if this happens
-      # No fingerprint so fill w/ random bitmap, seeded for each specific term.
-      print ("\tThe client returned a bitmap with sparsity=0 for the string "
-            "\'%s\', so we'll generate a pseudo-random SDR with the target "
-            "sparsity=%0.1f." % (text, self.targetSparsity))
-      random.seed(text)
-      num = self.w * self.h
-      bitmap = random.sample(range(num), int(self.targetSparsity * num / 100))
-      self._createFromBitmap(bitmap, self.w, self.h)
-
-
-    return self.client.getSDR(encoding["fingerprint"]["positions"])
+    return encoding
 
 
   def decode(self, encoding, numTerms=None):
@@ -98,17 +85,34 @@ class CioEncoder(LanguageEncoder):
     (term, weight) tuples, where higher weights imply the corresponding term
     better matches the encoding.
 
-    @param  encoding        (list)             SDR.
-    @param  numTerms        (int)              The max number of terms to
-                                               return.
-    @return similar         (list)             List of dictionaries, where keys
-                                               are terms and likelihood scores.
+    @param  encoding        (list)            SDR.
+    @param  numTerms        (int)             The max number of terms to return.
+    @return similar         (list)            List of dictionaries, where keys
+                                              are terms and likelihood scores.
     """
     # Convert SDR to bitmap, send to cortipy client.
     terms = client.bitmapToTerms(
       super(CioEncoder, self).bitmapFromSDR(encoding))
     # Convert cortipy response to list of tuples (term, weight)
     return [((term["term"], term["score"])) for term in terms]
+
+
+  def _subEncoding(self, text):
+    """
+    @param text             (str)             A non-tokenized sample of text.
+    @return encoding        (dict)            Fingerprint from cortipy client.
+                                              An empty dictionary of the text
+                                              could not be encoded.
+    """
+    tokens = list(itertools.chain.from_iterable(
+      [t.split(',') for t in self.client.tokenize(text)]))
+    try:
+      encoding = min([self.client.getBitmap(t) for t in tokens],
+        key=lambda x: x["df"])
+    except Exception:
+      encoding = {}
+
+    return encoding
 
 
   ## TODO: redo fields? delete (see line 81 TODO)?

@@ -31,6 +31,16 @@ random SDR, which is fed into a kNN classifier. For a given response in an
 evaluation (and test) dataset, each token is independently classified, and the
 response is then labeled with the top classification(s) amongst its tokens.
 
+EXAMPLE: from the fluent directory, run...
+python experiments/baseline_runner.py data/sample_reviews/sample_reviews_data_training.csv
+  - The runner sets up the data path such that the experiment runs on a single
+  data file located in the nupic.fluent/data directory. The data path MUST BE
+  SPECIFIED at the cmd line.
+  - This example runs the ClassificationModelRandomSDR subclass of Model. To use
+  a different model, use cmd line args modelName and modelModuleName.
+  - The call to readCSV() below is specific for the format of this data file,
+  and should be changed for CSVs with different columns.
+
 Please note the following definitions:
 - Training dataset: all the data files used for experimentally building the NLP
   system. During k-fold cross validation, the training dataset is split
@@ -53,7 +63,6 @@ import time
 from fluent.utils.csv_helper import readCSV
 from fluent.utils.data_split import KFolds
 from fluent.utils.text_preprocess import TextPreprocess
-from fluent.models.classify_randomSDR import ClassificationModelRandomSDR
 
 
 def runExperiment(model, patterns, labels, idxSplits):
@@ -124,12 +133,6 @@ def run(args):
   """
   The experiment is configured to run on question response data.
 
-  The runner sets up the data path to such that the experiment runs on a single
-  data file located in the nupic.fluent/data directory.
-  The data path MUST BE SPECIFIED at the cmd line, e.g. from the fluent dir:
-
-  python experiments/random_baseline_runner.py data/sample_reviews/sample_reviews_data_training.csv
-
   To run k-folds cross validation, arguments must be: kFolds > 1, train = False,
   test = False. To run either training or testing, kFolds = 1.
   """
@@ -161,7 +164,13 @@ def run(args):
       model = pkl.load(f)
     print "Model loaded from \'{0}\'.".format(modelPath)
   else:
-    model = ClassificationModelRandomSDR(verbosity=args.verbosity)
+    try:
+      module = __import__(args.modelModuleName, {}, {}, args.modelName)
+      modelClass = getattr(module, args.modelName)
+      model = modelClass(verbosity=args.verbosity)
+    except ImportError:
+      raise RuntimeError("Could not find model class \'%s\' to import."
+                         % args.modelName)
 
   print "Reading in data and preprocessing."
   texter = TextPreprocess()
@@ -175,7 +184,7 @@ def run(args):
              for sample in samples]
   if args.verbosity > 1:
     for i, s in enumerate(samples): print i, s, labelReference[labels[i]]
-  patterns = [[model.encodePattern(t) for t in tokens] for tokens in samples]
+  patterns = [model.encodePattern(s) for s in samples]
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:
@@ -186,7 +195,7 @@ def run(args):
       os.path.join(modelPath, "test_results.csv"))
   elif args.kFolds>1:
     # Run k-folds cross validation -- train the model on a subset, and evaluate
-    # on the remaining subset.patterns
+    # on the remaining subset.
     partitions = KFolds(args.kFolds).split(xrange(len(samples)))
     intermResults = []
     predictions = []
@@ -238,13 +247,18 @@ if __name__ == "__main__":
                       "train on "
                       "run no cross-validation.")
   parser.add_argument("--expName",
-                      default="survey_response_random_sdr_training",
+                      default="survey_response_sample",
                       type=str,
                       help="Experiment name.")
   parser.add_argument("--modelName",
-                      default="",
+                      default="ClassificationModelRandomSDR",
                       type=str,
-                      help="Model name for pickle file.")
+                      help="Name of model class. Also used for model results "
+                      "directory and pickle checkpoint.")
+  parser.add_argument("--modelModuleName",
+                      default="fluent.models.classify_random_sdr",
+                      type=str,
+                      help="Model module (location of model class).")
   parser.add_argument("--load",
                       help="Load the serialized model.",
                       default=False)
