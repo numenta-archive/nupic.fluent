@@ -154,7 +154,8 @@ class ClassificationModel(object):
   def _densifyPattern(self, bitmap):
     """Return a numpy array of 0s and 1s to represent the input bitmap."""
     densePattern = numpy.zeros(self.n)
-    densePattern[bitmap] = 1.0
+    for i in bitmap:
+      densePattern[i] = 1.0
     return densePattern
 
 

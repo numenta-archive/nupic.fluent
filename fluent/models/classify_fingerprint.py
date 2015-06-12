@@ -57,12 +57,13 @@ class ClassificationModelFingerprint(ClassificationModel):
     @return           (list)            Numpy arrays, each with a bitmap of the
                                         encoding.
     """
-    print "========"
     fpInfo = self.encoder.encode(string.join(sample))
-    print fpInfo
     if self.verbosity > 1:
       print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
-    return numpy.array(fpInfo["fingerprint"]["positions"], dtype="uint32")
+    if fpInfo:
+      return numpy.array(fpInfo["fingerprint"]["positions"], dtype="uint32")
+    else:
+      return numpy.empty(0)
 
 
   def resetModel(self):
@@ -78,7 +79,8 @@ class ClassificationModelFingerprint(ClassificationModel):
     @param label      (int)             Reference index for the classification
                                         of this sample.
     """
-    _ = self.classifier.learn(sample, label, isSparse=self.n)
+    if sample.any():
+      _ = self.classifier.learn(sample, label, isSparse=self.n)
 
 
   def testModel(self, sample):

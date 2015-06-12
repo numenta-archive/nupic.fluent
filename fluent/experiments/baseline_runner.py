@@ -195,7 +195,7 @@ def run(args):
       os.path.join(modelPath, "test_results.csv"))
   elif args.kFolds>1:
     # Run k-folds cross validation -- train the model on a subset, and evaluate
-    # on the remaining subset.patterns
+    # on the remaining subset.
     partitions = KFolds(args.kFolds).split(xrange(len(samples)))
     intermResults = []
     predictions = []
