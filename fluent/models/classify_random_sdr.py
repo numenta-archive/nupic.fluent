@@ -60,8 +60,8 @@ class ClassificationModelRandomSDR(ClassificationModel):
                                         encoding.
     """
     patterns = []
-    for text in sample:
-      random.seed(text)
+    for token in sample:
+      random.seed(token)
       patterns.append(numpy.sort(numpy.array(
         random.sample(xrange(self.n), self.w), dtype="int8")))
     return patterns
