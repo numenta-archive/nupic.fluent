@@ -23,6 +23,7 @@ import numpy
 import os
 
 from fluent.models.classification_model import ClassificationModel
+from fluent.encoders.cio_encoder import CioEncoder
 
 from cortipy.cortical_client import CorticalClient
 
@@ -37,19 +38,16 @@ class ClassificationModelEndpoint(ClassificationModel):
   """
 
   def __init__(self, verbosity=1):
-    if 'CORTICAL_API_KEY' not in os.environ:
-      print ("Missing CORTICAL_API_KEY environment variable. If you have a "
-        "key, set it with $ export CORTICAL_API_KEY=api_key\n"
-        "You can retrieve a key by registering for the REST API at "
-        "http://www.cortical.io/resources_apikey.html")
-      raise Exception("Missing API key.")
-
     super(ClassificationModelEndpoint, self).__init__(verbosity)
 
     # Init CorticalClient and Cortical.io encoder; need valid API key (see
     # CioEncoder init for details).
-    self.apiKey = os.environ['CORTICAL_API_KEY']
-    self.client = CorticalClient(self.apiKey)
+    self.encoder = CioEncoder(cacheDir="./experiments/cache")
+    self.client = CorticalClient(self.encoder.apiKey)
+
+    self.n = self.encoder.n
+    self.w = int((self.encoder.targetSparsity/100)*self.n)
+
     self.positives = {}
     self.categoryBitmaps = {}
 
@@ -63,6 +61,22 @@ class ClassificationModelEndpoint(ClassificationModel):
     @return           (string)          Original string
     """
     return " ".join(sample)
+
+  def _encodePattern(self, sample):
+    """
+    Encode an SDR of the input string by querying the Cortical.io API.
+
+    @param sample     (string)          Original string
+    @return           (list)            Numpy arrays, each with a bitmap of the
+                                        encoding.
+    """
+    fpInfo = self.encoder.encode(sample)
+    if self.verbosity > 1:
+      print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
+    if fpInfo:
+      return numpy.array(fpInfo["fingerprint"]["positions"], dtype="uint32")
+    else:
+      return numpy.empty(0)
 
 
   def resetModel(self):
@@ -95,13 +109,15 @@ class ClassificationModelEndpoint(ClassificationModel):
     We ignore the terms that are unclassified, picking the most frequent
     classification among those that are detected.
 
-    @param sample     (numpy.array)     bitmap encoding of the sample.
+    @param sample     (string)          Original string
     @return           (dictionary)      The distances between the sample and the classes
     """
 
+    sampleBitmap = self._encodePattern(sample).tolist()
+
     distances = {}
     for cat, catBitmap in self.categoryBitmaps.iteritems():
-      fp1 = {"fingerprint": {"positions": sample}}
+      fp1 = {"fingerprint": {"positions": sampleBitmap}}
       fp2 = {"fingerprint": {"positions": catBitmap}}
       distance[cat] = self.client.compare(fp1, fp2)
 
