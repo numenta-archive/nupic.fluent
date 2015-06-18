@@ -117,8 +117,6 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     distances = {}
     for cat, catBitmap in self.categoryBitmaps.iteritems():
-      fp1 = {"fingerprint": {"positions": sampleBitmap}}
-      fp2 = {"fingerprint": {"positions": catBitmap}}
-      distance[cat] = self.client.compare(fp1, fp2)
+      distances[cat] = self.client.compare(sampleBitmap, catBitmap)
 
     return distances
