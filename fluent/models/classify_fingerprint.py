@@ -20,7 +20,6 @@
 # ----------------------------------------------------------------------
 
 import numpy
-import random
 import string
 
 from fluent.encoders.cio_encoder import CioEncoder
@@ -54,13 +53,12 @@ class ClassificationModelFingerprint(ClassificationModel):
 
     @param sample     (list)            Tokenized sample, where each item is a
                                         string token.
-    @return           (list)            Numpy arrays, each with a bitmap of the
-                                        encoding.
+    @return           (numpy.array)     Bitmap of the encoding.
     """
     fpInfo = self.encoder.encode(string.join(sample))
-    if self.verbosity > 1:
-      print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
     if fpInfo:
+      if self.verbosity > 1:
+        print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
       return numpy.array(fpInfo["fingerprint"]["positions"], dtype="uint32")
     else:
       return numpy.empty(0)
@@ -80,7 +78,7 @@ class ClassificationModelFingerprint(ClassificationModel):
                                         of this sample.
     """
     if sample.any():
-      _ = self.classifier.learn(sample, label, isSparse=self.n)
+      self.classifier.learn(sample, label, isSparse=self.n)
 
 
   def testModel(self, sample):
@@ -98,7 +96,6 @@ class ClassificationModelFingerprint(ClassificationModel):
     Note: to return multiple winner classifications, modify the return statement
     accordingly.
     """
-    tokenLabels = []
     (tokenLabel, _, _, _) = self.classifier.infer(self._densifyPattern(sample))
     ## TODO: get list of closest classifications, not just the winner
     return [tokenLabel]

@@ -24,6 +24,7 @@ import random
 
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
+# from nupic.bindings.math import Random
 
 
 
@@ -85,7 +86,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
     # kNN classifier on each token.
     for bitmap in sample:
       if bitmap == []: continue
-      _ = self.classifier.learn(bitmap, label, isSparse=self.n)
+      self.classifier.learn(bitmap, label, isSparse=self.n)
 
 
   def testModel(self, sample):

@@ -172,7 +172,8 @@ def run(args):
       raise RuntimeError("Could not find model class \'%s\' to import."
                          % args.modelName)
 
-  print "Reading in data and preprocessing."
+  print("Reading in data and preprocessing; elapsed time is {0:.2f} seconds.".
+    format(time.time() - start))
   texter = TextPreprocess()
   samples, labels = readCSV(dataPath, 2, [3])  # Y data, [3] -> range(3,6)
   labelReference = list(set(labels))
@@ -184,6 +185,9 @@ def run(args):
              for sample in samples]
   if args.verbosity > 1:
     for i, s in enumerate(samples): print i, s, labelReference[labels[i]]
+
+  print("Encoding the data; elapsed time is {0:.2f} seconds.".
+    format(time.time() - start))
   patterns = [model.encodePattern(s) for s in samples]
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
@@ -196,11 +200,12 @@ def run(args):
   elif args.kFolds>1:
     # Run k-folds cross validation -- train the model on a subset, and evaluate
     # on the remaining subset.
-    partitions = KFolds(args.kFolds).split(xrange(len(samples)))
+    partitions = KFolds(args.kFolds).split(range(len(samples)), randomize=True)
     intermResults = []
     predictions = []
     for k in xrange(args.kFolds):
-      print "Training and testing for CV fold {0}.".format(k)
+      print("Training and testing for CV fold {0}; elapsed time is {1:.2f} "
+        "seconds.".format(k, time.time() - start))
       trialResults = runExperiment(model, patterns, labels, partitions[k])
 
       if args.expectationDataPath:
