@@ -83,7 +83,7 @@ class ClassificationModelEndpoint(ClassificationModel):
       self.positives[label] = []
     self.positives[label].append(sample)
 
-    categoryBitmap = self.client.createClassification(label, self.positives[label])["positions"]
+    categoryBitmap = self.client.createClassification(str(label), self.positives[label])["positions"]
 
     self.categoryBitmaps[label] = categoryBitmap
 
