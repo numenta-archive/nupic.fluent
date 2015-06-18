@@ -20,12 +20,11 @@
 # ----------------------------------------------------------------------
 
 import numpy
-import random
-import string
 
 from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
-from nupic.algorithms.KNNClassifier import KNNClassifier
+
+from cortipy.cortical_client import CorticalClient
 
 
 
@@ -59,7 +58,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     @return           (list)            Numpy arrays, each with a bitmap of the
                                         encoding.
     """
-    fpInfo = self.encoder.encode(string.join(sample))
+    fpInfo = self.encoder.encode(" ".join(sample))
     if self.verbosity > 1:
       print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
     if fpInfo:
