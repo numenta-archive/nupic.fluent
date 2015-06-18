@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 import numpy
+import os
 
 from fluent.models.classification_model import ClassificationModel
 
