@@ -21,7 +21,6 @@
 
 import numpy
 
-from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
 
 from cortipy.cortical_client import CorticalClient
@@ -37,16 +36,21 @@ class ClassificationModelEndpoint(ClassificationModel):
   """
 
   def __init__(self, verbosity=1):
+    if 'CORTICAL_API_KEY' not in os.environ:
+      print ("Missing CORTICAL_API_KEY environment variable. If you have a "
+        "key, set it with $ export CORTICAL_API_KEY=api_key\n"
+        "You can retrieve a key by registering for the REST API at "
+        "http://www.cortical.io/resources_apikey.html")
+      raise Exception("Missing API key.")
+
     super(ClassificationModelEndpoint, self).__init__(verbosity)
 
     # Init CorticalClient and Cortical.io encoder; need valid API key (see
     # CioEncoder init for details).
-    self.encoder = CioEncoder(cacheDir="./experiments/cache")
-    self.client = CorticalClient(self.encoder.apiKey)
-    self.n = self.encoder.n
-    self.w = int((self.encoder.targetSparsity/100) * self.n)
+    self.apiKey = os.environ['CORTICAL_API_KEY']
+    self.client = CorticalClient(self.apiKey)
     self.positives = {}
-    self.categorySDRs = {}
+    self.categoryBitmaps = {}
 
 
   def encodePattern(self, sample):
@@ -55,22 +59,15 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     @param sample     (list)            Tokenized sample, where each item is a
                                         string token.
-    @return           (list)            Numpy arrays, each with a bitmap of the
-                                        encoding.
+    @return           (string)          Original string
     """
-    fpInfo = self.encoder.encode(" ".join(sample))
-    if self.verbosity > 1:
-      print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
-    if fpInfo:
-      return numpy.array(fpInfo["fingerprint"]["positions"], dtype="uint32")
-    else:
-      return numpy.empty(0)
+    return " ".join(sample)
 
 
   def resetModel(self):
     """Reset the model"""
     self.positives.clear()
-    self.categorySDRs.clear()
+    self.categoryBitmaps.clear()
 
 
   def trainModel(self, sample, label):
@@ -87,7 +84,7 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     categoryBitmap = self.client.createClassification(label, self.positives[label])["positions"]
 
-    self.categorySDRs[label] = self.densifyPattern(categoryBitmap)
+    self.categoryBitmaps[label] = categoryBitmap
 
 
   def testModel(self, sample):
@@ -101,10 +98,10 @@ class ClassificationModelEndpoint(ClassificationModel):
     @return           (dictionary)      The distances between the sample and the classes
     """
 
-    sampleSDR = self.densifyPattern(sample)
-
     distances = {}
-    for cat, catSDR in self.categorySDRs.iteritems():
-      distances[cat] = self.encoder.compare(catSDR, sampleSDR)
+    for cat, catBitmap in self.categoryBitmaps.iteritems():
+      fp1 = {"fingerprint": {"positions": sample}}
+      fp2 = {"fingerprint": {"positions": catBitmap}}
+      distance[cat] = self.client.compare(fp1, fp2)
 
     return distances
