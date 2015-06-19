@@ -68,9 +68,9 @@ from fluent.utils.text_preprocess import TextPreprocess
 def runExperiment(model, patterns, labels, idxSplits):
   """
   @param model          (Model)               Classification model instance.
-  @param patterns       (numpy.array)         Each item is a list representings
-                                              a sample. Within each sample the
-                                              items are numpy array bitmaps.
+  @param patterns       (list)                Each item is a dict with the
+                                              sample encoding a numpy array
+                                              bitmap in field "bitmap".
   @param labels         (numpy.array)         Ints specifying classifications.
   @return                                     Return same as testing().
   """
@@ -151,9 +151,7 @@ def run(args):
     raise ValueError("Invalid data path.")
   if (not isinstance(args.kFolds, int)) or (args.kFolds < 1):
     raise ValueError("Invalid value for number of cross-validation folds.")
-  if args.train and args.test:
-    raise ValueError("Run training and testing independently.")
-  if (args.train or args.test) and args.kFolds > 1:
+  if (args.train and args.test) and args.kFolds > 1:
     raise ValueError("Experiment runs either k-folds CV or training/testing, "
                      "not both.")
 
@@ -172,10 +170,10 @@ def run(args):
       raise RuntimeError("Could not find model class \'%s\' to import."
                          % args.modelName)
 
-  print("Reading in data and preprocessing; elapsed time is {0:.2f} seconds.".
-    format(time.time() - start))
+  print "Reading in data and preprocessing."
+  preprocessTime = time.time()
   texter = TextPreprocess()
-  samples, labels = readCSV(dataPath, 2, [3])  # Y data, [3] -> range(3,6)
+  samples, labels = readCSV(dataPath, 2, [3])  # [3] is single class, range(3,6) is multi-class
   labelReference = list(set(labels))
   labels = numpy.array([labelReference.index(l) for l in labels], dtype="int8")
   samples = [texter.tokenize(sample,
@@ -183,19 +181,25 @@ def run(args):
                              removeStrings=["[identifier deleted]"],
                              correctSpell=True)
              for sample in samples]
+  print("Preprocessing complete; elapsed time is {0:.2f} seconds.".
+        format(time.time() - preprocessTime))
   if args.verbosity > 1:
     for i, s in enumerate(samples): print i, s, labelReference[labels[i]]
 
-  print("Encoding the data; elapsed time is {0:.2f} seconds.".
-    format(time.time() - start))
+  print "Encoding the data."
+  encodeTime = time.time()
   patterns = [model.encodePattern(s) for s in samples]
+  print("Done encoding; elapsed time is {0:.2f} seconds.".
+        format(time.time() - encodeTime))
+  model.logEncodings(patterns, modelPath)
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:
     training(model, [(p, labels[i]) for i, p in enumerate(patterns)])
-  elif args.test:
+  if args.test:
     results = testing(model, [(p, labels[i]) for i, p in enumerate(patterns)])
-    calculateTrialResults(model, results, labelReference, xrange(len(samples)),
+    print calculateTrialResults(
+      model, results, labelReference, xrange(len(samples)),
       os.path.join(modelPath, "test_results.csv"))
   elif args.kFolds>1:
     # Run k-folds cross validation -- train the model on a subset, and evaluate
@@ -204,9 +208,11 @@ def run(args):
     intermResults = []
     predictions = []
     for k in xrange(args.kFolds):
-      print("Training and testing for CV fold {0}; elapsed time is {1:.2f} "
-        "seconds.".format(k, time.time() - start))
+      print "Training and testing for CV fold {0}.".format(k)
+      kTime = time.time()
       trialResults = runExperiment(model, patterns, labels, partitions[k])
+      print("Fold complete; elapsed time is {0:.2f} seconds.".format(
+            time.time() - kTime))
 
       if args.expectationDataPath:
         # Keep the predicted labels (top prediction only) for later.
@@ -249,7 +255,6 @@ if __name__ == "__main__":
                       default=5,
                       type=int,
                       help="Number of folds for cross validation; k=1 will "
-                      "train on "
                       "run no cross-validation.")
   parser.add_argument("--expName",
                       default="survey_response_sample",

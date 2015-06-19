@@ -119,11 +119,12 @@ class StandardSplit(DataSplit):
   """Implementation of standard train/test splitting."""
 
 
-  def __init__(self, n=0.8):
-    if n < 0.0 or n > 1.0:
-      raise ValueError("n must be between 0.0 and 1.0, not %.2f." % n)
+  def __init__(self, trainPortion=0.8):
+    if trainPortion < 0.0 or trainPortion > 1.0:
+      raise ValueError("trainPortion must be between 0.0 and 1.0, not %.2f."
+                       % trainPortion)
 
-    self.n = n
+    self.trainPortion = trainPortion
 
 
   def split(self, samples, randomize=False):
@@ -144,6 +145,5 @@ class StandardSplit(DataSplit):
     # Make sure we have an indexable list
     samples = list(samples)
 
-    sliceIdx = int(self.n*len(samples))
+    sliceIdx = int(self.trainPortion*len(samples))
     return (samples[:sliceIdx], samples[sliceIdx:])
-

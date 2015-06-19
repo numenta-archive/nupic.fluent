@@ -111,7 +111,11 @@ class CioEncoder(LanguageEncoder):
     try:
       encoding = min([self.client.getBitmap(t) for t in tokens],
                      key=lambda x: x["df"])
-    except UnsuccessfulEncodingError("Client could not return an encoding."):
+      ## TODO: take union of FPs instead
+    except UnsuccessfulEncodingError:
+      if self.verbosity > 0:
+        print("\tThe client returned no substitute encoding for the text "
+              "\'{0}\', so we encode with None.".format(text))
       encoding = None
 
     return encoding

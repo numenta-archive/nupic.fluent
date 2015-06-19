@@ -101,6 +101,10 @@ class DataSplitTest(unittest.TestCase):
       splitter.split(xrange(10)),
       ([0, 1, 2, 3, 4, 5, 6, 7], [8, 9]))
 
+    self.assertSequenceEqual(
+      splitter.split(xrange(11)),
+      ([0, 1, 2, 3, 4, 5, 6, 7], [8, 9, 10]))
+
     splitter = data_split.StandardSplit(0.7)
 
     self.assertSequenceEqual(

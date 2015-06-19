@@ -49,19 +49,30 @@ class ClassificationModelFingerprint(ClassificationModel):
 
   def encodePattern(self, sample):
     """
-    Encode an SDR of the input string by querying the Cortical.io API.
+    Encode an SDR of the input string by querying the Cortical.io API. If the
+    client returns None, we create a random SDR with the model's dimensions n
+    and w.
 
     @param sample     (list)            Tokenized sample, where each item is a
                                         string token.
     @return           (numpy.array)     Bitmap of the encoding.
     """
-    fpInfo = self.encoder.encode(string.join(sample))
+    sample = string.join(sample)
+    fpInfo = self.encoder.encode(sample)
     if fpInfo:
-      if self.verbosity > 1:
-        print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
-      return numpy.array(fpInfo["fingerprint"]["positions"], dtype="uint32")
+      fp = {
+          "text":fpInfo["text"] if "text" in fpInfo else fpInfo["term"],
+          "sparsity":fpInfo["sparsity"],
+          "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])
+          }
     else:
-      return numpy.empty(0)
+      fp = {
+            "text":sample,
+            "sparsity":float(self.w)/self.n,
+            "bitmap":self.encodeRandomly(sample)
+            }
+
+    return fp
 
 
   def resetModel(self):
@@ -77,8 +88,8 @@ class ClassificationModelFingerprint(ClassificationModel):
     @param label      (int)             Reference index for the classification
                                         of this sample.
     """
-    if sample.any():
-      self.classifier.learn(sample, label, isSparse=self.n)
+    if sample["bitmap"].any():
+      self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
 
 
   def testModel(self, sample):
@@ -96,6 +107,7 @@ class ClassificationModelFingerprint(ClassificationModel):
     Note: to return multiple winner classifications, modify the return statement
     accordingly.
     """
-    (tokenLabel, _, _, _) = self.classifier.infer(self._densifyPattern(sample))
+    (tokenLabel, _, _, _) = self.classifier.infer(
+      self._densifyPattern(sample["bitmap"]))
     ## TODO: get list of closest classifications, not just the winner
     return [tokenLabel]
