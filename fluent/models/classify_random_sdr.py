@@ -19,12 +19,19 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import copy
 import numpy
+import os
 import random
 
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
 # from nupic.bindings.math import Random
+
+try:
+  import simplejson as json
+except ImportError:
+  import json
 
 
 
