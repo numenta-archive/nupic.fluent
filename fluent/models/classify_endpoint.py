@@ -31,8 +31,8 @@ from cortipy.cortical_client import CorticalClient
 
 class ClassificationModelEndpoint(ClassificationModel):
   """
-  Class to run the survey response classification task with Coritcal.io
-  endpoint encodings.
+  Class to run the survey response classification task with Cortical.io
+  text endpoint encodings and classification.
 
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
@@ -46,7 +46,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.client = CorticalClient(self.encoder.apiKey)
 
     self.n = self.encoder.n
-    self.w = int((self.encoder.targetSparsity/100)*self.n)
+    self.w = int((self.encoder.targetSparsity/100) * self.n)
 
     self.positives = {}
     self.categoryBitmaps = {}
@@ -56,27 +56,19 @@ class ClassificationModelEndpoint(ClassificationModel):
     """
     Encode an SDR of the input string by querying the Cortical.io API.
 
-    @param sample     (list)            Tokenized sample, where each item is a
-                                        string token.
-    @return           (string)          Original string
-    """
-    return " ".join(sample)
-
-  def _encodePattern(self, sample):
-    """
-    Encode an SDR of the input string by querying the Cortical.io API.
-
     @param sample     (string)          Original string
-    @return           (list)            Numpy arrays, each with a bitmap of the
-                                        encoding.
+    @return           (dictionary)      Dictionary, containing text, sparsity, and bitmap
     """
-    fpInfo = self.encoder.encode(sample)
+    text = " ".join(sample)
+    fpInfo = self.encoder.encode(text)
     if self.verbosity > 1:
       print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
     if fpInfo:
-      return numpy.array(fpInfo["fingerprint"]["positions"], dtype="uint32")
+      bitmap = numpy.array(fpInfo["fingerprint"]["positions"], dtype="uint32")
+      return {"text": text, "sparsity": fpInfo["sparsity"], "bitmap": bitmap}
     else:
-      return numpy.empty(0)
+      bitmap = numpy.empty(0)
+      return {"text": text, "sparsity": float(self.w)/self.n, "bitmap": bitmap}
 
 
   def resetModel(self):
@@ -89,13 +81,13 @@ class ClassificationModelEndpoint(ClassificationModel):
     """
     Train the classifier on the input sample and label.
 
-    @param sample     (string)          Comment
+    @param sample     (dictionary)      Dictionary, containing text, sparsity, and bitmap
     @param label      (int)             Reference index for the classification
                                         of this sample.
     """
     if label not in self.positives:
       self.positives[label] = []
-    self.positives[label].append(sample)
+    self.positives[label].append(sample["text"])
 
     categoryBitmap = self.client.createClassification(str(label), self.positives[label])["positions"]
 
@@ -109,11 +101,11 @@ class ClassificationModelEndpoint(ClassificationModel):
     We ignore the terms that are unclassified, picking the most frequent
     classification among those that are detected.
 
-    @param sample     (string)          Original string
+    @param sample     (dictionary)      Dictionary, containing text, sparsity, and bitmap
     @return           (dictionary)      The distances between the sample and the classes
     """
 
-    sampleBitmap = self._encodePattern(sample).tolist()
+    sampleBitmap = sample["bitmap"].tolist()
 
     distances = {}
     for cat, catBitmap in self.categoryBitmaps.iteritems():
