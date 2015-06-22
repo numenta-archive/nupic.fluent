@@ -59,7 +59,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     Encode an SDR of the input string by querying the Cortical.io API.
 
     @param pattern     (list)           Tokenized sample, where each item is a string
-    @return           (dictionary)      Dictionary, containing text, sparsity, and bitmap
+    @return            (dictionary)     Dictionary, containing text, sparsity, and bitmap
     Example return dict:
     {
       "text": "Example text",
