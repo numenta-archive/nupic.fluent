@@ -50,6 +50,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.w = int((self.encoder.targetSparsity/100) * self.n)
 
     self.positives = {}
+    self.negatives = {}
     self.categoryBitmaps = {}
 
 
@@ -85,6 +86,7 @@ class ClassificationModelEndpoint(ClassificationModel):
   def resetModel(self):
     """Reset the model"""
     self.positives.clear()
+    self.negatives.clear()
     self.categoryBitmaps.clear()
 
 
@@ -96,14 +98,22 @@ class ClassificationModelEndpoint(ClassificationModel):
     @param sample     (dictionary)      Dictionary, containing text, sparsity, and bitmap
     @param label      (int)             Reference index for the classification
                                         of this sample.
-    @param negatives  (list)            Each item is the text for the negative samples
+    @param negatives  (list)            Each item is the dictionary containing
+                                        text, sparsity and bitmap for the negative samples
     """
     if label not in self.positives:
       self.positives[label] = []
     self.positives[label].append(sample["text"])
 
+    if label not in self.negatives:
+      self.negatives[label] = []
+
+    if negatives is not None:
+      for neg in negatives:
+        self.negatives[label].append(neg["text"])
+
     self.categoryBitmaps[label] = self.client.createClassification(str(label),
-        self.positives[label])["positions"]
+      self.positives[label], self.negatives[label])["positions"]
 
 
   def testModel(self, sample):
