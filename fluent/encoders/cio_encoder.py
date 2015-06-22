@@ -24,6 +24,7 @@ import os
 import random
 
 from cortipy.cortical_client import CorticalClient
+from cortipy.exceptions import UnsuccessfulEncodingError
 from fluent.encoders.language_encoder import LanguageEncoder
 
 
@@ -43,7 +44,7 @@ class CioEncoder(LanguageEncoder):
         "key, set it with $ export CORTICAL_API_KEY=api_key\n"
         "You can retrieve a key by registering for the REST API at "
         "http://www.cortical.io/resources_apikey.html")
-      raise Exception("Missing API key.")
+      raise OSError("Missing API key.")
 
     self.apiKey         = os.environ['CORTICAL_API_KEY']
     self.client         = CorticalClient(self.apiKey, cacheDir=cacheDir)
@@ -64,18 +65,21 @@ class CioEncoder(LanguageEncoder):
                                       encoding is at
                                       encoding["fingerprint"]["positions"].
     """
+    if not text:
+      return None
     try:
       encoding = self.client.getTextBitmap(text)
-    except Exception:
+    except UnsuccessfulEncodingError:
       if self.verbosity > 0:
-        print("\tThe client returned no encoding for the text, so we'll use "
-          "the encoding of the token that is least frequent in the corpus.")
+        print ("\tThe client returned no encoding for the text \'{0}\', so "
+               "we'll use the encoding of the token that is least frequent in "
+               "the corpus.".format(text))
       encoding = self._subEncoding(text)
 
     return encoding
 
 
-  def decode(self, encoding, numTerms=None):
+  def decode(self, encoding, numTerms=10):
     """
     Converts an SDR back into the most likely word or words.
 
@@ -85,14 +89,12 @@ class CioEncoder(LanguageEncoder):
     (term, weight) tuples, where higher weights imply the corresponding term
     better matches the encoding.
 
-    @param  encoding        (list)            SDR.
+    @param  encoding        (list)            Bitmap encoding.
     @param  numTerms        (int)             The max number of terms to return.
-    @return similar         (list)            List of dictionaries, where keys
+    @return                 (list)            List of dictionaries, where keys
                                               are terms and likelihood scores.
     """
-    # Convert SDR to bitmap, send to cortipy client.
-    terms = client.bitmapToTerms(
-      super(CioEncoder, self).bitmapFromSDR(encoding))
+    terms = client.bitmapToTerms(encoding, numTerms=numTerms)
     # Convert cortipy response to list of tuples (term, weight)
     return [((term["term"], term["score"])) for term in terms]
 
@@ -108,20 +110,15 @@ class CioEncoder(LanguageEncoder):
       [t.split(',') for t in self.client.tokenize(text)]))
     try:
       encoding = min([self.client.getBitmap(t) for t in tokens],
-        key=lambda x: x["df"])
-    except Exception:
-      encoding = {}
+                     key=lambda x: x["df"])
+      ## TODO: take union of FPs instead
+    except UnsuccessfulEncodingError:
+      if self.verbosity > 0:
+        print ("\tThe client returned no substitute encoding for the text "
+               "\'{0}\', so we encode with None.".format(text))
+      encoding = None
 
     return encoding
-
-
-  ## TODO: redo fields? delete (see line 81 TODO)?
-  def _createFromBitmap(self, bitmap, width, height):
-    self.bitmap = bitmap
-    self.w = width
-    self.h = height
-    self.sparsity = (100.0 * len(bitmap)) / (width*height)
-    return self
 
 
   def compare(self, encoding1, encoding2):
