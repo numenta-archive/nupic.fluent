@@ -115,13 +115,14 @@ class ClassificationModel(object):
     total = len(references)
     cm = numpy.zeros((total, total+1))
     for i, p in enumerate(predicted):
-      if p:
+      if p is not None:
         cm[actual[i]][p] += 1
       else:
         # No predicted label, so increment the "(none)" column.
         cm[actual[i]][total] += 1
     cm = numpy.vstack((cm, numpy.sum(cm, axis=0)))
     cm = numpy.hstack((cm, numpy.sum(cm, axis=1).reshape(total+1,1)))
+
     cm = pandas.DataFrame(
       data=cm,
       columns=references+["(none)"]+["Actual Totals"],

@@ -181,6 +181,7 @@ def run(args):
                              removeStrings=["[identifier deleted]"],
                              correctSpell=True)
              for sample in samples]
+  # samples = [texter.tokenize(sample) for sample in samples]
   print("Preprocessing complete; elapsed time is {0:.2f} seconds.".
         format(time.time() - preprocessTime))
   if args.verbosity > 1:

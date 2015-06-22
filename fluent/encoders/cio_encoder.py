@@ -71,9 +71,9 @@ class CioEncoder(LanguageEncoder):
       encoding = self.client.getTextBitmap(text)
     except UnsuccessfulEncodingError:
       if self.verbosity > 0:
-        print("\tThe client returned no encoding for the text \'{0}\', so "
-          "we'll use the encoding of the token that is least frequent in the "
-          "corpus.".format(text))
+        print ("\tThe client returned no encoding for the text \'{0}\', so "
+               "we'll use the encoding of the token that is least frequent in "
+               "the corpus.".format(text))
       encoding = self._subEncoding(text)
 
     return encoding
@@ -114,8 +114,8 @@ class CioEncoder(LanguageEncoder):
       ## TODO: take union of FPs instead
     except UnsuccessfulEncodingError:
       if self.verbosity > 0:
-        print("\tThe client returned no substitute encoding for the text "
-              "\'{0}\', so we encode with None.".format(text))
+        print ("\tThe client returned no substitute encoding for the text "
+               "\'{0}\', so we encode with None.".format(text))
       encoding = None
 
     return encoding
