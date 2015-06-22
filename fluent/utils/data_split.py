@@ -21,6 +21,10 @@
 
 """Data splitting is used to partition data into train and test sets."""
 
+import random
+
+# from nupic.bindings.math import Random
+
 
 
 class DataSplit(object):
@@ -30,9 +34,10 @@ class DataSplit(object):
   def split(self, samples):
     """Split the given samples into train/test sets.
 
-    @param samples list of sample elements of any type
-    @returns a list of splits where each split is 2-tuple (training, test)
-        where each element is a list of elements from samples
+    @param samples        (list)          Sample elements of any type.
+    @return               (list)          Splits where each split is 2-tuple
+                                          (training, test) where each element is
+                                          a list of elements from samples.
     """
     return NotImplementedError()
 
@@ -67,21 +72,26 @@ class KFolds(DataSplit):
     self.k = k
 
 
-  def split(self, samples):
+  def split(self, samples, randomize=False):
     """Split the given samples into k train/test sets.
 
     Each train/test split will have len(samples)/k elements in the test set
     and the rest in the train set. Each fold has a distinct, non-overlapping
     test set from the other folds. The samples themselves can be any type.
 
-    @param samples list of sample elements of any type
-    @returns a list of splits where each split is 2-tuple (training, test)
-        where each element is a list of elements from samples. Each training/
-        test pair contains all elements from samples.
+    @param samples        (list)          Sample elements of any type.
+    @return               (list)          Splits where each split is 2-tuple
+                                          (training, test) where each element is
+                                          a list of elements from samples. Each
+                                          training/test pair contains all
+                                          elements from samples.
     """
     if len(samples) < self.k:
       raise ValueError(
           "Must have as many samples as number of folds %i" % self.k)
+
+    if randomize:
+      random.shuffle(samples)
 
     # Aggregate each train/test set to return
     trainTestSplits = []
@@ -102,3 +112,38 @@ class KFolds(DataSplit):
       trainTestSplits.append((trainSamples, testSamples))
 
     return trainTestSplits
+
+
+
+class StandardSplit(DataSplit):
+  """Implementation of standard train/test splitting."""
+
+
+  def __init__(self, trainPortion=0.8):
+    if trainPortion < 0.0 or trainPortion > 1.0:
+      raise ValueError("trainPortion must be between 0.0 and 1.0, not %.2f."
+                       % trainPortion)
+
+    self.trainPortion = trainPortion
+
+
+  def split(self, samples, randomize=False):
+    """Split the given samples in one train/test set, where the first n-portion
+    of the samples are designated for training.
+
+    @param samples        (list)          Sample elements of any type.
+    @return               (tuple)         Split samples into (training, test),
+                                          where each element of the 2-tuple is a
+                                          list of samples.
+    """
+    if len(samples) < 2:
+      raise ValueError("Must have at least two samples for train/test split.")
+
+    if randomize:
+      random.shuffle(samples)
+
+    # Make sure we have an indexable list
+    samples = list(samples)
+
+    sliceIdx = int(self.trainPortion*len(samples))
+    return (samples[:sliceIdx], samples[sliceIdx:])
