@@ -32,16 +32,17 @@ from cortipy.cortical_client import CorticalClient
 class ClassificationModelEndpoint(ClassificationModel):
   """
   Class to run the survey response classification task with Cortical.io
-  text endpoint encodings and classification.
+  text endpoint encodings and classification system.
 
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
   def __init__(self, verbosity=1):
+    """
+    Initialize the CorticalClient and CioEncoder. Requires a valid API key
+    """
     super(ClassificationModelEndpoint, self).__init__(verbosity)
 
-    # Init CorticalClient and Cortical.io encoder; need valid API key (see
-    # CioEncoder init for details).
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
     self.client = CorticalClient(self.encoder.apiKey)
 
@@ -52,23 +53,33 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.categoryBitmaps = {}
 
 
-  def encodePattern(self, sample):
+  def encodePattern(self, pattern):
     """
     Encode an SDR of the input string by querying the Cortical.io API.
 
-    @param sample     (string)          Original string
+    @param pattern     (list)           Tokenized sample, where each item is a string
     @return           (dictionary)      Dictionary, containing text, sparsity, and bitmap
+    Example return dict:
+    {
+      "text": "Example text",
+      "sparsity": 0.03,
+      "bitmap": numpy.array()
+    }
     """
-    text = " ".join(sample)
+    text = " ".join(pattern)
     fpInfo = self.encoder.encode(text)
     if self.verbosity > 1:
       print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
+
     if fpInfo:
-      bitmap = numpy.array(fpInfo["fingerprint"]["positions"], dtype="uint32")
-      return {"text": text, "sparsity": fpInfo["sparsity"], "bitmap": bitmap}
+      text = fpInfo["text"] if "text" in fpInfo else fpInfo["term"]
+      bitmap = numpy.array(fpInfo["fingerprint"]["positions"])
+      sparsity = fpInfo["sparsity"]
     else:
-      bitmap = numpy.empty(0)
-      return {"text": text, "sparsity": float(self.w)/self.n, "bitmap": bitmap}
+      bitmap = self.encodeRandomly(text)
+      sparsity = float(self.w) / self.n
+
+    return {"text": text, "sparsity": sparsity, "bitmap": bitmap}
 
 
   def resetModel(self):
@@ -77,32 +88,45 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.categoryBitmaps.clear()
 
 
-  def trainModel(self, sample, label):
+  def trainModel(self, sample, label, negatives=None):
     """
-    Train the classifier on the input sample and label.
+    Train the classifier on the input sample and label. Use Cortical.io's
+    createClassification to make a bitmap that represents the class
 
     @param sample     (dictionary)      Dictionary, containing text, sparsity, and bitmap
     @param label      (int)             Reference index for the classification
                                         of this sample.
+    @param negatives  (list)            Each item is the text for the negative samples
     """
     if label not in self.positives:
       self.positives[label] = []
     self.positives[label].append(sample["text"])
 
-    categoryBitmap = self.client.createClassification(str(label), self.positives[label])["positions"]
-
-    self.categoryBitmaps[label] = categoryBitmap
+    self.categoryBitmaps[label] = self.client.createClassification(str(label),
+        self.positives[label])["positions"]
 
 
   def testModel(self, sample):
     """
-    Test the kNN classifier on the input sample. Returns the classification most
-    frequent amongst the classifications of the sample's individual tokens.
-    We ignore the terms that are unclassified, picking the most frequent
-    classification among those that are detected.
+    Test the Cortical.io classifier on the input sample. Returns a dictionary
+    containing various distance metrics between the sample and the classes.
 
     @param sample     (dictionary)      Dictionary, containing text, sparsity, and bitmap
     @return           (dictionary)      The distances between the sample and the classes
+    Example return dict:
+      {
+        0: {
+          "cosineSimilarity": 0.6666666666666666,
+          "euclideanDistance": 0.3333333333333333,
+          "jaccardDistance": 0.5,
+          "overlappingAll": 6,
+          "overlappingLeftRight": 0.6666666666666666,
+          "overlappingRightLeft": 0.6666666666666666,
+          "sizeLeft": 9,
+          "sizeRight": 9,
+          "weightedScoring": 0.4436476984102028
+        }
+      }
     """
 
     sampleBitmap = sample["bitmap"].tolist()
