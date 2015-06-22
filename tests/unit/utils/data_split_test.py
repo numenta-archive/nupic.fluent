@@ -71,57 +71,6 @@ class DataSplitTest(unittest.TestCase):
         [([1, 2, 3], [0]), ([0, 2, 3], [1]), ([0, 1, 3], [2])])
 
 
-  def testKFoldsRandomize(self):
-    kfolds = data_split.KFolds(2)
-  
-    partition1 = kfolds.split(range(10))
-    partition2 = kfolds.split(range(10), randomize=True)
-  
-    self.assertNotEqual(partition1, partition2)
-    self.assertItemsEqual(
-      partition1[0][0]+partition1[0][1], partition2[0][0]+partition2[0][1])
-
-
-  def testStandardSplitBadValue(self):
-    with self.assertRaises(ValueError):
-      data_split.StandardSplit(2)
-
-
-  def testStandardSplitNoData(self):
-    splitter = data_split.StandardSplit()
-    
-    with self.assertRaises(ValueError):
-      splitter.split([])
-
-
-  def testStandardSplit(self):
-    splitter = data_split.StandardSplit()
-
-    self.assertSequenceEqual(
-      splitter.split(xrange(10)),
-      ([0, 1, 2, 3, 4, 5, 6, 7], [8, 9]))
-
-    self.assertSequenceEqual(
-      splitter.split(xrange(11)),
-      ([0, 1, 2, 3, 4, 5, 6, 7], [8, 9, 10]))
-
-    splitter = data_split.StandardSplit(0.7)
-
-    self.assertSequenceEqual(
-      splitter.split(xrange(10)),
-      ([0, 1, 2, 3, 4, 5, 6], [7, 8, 9]))
-
-
-  def testStandardSplitRandomize(self):
-    splitter = data_split.StandardSplit()
-
-    partition1 = splitter.split(range(10))
-    partition2 = splitter.split(range(10), randomize=True)
-
-    self.assertNotEqual(partition1, partition2)
-    self.assertItemsEqual(
-      partition1[0]+partition1[1], partition2[0]+partition2[1])
-
 
 if __name__ == "__main__":
   unittest.main()

@@ -19,18 +19,10 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import copy
 import numpy
-import os
 import pandas
-import random
 
 from collections import Counter
-
-try:
-  import simplejson as json
-except ImportError:
-  import json
 
 
 
@@ -41,24 +33,19 @@ class ClassificationModel(object):
   below.
 
   The Model superclass implements:
-    - classifyRandomly() calculates accuracy of a random classifier
-    - encodeRandomly() creates a random SDR encoding
-    - evaluateTrialResults() calculates result stats
+    - evaluateTrialResults() calcualtes result stats
     - evaluateResults() calculates result stats for a list of trial results
     - printTrialReport() prints classifications of an evaluation trial
     - printFinalReport() prints evaluation metrics and confusion matrix
     - densifyPattern() returns a binary SDR vector for a given bitmap
 
   Methods/properties that must be implemented by subclasses:
-    - encodePattern(); note the specified format in the docstring below.
+    - encodePattern()
     - trainModel()
     - testModel()
   """
 
-  def __init__(self, n=16384, w=328, verbosity=1):
-    """The SDR dimensions are standard for Cortical.io fingerprints."""
-    self.n = n
-    self.w = w
+  def __init__(self, verbosity=1):
     self.verbosity = verbosity
 
 
@@ -66,26 +53,6 @@ class ClassificationModel(object):
     """Return accuracy of random classifications for the labels."""
     randomLabels = numpy.random.randint(0, labels.max(), labels.shape)
     return (randomLabels == labels).sum() / float(labels.shape[0])
-
-
-  def encodeRandomly(self, sample):
-    """Return a random bitmap representation of the sample."""
-    random.seed(sample)
-    return numpy.sort(random.sample(xrange(self.n), self.w))
-
-
-  def logEncodings(self, patterns, path):
-    """Log the encoding dictionaries to a txt file."""
-    if not os.path.isdir(path):
-      raise ValueError("Invalid path to write file.")
-
-    # Cast numpy arrays to list objects for serialization.
-    jsonPatterns = copy.deepcopy(patterns)
-    for jp in jsonPatterns:
-      jp["bitmap"] = jp.get("bitmap", None).tolist()
-
-    with open(os.path.join(path, "encoding_log.txt"), "w") as f:
-      f.write(json.dumps(jsonPatterns, indent=1))
 
 
   def evaluateTrialResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations
@@ -209,16 +176,6 @@ class ClassificationModel(object):
 
 
   def encodePattern(self, pattern):
-    """
-    The subclass implementations must return the encoding in the following
-    format:
-      {
-        ["text"]:sample,
-        ["sparsity"]:sparsity,
-        ["bitmap"]:bitmapSDR
-      }
-    Note: sample is a string, sparsity is float, and bitmapSDR is a numpy array.
-    """
     raise NotImplementedError
 
 

@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 import numpy
+import random
 import string
 
 from fluent.encoders.cio_encoder import CioEncoder
@@ -49,30 +50,20 @@ class ClassificationModelFingerprint(ClassificationModel):
 
   def encodePattern(self, sample):
     """
-    Encode an SDR of the input string by querying the Cortical.io API. If the
-    client returns None, we create a random SDR with the model's dimensions n
-    and w.
+    Encode an SDR of the input string by querying the Cortical.io API.
 
     @param sample     (list)            Tokenized sample, where each item is a
                                         string token.
-    @return           (numpy.array)     Bitmap of the encoding.
+    @return           (list)            Numpy arrays, each with a bitmap of the
+                                        encoding.
     """
-    sample = string.join(sample)
-    fpInfo = self.encoder.encode(sample)
+    fpInfo = self.encoder.encode(string.join(sample))
+    if self.verbosity > 1:
+      print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
     if fpInfo:
-      fp = {
-          "text":fpInfo["text"] if "text" in fpInfo else fpInfo["term"],
-          "sparsity":fpInfo["sparsity"],
-          "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])
-          }
+      return numpy.array(fpInfo["fingerprint"]["positions"], dtype="uint32")
     else:
-      fp = {
-            "text":sample,
-            "sparsity":float(self.w)/self.n,
-            "bitmap":self.encodeRandomly(sample)
-            }
-
-    return fp
+      return numpy.empty(0)
 
 
   def resetModel(self):
@@ -88,8 +79,8 @@ class ClassificationModelFingerprint(ClassificationModel):
     @param label      (int)             Reference index for the classification
                                         of this sample.
     """
-    if sample["bitmap"].any():
-      self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
+    if sample.any():
+      _ = self.classifier.learn(sample, label, isSparse=self.n)
 
 
   def testModel(self, sample):
@@ -107,7 +98,7 @@ class ClassificationModelFingerprint(ClassificationModel):
     Note: to return multiple winner classifications, modify the return statement
     accordingly.
     """
-    (tokenLabel, _, _, _) = self.classifier.infer(
-      self._densifyPattern(sample["bitmap"]))
+    tokenLabels = []
+    (tokenLabel, _, _, _) = self.classifier.infer(self._densifyPattern(sample))
     ## TODO: get list of closest classifications, not just the winner
     return [tokenLabel]

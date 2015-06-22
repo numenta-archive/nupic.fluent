@@ -19,19 +19,11 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import copy
 import numpy
-import os
 import random
 
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
-# from nupic.bindings.math import Random
-
-try:
-  import simplejson as json
-except ImportError:
-  import json
 
 
 
@@ -42,14 +34,18 @@ class ClassificationModelRandomSDR(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, n=100, w=20, verbosity=1):
-    super(ClassificationModelRandomSDR, self).__init__(n, w, verbosity)
+  def __init__(self, verbosity=1):
+    super(ClassificationModelRandomSDR, self).__init__(verbosity)
 
     # Init kNN classifier:
     #   specify 'distanceMethod'='rawOverlap' for overlap; Euclidean is std.
     #   verbosity=1 for debugging
     #   standard k is 1
     self.classifier = KNNClassifier(exact=True, verbosity=verbosity-1)
+
+    # SDR dimensions:
+    self.n = 100
+    self.w = 20
 
 
   def encodePattern(self, sample):
@@ -65,30 +61,10 @@ class ClassificationModelRandomSDR(ClassificationModel):
     """
     patterns = []
     for token in sample:
-      patterns.append({
-                        "text":token,
-                        "sparsity":float(self.w)/self.n,
-                        "bitmap":self.encodeRandomly(token)
-                        })
+      random.seed(token)
+      patterns.append(numpy.sort(numpy.array(
+        random.sample(xrange(self.n), self.w), dtype="int8")))
     return patterns
-
-
-  def logEncodings(self, patterns, path):
-    """
-    Log the encoding dictionaries to a txt file; overrides the superclass
-    implementation.
-    """
-    if not os.path.isdir(path):
-      raise ValueError("Invalid path to write file.")
-
-    # Cast numpy arrays to list objects for serialization.
-    jsonPatterns = copy.deepcopy(patterns)
-    for jp in jsonPatterns:
-      for tokenPattern in jp:
-        tokenPattern["bitmap"] = tokenPattern.get("bitmap", None).tolist()
-
-    with open(os.path.join(path, "encoding_log.txt"), "w") as f:
-      f.write(json.dumps(jsonPatterns, indent=1))
 
 
   def resetModel(self):
@@ -107,9 +83,9 @@ class ClassificationModelRandomSDR(ClassificationModel):
     """
     # This experiment classifies individual tokens w/in each sample. Train the
     # kNN classifier on each token.
-    for s in sample:
-      if s == []: continue
-      self.classifier.learn(s["bitmap"], label, isSparse=self.n)
+    for bitmap in sample:
+      if bitmap == []: continue
+      _ = self.classifier.learn(bitmap, label, isSparse=self.n)
 
 
   def testModel(self, sample):
@@ -128,10 +104,10 @@ class ClassificationModelRandomSDR(ClassificationModel):
     accordingly.
     """
     tokenLabels = []
-    for s in sample:
-      if s == []: continue
+    for bitmap in sample:
+      if bitmap == []: continue
       (tokenLabel, _, _, _) = self.classifier.infer(
-        self._densifyPattern(s["bitmap"]))
+        self._densifyPattern(bitmap))
       if tokenLabel != None:
         # Only include classified tokens.
         tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
