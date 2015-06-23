@@ -21,6 +21,7 @@
 
 import itertools
 import os
+import numpy
 import random
 
 from cortipy.cortical_client import CorticalClient
@@ -109,9 +110,28 @@ class CioEncoder(LanguageEncoder):
     tokens = list(itertools.chain.from_iterable(
       [t.split(',') for t in self.client.tokenize(text)]))
     try:
-      encoding = min([self.client.getBitmap(t) for t in tokens],
-                     key=lambda x: x["df"])
-      ## TODO: take union of FPs instead
+      # Take a union of the bitmaps
+      union = numpy.zeros(0)
+      for t in tokens:
+        bitmap = self.client.getBitmap(t)["fingerprint"]["positions"]
+        union = numpy.union1d(bitmap, union)
+
+      # Sample to remain sparse
+      count = len(union)
+      sparsity = int((self.targetSparsity / 100) * self.n)
+      sampleIndices = random.sample(xrange(count), min(count, sparsity))
+
+      # Populate encoding
+      encoding = {}
+      encoding["text"] = text
+      encoding["sparsity"] = min(sparsity, count) * 100 / float(self.n)
+      encoding["df"] = 0.0
+      encoding["height"] = self.h
+      encoding["width"] = self.w
+      encoding["score"] = 0.0
+      encoding["fingerprint"] = {}
+      encoding["fingerprint"]["positions"] = numpy.sort(union[sampleIndices]).tolist()
+      encoding["pos_types"] = []
     except UnsuccessfulEncodingError:
       if self.verbosity > 0:
         print ("\tThe client returned no substitute encoding for the text "
