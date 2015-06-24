@@ -22,10 +22,9 @@
 import numpy
 import os
 
-from fluent.models.classification_model import ClassificationModel
-from fluent.encoders.cio_encoder import CioEncoder
-
 from cortipy.cortical_client import CorticalClient
+from fluent.encoders.cio_encoder import CioEncoder
+from fluent.models.classification_model import ClassificationModel
 
 
 

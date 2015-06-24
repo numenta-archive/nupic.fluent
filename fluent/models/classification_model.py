@@ -88,6 +88,12 @@ class ClassificationModel(object):
       f.write(json.dumps(jsonPatterns, indent=1))
 
 
+  def calculateClassificationResults(self, classifications):
+    """Calculate the classification accuracy for each category.
+    """
+    ## TODO
+
+
   def evaluateTrialResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations
     """
     Calculate statistics for the predicted classifications against the actual.
@@ -105,7 +111,7 @@ class ClassificationModel(object):
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
     if self.verbosity > 0:
-      self._printTrialReport(classifications, references, idx)
+      self.printTrialReport(classifications, references, idx)
 
     actual = numpy.array(classifications[1])
     predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: see above; this forces evaluation metrics to consider only the first predicted classification
@@ -137,7 +143,7 @@ class ClassificationModel(object):
 
     @param intermResults      (list)          List of returned results from
                                               evaluateTrialResults().
-    @return                   (list)          Returns a dictionary with entries
+    @return                   (dict)          Returns a dictionary with entries
                                               for max, mean, and min accuracies,
                                               and the mean confusion matrix.
     """
@@ -156,13 +162,13 @@ class ClassificationModel(object):
                "total_cm":cm}
 
     if self.verbosity > 0:
-      self._printFinalReport(results)
+      self.printFinalReport(results)
 
     return results
 
 
   @staticmethod
-  def _printTrialReport(labels, refs, idx):
+  def printTrialReport(labels, refs, idx):
     """Print columns for sample #, actual label, and predicted label."""
     template = "{0:10}|{1:30}|{2:30}"
     print "Evaluation results for this fold:"
@@ -176,13 +182,23 @@ class ClassificationModel(object):
 
 
   @staticmethod
-  def _printFinalReport(results):  ## TODO: pprint
+  def printCummulativeReport(results):  ## TODO: pprint
     """Prints results as returned by evaluateResults()."""
     print "---------- RESULTS ----------"
     print "max, mean, min accuracies = "
     print "{0:.3f}, {1:.3f}, {2:.3f}".format(
     results["max_accuracy"], results["mean_accuracy"], results["min_accuracy"])
     print "total confusion matrix =\n", results["total_cm"]
+
+
+  @staticmethod
+  def printFinalReport(trainSize, accuracies):  ## TODO: pprint
+    """Prints result accuracies."""
+    template = "{0:20}|{1:10}"
+    print "Evaluation results for this experiment:"
+    print template.format("Size of training set", "Accuracy")
+    for i, a in enumerate(accuracies):
+      print template.format(trainSize[i], a)
 
 
   def _densifyPattern(self, bitmap):

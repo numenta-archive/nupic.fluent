@@ -70,7 +70,7 @@ class TextPreprocess(object):
     """
     if not isinstance(text, str):
       raise ValueError("Must input a single string object to tokenize.")
-#    removeStrings.append("'")
+    # removeStrings.append("'")
     for removal in removeStrings:
       text = text.replace(removal, "")
     tokens = re.findall('[a-z$]+', text.lower())

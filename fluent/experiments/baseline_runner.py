@@ -151,7 +151,7 @@ def run(args):
     raise ValueError("Invalid data path.")
   if (not isinstance(args.kFolds, int)) or (args.kFolds < 1):
     raise ValueError("Invalid value for number of cross-validation folds.")
-  if (args.train and args.test) and args.kFolds > 1:
+  if (args.train or args.test) and args.kFolds > 1:
     raise ValueError("Experiment runs either k-folds CV or training/testing, "
                      "not both.")
 
