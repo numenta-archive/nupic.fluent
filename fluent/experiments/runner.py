@@ -121,15 +121,23 @@ class Runner(object):
     """Train and test the model for each trial specified by self.trainSize."""
     self.testIndices = []
     self.results = []
-    for size in self.trainSize:
+    for i, size in enumerate(self.trainSize):
+      partitions = self.partitionIndices(len(self.samples), size)
+      if self.verbosity > 0:
+        print ("\tRunner randomly selects to train on sample(s) {0}, and test "
+               "on sample(s) {1}.".format(partitions[0], partitions[1]))
+
       self.model.resetModel()
-      self.testIndices.append(self.testing(self.training(size)))
+      print "\tTraining for run {0} of {1}.".format(i+1, len(self.trainSize))
+      self.training(partitions[0])
+      print "\tTesting for this run."
+      self.testing(partitions[1])
+
+      # Save the test indices for printing the results evaluation.
+      self.testIndices.append(partitions[1])
 
 
-  def training(self, size):
-    idx = random.sample(xrange(len(self.samples)), size)
-    if self.verbosity > 0:
-      print "Runner randomly selects to train on sample(s) {0}.".format(idx)
+  def training(self, idx):
     for i in idx:
       self.model.trainModel(self.patterns[i], self.labels[i])
     return idx
@@ -137,13 +145,12 @@ class Runner(object):
 
   def testing(self, idx):
     results = ([], [])
-    testIdx = [i for i in xrange(len(self.samples)) if i not in idx]
-    for i in testIdx:
+    for i in idx:
       predicted = self.model.testModel(self.patterns[i])
       results[0].append(predicted)
       results[1].append(self.labels[i])
+
     self.results.append(results)
-    return testIdx
     
 
   def calculateResults(self):
@@ -153,6 +160,7 @@ class Runner(object):
       for i in xrange(len(self.trainSize))]
 
     self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
+    ## TODO: plot accuracies
 
 
   def save(self):
@@ -160,3 +168,11 @@ class Runner(object):
     print "Saving model to \'{0}\' directory.".format(self.modelPath)
     with open(os.path.join(self.modelPath, "model.pkl"), "wb") as f:
       pkl.dump(self.model, f)
+
+
+  @staticmethod
+  def partitionIndices(length, split):
+    """Return two lists of indices; randomly sampled, not repeated."""
+    trainIdx = random.sample(xrange(length), split)
+    testIdx = [i for i in xrange(length) if i not in trainIdx]
+    return (trainIdx, testIdx)

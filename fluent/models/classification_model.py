@@ -88,10 +88,11 @@ class ClassificationModel(object):
       f.write(json.dumps(jsonPatterns, indent=1))
 
 
-  def calculateClassificationResults(self, classifications):
+  def calculateClassificationResults(self, classifications):  ## TODO: plot
     """Calculate the classification accuracy for each category.
     """
     ## TODO
+
 
 
   def evaluateTrialResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations
@@ -170,7 +171,7 @@ class ClassificationModel(object):
   @staticmethod
   def printTrialReport(labels, refs, idx):
     """Print columns for sample #, actual label, and predicted label."""
-    template = "{0:10}|{1:30}|{2:30}"
+    template = "{0:<10}|{1:<30}|{2:<30}"
     print "Evaluation results for this fold:"
     print template.format("#", "Actual", "Predicted")
     for i in xrange(len(labels[0])):
@@ -194,7 +195,7 @@ class ClassificationModel(object):
   @staticmethod
   def printFinalReport(trainSize, accuracies):  ## TODO: pprint
     """Prints result accuracies."""
-    template = "{0:20}|{1:10}"
+    template = "{0:<20}|{1:<10}"
     print "Evaluation results for this experiment:"
     print template.format("Size of training set", "Accuracy")
     for i, a in enumerate(accuracies):

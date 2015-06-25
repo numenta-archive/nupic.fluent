@@ -20,13 +20,6 @@
 # ----------------------------------------------------------------------
 """
 Experiment runner for classification survey question responses.
-This runner iteratively trains a model with user interaction:
-1. text preprocessing
-2. encode patterns
-3. init classifier
-4. present user w/ n samples, which user classifies
-5. model classifies the rest of the samples
-6. calculate results metrics
 """
 
 import argparse
@@ -53,8 +46,6 @@ def checkInputs(args):
 
 
 def run(args):
-  """
-  """
   start = time.time()
   
   root = os.path.dirname(os.path.realpath(__file__))
@@ -75,16 +66,16 @@ def run(args):
   print "Reading in data and preprocessing."
   dataTime = time.time()
   runner.setupData()
-  print("Data setup complete; elapsed time is {0:.2f} seconds.\nNow encoding "
+  print ("Data setup complete; elapsed time is {0:.2f} seconds.\nNow encoding "
         "the data".format(time.time() - dataTime))
 
   encodeTime = time.time()
   runner.encodeSamples()
-  print("Encoding complete; elapsed time is {0:.2f} seconds.".format(
-        time.time() - encodeTime))
+  print ("Encoding complete; elapsed time is {0:.2f} seconds.\nNow running the "
+         "experiment.".format(time.time() - encodeTime))
 
   runner.runExperiment()
-
+  
   runner.calculateResults()
 
   runner.save()

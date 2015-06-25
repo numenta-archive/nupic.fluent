@@ -22,6 +22,7 @@
 import numpy
 import os
 
+from collections import defaultdict
 from cortipy.cortical_client import CorticalClient
 from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
@@ -57,8 +58,9 @@ class ClassificationModelEndpoint(ClassificationModel):
     """
     Encode an SDR of the input string by querying the Cortical.io API.
 
-    @param pattern     (list)           Tokenized sample, where each item is a string
-    @return            (dictionary)     Dictionary, containing text, sparsity, and bitmap
+    @param pattern        (list)          Tokenized sample, where each item is
+                                          a string
+    @return               (dict)          The sample text, sparsity, and bitmap.
     Example return dict:
     {
       "text": "Example text",
@@ -94,11 +96,12 @@ class ClassificationModelEndpoint(ClassificationModel):
     Train the classifier on the input sample and label. Use Cortical.io's
     createClassification to make a bitmap that represents the class
 
-    @param sample     (dictionary)      Dictionary, containing text, sparsity, and bitmap
+    @param sample     (dict)            The sample text, sparsity, and bitmap.
     @param label      (int)             Reference index for the classification
                                         of this sample.
     @param negatives  (list)            Each item is the dictionary containing
-                                        text, sparsity and bitmap for the negative samples
+                                        text, sparsity and bitmap for the
+                                        negative samples
     """
     if label not in self.positives:
       self.positives[label] = []
@@ -115,33 +118,31 @@ class ClassificationModelEndpoint(ClassificationModel):
       self.positives[label], self.negatives[label])["positions"]
 
 
-  def testModel(self, sample):
+  def testModel(self, sample, numberCats=1, metric="overlappingAll"):
     """
     Test the Cortical.io classifier on the input sample. Returns a dictionary
     containing various distance metrics between the sample and the classes.
 
-    @param sample     (dictionary)      Dictionary, containing text, sparsity, and bitmap
-    @return           (dictionary)      The distances between the sample and the classes
-    Example return dict:
-      {
-        0: {
-          "cosineSimilarity": 0.6666666666666666,
-          "euclideanDistance": 0.3333333333333333,
-          "jaccardDistance": 0.5,
-          "overlappingAll": 6,
-          "overlappingLeftRight": 0.6666666666666666,
-          "overlappingRightLeft": 0.6666666666666666,
-          "sizeLeft": 9,
-          "sizeRight": 9,
-          "weightedScoring": 0.4436476984102028
-        }
-      }
+    @param sample         (dict)      The sample text, sparsity, and bitmap.
+    @return               (list)      Winning classifications based on the
+                                      specified metric. The number of items
+                                      returned will be <= numberCats.
     """
-
     sampleBitmap = sample["bitmap"].tolist()
 
-    distances = {}
+    distances = defaultdict(list)
     for cat, catBitmap in self.categoryBitmaps.iteritems():
       distances[cat] = self.client.compare(sampleBitmap, catBitmap)
 
-    return distances
+    return self._winningLabels(distances, numberCats=1, metric="overlappingAll")  ## TODO: how do we handle return values of []? or len(winners)<numberCats?
+
+
+  def _winningLabels(self, distances, numberCats, metric):
+    """
+    Return indices of winning categories, based off of the input metric.
+    Overrides the base class implementation.
+    """
+    metricValues = numpy.array([v[metric] for v in distances.values()])
+    sortedIdx = numpy.argsort(metricValues)
+
+    return [distances.keys()[catIdx] for catIdx in sortedIdx[:numberCats]]
