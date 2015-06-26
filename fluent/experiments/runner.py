@@ -50,16 +50,20 @@ class Runner(object):
     @param experimentName   (str)     Experiment name, used for saving results.
     @param load             (bool)    True if a serialized model is to be
                                       loaded.
+    @param modelName        (str)     Name of nupic.fluent Model subclass.
+    @param modeModuleName   (str)     Model module -- location of the subclass.
+    @param trainSize        (str)     Number of samples to use in training.
+    @param verbosity        (int)     Greater value prints out more progress.
 
     """
-    self.dataFile         = dataFile
-    self.resultsDir       = resultsDir
-    self.experimentName   = experimentName
-    self.load             = load
-    self.modelName        = modelName
-    self.modelModuleName  = modelModuleName
-    self.trainSize        = trainSize
-    self.verbosity        = verbosity
+    self.dataFile = dataFile
+    self.resultsDir = resultsDir
+    self.experimentName = experimentName
+    self.load = load
+    self.modelName = modelName
+    self.modelModuleName = modelModuleName
+    self.trainSize = trainSize
+    self.verbosity = verbosity
 
     self.modelPath = os.path.join(
       self.resultsDir, self.experimentName, self.modelName)
@@ -68,7 +72,11 @@ class Runner(object):
 
 
   def setupData(self, preprocess=False):
-    """Get the data from CSV and preprocess if specified."""
+    """
+    Get the data from CSV and preprocess if specified.
+    One index in labelIdx implies the model will train on a single
+    classification per sample.
+    """
     texter = TextPreprocess()
     samples, labels = readCSV(self.dataFile, sampleIdx=2, labelIdx=[3])
     
@@ -140,7 +148,6 @@ class Runner(object):
   def training(self, idx):
     for i in idx:
       self.model.trainModel(self.patterns[i], self.labels[i])
-    return idx
 
 
   def testing(self, idx):
@@ -155,12 +162,13 @@ class Runner(object):
 
   def calculateResults(self):
     """Calculate evaluation metrics from the result classifications."""
-    resultCalcs = [self.model.evaluateTrialResults(
+
+    resultCalcs = [self.model.evaluateResults(
       self.results[i], self.labelRefs, self.testIndices[i])
       for i in xrange(len(self.trainSize))]
 
     self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
-    ## TODO: plot accuracies
+    ## TODO: plot accuracies; see Model base class
 
 
   def save(self):
@@ -171,7 +179,7 @@ class Runner(object):
 
 
   @staticmethod
-  def partitionIndices(length, split):
+  def partitionIndices(length, split):  ## TODO: use StandardSplit in data_split.py
     """Return two lists of indices; randomly sampled, not repeated."""
     trainIdx = random.sample(xrange(length), split)
     testIdx = [i for i in xrange(length) if i not in trainIdx]

@@ -134,10 +134,11 @@ class ClassificationModelEndpoint(ClassificationModel):
     for cat, catBitmap in self.categoryBitmaps.iteritems():
       distances[cat] = self.client.compare(sampleBitmap, catBitmap)
 
-    return self._winningLabels(distances, numberCats=1, metric="overlappingAll")  ## TODO: how do we handle return values of []? or len(winners)<numberCats?
+    return self.winningLabels(distances, numberCats=1, metric="overlappingAll")  ## TODO: how do we handle return values of []? or len(winners)<numberCats?
 
 
-  def _winningLabels(self, distances, numberCats, metric):
+  @staticmethod
+  def winningLabels(distances, numberCats, metric):
     """
     Return indices of winning categories, based off of the input metric.
     Overrides the base class implementation.
