@@ -56,10 +56,11 @@ class ClassificationModel(object):  ## TODO: update docstring
     - testModel()
   """
 
-  def __init__(self, n=16384, w=328, verbosity=1, plot=True):
+  def __init__(self, n=16384, w=328, verbosity=1, plot=True, multiclass=False):
     """The SDR dimensions are standard for Cortical.io fingerprints."""
     self.n = n
     self.w = w
+    self.multiclass = multiclass
     self.verbosity = verbosity
     self.plot = plot
 

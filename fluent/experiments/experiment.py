@@ -58,7 +58,7 @@ def run(args):
                   load=args.load,
                   modelName=args.modelName,
                   modelModuleName=args.modelModuleName,
-                  multiclass=args.multiclass
+                  multiclass=args.multiclass,
                   trainSize=args.trainSize,
                   verbosity=args.verbosity)
 
