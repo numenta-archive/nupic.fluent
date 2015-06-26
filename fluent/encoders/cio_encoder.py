@@ -19,12 +19,12 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-from collections import Counter
 import itertools
 import os
 import numpy
 import random
 
+from collections import Counter
 from cortipy.cortical_client import CorticalClient
 from cortipy.exceptions import UnsuccessfulEncodingError
 from fluent.encoders.language_encoder import LanguageEncoder
