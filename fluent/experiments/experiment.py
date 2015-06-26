@@ -58,6 +58,7 @@ def run(args):
                   load=args.load,
                   modelName=args.modelName,
                   modelModuleName=args.modelModuleName,
+                  multiclass=args.multiclass
                   trainSize=args.trainSize,
                   verbosity=args.verbosity)
 
@@ -107,11 +108,15 @@ if __name__ == "__main__":
   parser.add_argument("--load",
                       help="Load the serialized model.",
                       default=False)
+  parser.add_argument("--multiclass",
+                      help="Model will train on multiple classes per sample.",  ## TODO: add multiclass testing
+                      default=False)
   parser.add_argument("--trainSize",
                       default=13,
                       nargs="+",
                       type=int,
-                      help="Number of samples to use in training.")
+                      help="Number of samples to use in training. Separate "
+                           "with spaces for multiple trials.")
   parser.add_argument("-v", "--verbosity",
                       default=1,
                       type=int,

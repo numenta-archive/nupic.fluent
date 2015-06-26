@@ -42,6 +42,7 @@ class Runner(object):
                load,
                modelName,
                modelModuleName,
+               multiclass,
                trainSize,
                verbosity):
     """
@@ -62,6 +63,7 @@ class Runner(object):
     self.load = load
     self.modelName = modelName
     self.modelModuleName = modelModuleName
+    self.multiclass = multiclass
     self.trainSize = trainSize
     self.verbosity = verbosity
 
@@ -71,14 +73,18 @@ class Runner(object):
       os.makedirs(self.modelPath)
 
 
-  def setupData(self, preprocess=False):
+  def setupData(self, preprocess=False, labelIdx=[3]):
     """
     Get the data from CSV and preprocess if specified.
     One index in labelIdx implies the model will train on a single
     classification per sample.
     """
+    if self.model.multiclass and len(labelIdx) < 2:
+      raise ValueError("Multiclass model requires more than one CSV column of 
+                       "classifications.")
+
+    samples, labels = readCSV(self.dataFile, sampleIdx=2, labelIdx)
     texter = TextPreprocess()
-    samples, labels = readCSV(self.dataFile, sampleIdx=2, labelIdx=[3])
     
     if (not isinstance(self.trainSize, list) or
       self.trainSize[0] < 0 or
