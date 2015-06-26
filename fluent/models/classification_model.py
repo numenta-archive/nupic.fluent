@@ -213,7 +213,8 @@ class ClassificationModel(object):
     return winners if len(winners) <= n else winners[:n]
 
 
-  def plotConfusionMatrix(self, cm):
+  @staticmethod
+  def plotConfusionMatrix(cm):
     """Output plotly confusion matrix."""
     PlotNLP().confusionMatrix(cm)
 
