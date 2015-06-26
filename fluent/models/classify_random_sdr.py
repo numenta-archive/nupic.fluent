@@ -137,4 +137,4 @@ class ClassificationModelRandomSDR(ClassificationModel):
         tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
     if tokenLabels == []:
       return [None]
-    return self._winningLabels(tokenLabels, n=1)
+    return self.winningLabels(tokenLabels, n=1)
