@@ -116,21 +116,10 @@ class ClassificationModel(object):  ## TODO: update docstring
     return winners if len(winners) <= n else winners[:n]
 
 
-################################################################################
-# Evaluation methods
-
   def calculateClassificationResults(self, classifications):  ## TODO: plot
     """Calculate the classification accuracy for each category.
     """
     ## TODO
-
-
-  # def evaluateKFold(self, classifications, references, idx):
-  #   """Trial evaluation specific to k-fold cross validation runs.
-  #   """
-  #   if self.verbosity > 0:
-  #     self.printTrialReport(classifications, references, idx)
-  #   return self.evaluateResults(classifications, references)
 
 
   def evaluateResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations
@@ -189,27 +178,27 @@ class ClassificationModel(object):  ## TODO: update docstring
 
 
   @staticmethod
-  def calculateAccuracy(classifications):   ## TODO: just get numpy arrays passed in
-  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
+  def calculateAccuracy(classifications):   ## TODO: just get numpy arrays passed in?
     """
+    Returns classification accuracy -- i.e. correct labels out of total labels.
     """
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
 
     actual = numpy.array(classifications[1])
-    predicted = numpy.array([c[0] for c in classifications[0]])
+    predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
+
     return (actual == predicted).sum() / float(len(actual))
 
 
   @staticmethod
-  def calculateConfusionMatrix(classifications, references):  ## TODO: just get numpy arrays passed in
-    """
-    """
+  def calculateConfusionMatrix(classifications, references):  ## TODO: just get numpy arrays passed in?
+    """Returns confusion matrix as a pandas dataframe."""
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
 
     actual = numpy.array(classifications[1])
-    predicted = numpy.array([c[0] for c in classifications[0]])
+    predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
 
     total = len(references)
     cm = numpy.zeros((total, total+1))
@@ -271,8 +260,6 @@ class ClassificationModel(object):  ## TODO: update docstring
     """Output plotly confusion matrix."""
     PlotNLP().confusionMatrix(cm)
 
-
-################################################################################
 
   def encodePattern(self, pattern):
     """

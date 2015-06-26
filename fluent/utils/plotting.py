@@ -134,7 +134,7 @@ class PlotNLP():
     """Parse pandas dataframe into confusion matrix format."""
     labels = dataFrame.columns.values.tolist()[:-1]
     values = map(list, dataFrame.values)
-    import pdb; pdb.set_trace()
+
     for i, row in enumerate(values):
       values[i] = [v/row[-1] for v in row[:-1]] if normalize else row[:-1]
     cm = {"x":labels,
