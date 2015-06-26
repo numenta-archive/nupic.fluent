@@ -112,7 +112,7 @@ if __name__ == "__main__":
                       help="Model will train on multiple classes per sample.",  ## TODO: add multiclass testing
                       default=False)
   parser.add_argument("--trainSize",
-                      default=13,
+                      default=[13],
                       nargs="+",
                       type=int,
                       help="Number of samples to use in training. Separate "

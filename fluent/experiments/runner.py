@@ -89,7 +89,7 @@ class Runner(object):
     if (not isinstance(self.trainSize, list) or
       self.trainSize[0] < 0 or
       self.trainSize[0] > len(samples)):
-      raise ValueError("")
+      raise ValueError("Invalid size(s) for training set.")
     
     self.labelRefs = list(set(labels))
     self.labels = numpy.array(
