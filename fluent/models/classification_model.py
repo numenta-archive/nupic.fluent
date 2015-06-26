@@ -26,6 +26,7 @@ import pandas
 import random
 
 from collections import Counter
+from utils.plotting import PlotNLP
 
 try:
   import simplejson as json
@@ -55,11 +56,12 @@ class ClassificationModel(object):
     - testModel()
   """
 
-  def __init__(self, n=16384, w=328, verbosity=1):
+  def __init__(self, n=16384, w=328, verbosity=1, plot=True):
     """The SDR dimensions are standard for Cortical.io fingerprints."""
     self.n = n
     self.w = w
     self.verbosity = verbosity
+    self.plot = plot
 
 
   def classifyRandomly(self, labels):
@@ -148,7 +150,6 @@ class ClassificationModel(object):
     for result in intermResults:
       accuracy.append(result[0])
       cm = numpy.add(cm, result[1])
-    ## TODO: add rows for Precision and Recall
 
     results = {"max_accuracy":max(accuracy),
                "mean_accuracy":sum(accuracy)/float(len(accuracy)),
@@ -157,6 +158,9 @@ class ClassificationModel(object):
 
     if self.verbosity > 0:
       self._printFinalReport(results)
+
+    if self.plot:
+      self.plotConfusionMatrix(cm)
 
     return results
 
@@ -207,6 +211,11 @@ class ClassificationModel(object):
     winners = [c[0] for c in labelCount if c[1]==maxCount]
 
     return winners if len(winners) <= n else winners[:n]
+
+
+  def plotConfusionMatrix(self, cm):
+    """Output plotly confusion matrix."""
+    PlotNLP().confusionMatrix(cm)
 
 
   def encodePattern(self, pattern):
