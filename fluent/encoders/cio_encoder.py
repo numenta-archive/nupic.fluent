@@ -28,6 +28,8 @@ from cortipy.cortical_client import CorticalClient
 from cortipy.exceptions import UnsuccessfulEncodingError
 from fluent.encoders.language_encoder import LanguageEncoder
 
+from collections import Counter
+
 
 
 class CioEncoder(LanguageEncoder):
@@ -116,19 +118,21 @@ class CioEncoder(LanguageEncoder):
       elif method == "keyword":
         # Take a union of the bitmaps
         union = numpy.zeros(0)
+        counts = Counter()
         for t in tokens:
           bitmap = self.client.getBitmap(t)["fingerprint"]["positions"]
+          counts.update(bitmap)
           union = numpy.union1d(bitmap, union)
 
         # Sample to remain sparse
-        count = len(union)
-        sparsity = int((self.targetSparsity / 100) * self.n)
-        sampleIndices = random.sample(xrange(count), min(count, sparsity))
+        max_sparsity = int((self.targetSparsity / 100) * self.n)
+        w = min(len(union), max_sparsity)
+        sampleIndices = counts.most_common(w)
 
         # Populate encoding
         encoding = {}
         encoding["text"] = text
-        encoding["sparsity"] = min(sparsity, count) * 100 / float(self.n)
+        encoding["sparsity"] = w * 100 / float(self.n)
         encoding["df"] = 0.0
         encoding["height"] = self.h
         encoding["width"] = self.w
