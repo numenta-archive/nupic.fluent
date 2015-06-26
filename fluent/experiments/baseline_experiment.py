@@ -19,17 +19,7 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 """
-Experiment runner for classification survey question responses.
-
-Each sample is a token of text, for which there are multiple within a single
-question response. The samples of a single response all correspond to the
-classification(s) for the response. There can be one or more classifications per
-sample, which are in separate columns of the input CSV.
-
-The model learns each sample (token) independently, encoding each w/ a
-random SDR, which is fed into a kNN classifier. For a given response in an
-evaluation (and test) dataset, each token is independently classified, and the
-response is then labeled with the top classification(s) amongst its tokens.
+Initial experiment runner for classification survey question responses.
 
 EXAMPLE: from the fluent directory, run...
 python experiments/baseline_runner.py data/sample_reviews/sample_reviews_data_training.csv
@@ -42,15 +32,11 @@ python experiments/baseline_runner.py data/sample_reviews/sample_reviews_data_tr
   and should be changed for CSVs with different columns.
 
 Please note the following definitions:
-- Training dataset: all the data files used for experimentally building the NLP
-  system. During k-fold cross validation, the training dataset is split
+- k-fold cross validation: the training dataset is split
   differently for each of the k trials. The majority of the dataset is used for
   training, and a small portion (1/k) is held out for evaluation; this
   evaluation data is different from the test data.
-- Testing dataset: the data files held out until the NLP system is complete.
-  That is, the system should never see this testing data and then go back and
-  change models/params/methods/etc. at the risk of overfitting.
-- Classification and label are used interchangeably.
+- classification and label are used interchangeably
 """
 
 import argparse
