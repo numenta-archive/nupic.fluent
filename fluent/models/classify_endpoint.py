@@ -143,7 +143,12 @@ class ClassificationModelEndpoint(ClassificationModel):
     Return indices of winning categories, based off of the input metric.
     Overrides the base class implementation.
     """
+    descendingOrder = set(["overlappingAll", "overlappingLeftRight",
+      "overlappingRightLeft", "cosineSimilarity"])
     metricValues = numpy.array([v[metric] for v in distances.values()])
     sortedIdx = numpy.argsort(metricValues)
+
+    if metric in descendingOrder:
+      sortedIdx = sortedIdx[::-1]
 
     return [distances.keys()[catIdx] for catIdx in sortedIdx[:numberCats]]
