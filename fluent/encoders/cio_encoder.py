@@ -124,7 +124,7 @@ class CioEncoder(LanguageEncoder):
         # Sample to remain sparse
         max_sparsity = int((self.targetSparsity / 100) * self.n)
         w = min(len(counts), max_sparsity)
-        position = [c[0] for c in counts.most_common(w)]
+        positions = [c[0] for c in counts.most_common(w)]
 
         # Populate encoding
         encoding = {
