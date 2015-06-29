@@ -146,4 +146,10 @@ class ClassificationModelEndpoint(ClassificationModel):
     metricValues = numpy.array([v[metric] for v in distances.values()])
     sortedIdx = numpy.argsort(metricValues)
 
+    # euclideanDistance and jaccardDistance are ascending
+    descendingOrder = set(["overlappingAll", "overlappingLeftRight",
+      "overlappingRightLeft", "cosineSimilarity", "weightedScoring"])
+    if metric in descendingOrder:
+      sortedIdx = sortedIdx[::-1]
+
     return [distances.keys()[catIdx] for catIdx in sortedIdx[:numberCats]]
