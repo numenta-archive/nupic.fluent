@@ -20,8 +20,8 @@
 # ----------------------------------------------------------------------
 
 import itertools
-import os
 import numpy
+import os
 import random
 
 from collections import Counter
@@ -135,12 +135,12 @@ class CioEncoder(LanguageEncoder):
             "width": self.w,
             "score": 0.0,
             "fingerprint": {
-              "position":sorted(position)
+              "positions":sorted(positions)
               },
             "pos_types": []
             }
       else:
-        raise TypeError("method must be either \'df\' or \'keyword\'")
+        raise ValueError("method must be either \'df\' or \'keyword\'")
     except UnsuccessfulEncodingError:
       if self.verbosity > 0:
         print ("\tThe client returned no substitute encoding for the text "
