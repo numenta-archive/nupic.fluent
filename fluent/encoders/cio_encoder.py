@@ -20,9 +20,11 @@
 # ----------------------------------------------------------------------
 
 import itertools
+import numpy
 import os
 import random
 
+from collections import Counter
 from cortipy.cortical_client import CorticalClient
 from cortipy.exceptions import UnsuccessfulEncodingError
 from fluent.encoders.language_encoder import LanguageEncoder
@@ -99,7 +101,7 @@ class CioEncoder(LanguageEncoder):
     return [((term["term"], term["score"])) for term in terms]
 
 
-  def _subEncoding(self, text):
+  def _subEncoding(self, text, method="df"):
     """
     @param text             (str)             A non-tokenized sample of text.
     @return encoding        (dict)            Fingerprint from cortipy client.
@@ -109,9 +111,36 @@ class CioEncoder(LanguageEncoder):
     tokens = list(itertools.chain.from_iterable(
       [t.split(',') for t in self.client.tokenize(text)]))
     try:
-      encoding = min([self.client.getBitmap(t) for t in tokens],
-                     key=lambda x: x["df"])
-      ## TODO: take union of FPs instead
+      if method == "df":
+        encoding = min([self.client.getBitmap(t) for t in tokens],
+                        key=lambda x: x["df"])
+      elif method == "keyword":
+        # Take a union of the bitmaps
+        counts = Counter()
+        for t in tokens:
+          bitmap = self.client.getBitmap(t)["fingerprint"]["positions"]
+          counts.update(bitmap)
+
+        # Sample to remain sparse
+        max_sparsity = int((self.targetSparsity / 100) * self.n)
+        w = min(len(counts), max_sparsity)
+        positions = [c[0] for c in counts.most_common(w)]
+
+        # Populate encoding
+        encoding = {
+            "text": text,
+            "sparsity": w * 100 / float(self.n),
+            "df": 0.0,
+            "height": self.h,
+            "width": self.w,
+            "score": 0.0,
+            "fingerprint": {
+              "positions":sorted(positions)
+              },
+            "pos_types": []
+            }
+      else:
+        raise ValueError("method must be either \'df\' or \'keyword\'")
     except UnsuccessfulEncodingError:
       if self.verbosity > 0:
         print ("\tThe client returned no substitute encoding for the text "
