@@ -144,7 +144,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     Overrides the base class implementation.
     """
     descendingOrder = set(["overlappingAll", "overlappingLeftRight",
-      "overlappingRightLeft", "cosineSimilarity"])
+      "overlappingRightLeft", "cosineSimilarity", "weightedScoring"])
     metricValues = numpy.array([v[metric] for v in distances.values()])
     sortedIdx = numpy.argsort(metricValues)
 
