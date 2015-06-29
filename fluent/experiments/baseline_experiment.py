@@ -19,17 +19,7 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 """
-Experiment runner for classification survey question responses.
-
-Each sample is a token of text, for which there are multiple within a single
-question response. The samples of a single response all correspond to the
-classification(s) for the response. There can be one or more classifications per
-sample, which are in separate columns of the input CSV.
-
-The model learns each sample (token) independently, encoding each w/ a
-random SDR, which is fed into a kNN classifier. For a given response in an
-evaluation (and test) dataset, each token is independently classified, and the
-response is then labeled with the top classification(s) amongst its tokens.
+Initial experiment runner for classification survey question responses.
 
 EXAMPLE: from the fluent directory, run...
 python experiments/baseline_runner.py data/sample_reviews/sample_reviews_data_training.csv
@@ -42,15 +32,11 @@ python experiments/baseline_runner.py data/sample_reviews/sample_reviews_data_tr
   and should be changed for CSVs with different columns.
 
 Please note the following definitions:
-- Training dataset: all the data files used for experimentally building the NLP
-  system. During k-fold cross validation, the training dataset is split
+- k-fold cross validation: the training dataset is split
   differently for each of the k trials. The majority of the dataset is used for
   training, and a small portion (1/k) is held out for evaluation; this
   evaluation data is different from the test data.
-- Testing dataset: the data files held out until the NLP system is complete.
-  That is, the system should never see this testing data and then go back and
-  change models/params/methods/etc. at the risk of overfitting.
-- Classification and label are used interchangeably.
+- classification and label are used interchangeably
 """
 
 import argparse
@@ -104,12 +90,12 @@ def testing(model, evalSet):
   return trialResults
 
 
-def calculateTrialResults(model, results, refs, indices, fileName):
+def calculateResults(model, results, refs, indices, fileName):
   """
   Evaluate the results, returning accuracy and confusion matrix, and writing
   the confusion matrix to a CSV.
   """
-  result = model.evaluateTrialResults(results, refs, indices)
+  result = model.evaluateResults(results, refs, indices)
   result[1].to_csv(fileName)
   return result
 
@@ -151,7 +137,7 @@ def run(args):
     raise ValueError("Invalid data path.")
   if (not isinstance(args.kFolds, int)) or (args.kFolds < 1):
     raise ValueError("Invalid value for number of cross-validation folds.")
-  if (args.train and args.test) and args.kFolds > 1:
+  if (args.train or args.test) and args.kFolds > 1:
     raise ValueError("Experiment runs either k-folds CV or training/testing, "
                      "not both.")
 
@@ -197,11 +183,16 @@ def run(args):
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:
     training(model, [(p, labels[i]) for i, p in enumerate(patterns)])
+
   if args.test:
     results = testing(model, [(p, labels[i]) for i, p in enumerate(patterns)])
-    print calculateTrialResults(
+    resultMetrics = calculateResults(
       model, results, labelReference, xrange(len(samples)),
       os.path.join(modelPath, "test_results.csv"))
+    print resultMetrics
+    if model.plot:
+      model.plotConfusionMatrix(resultMetrics[1])
+
   elif args.kFolds>1:
     # Run k-folds cross validation -- train the model on a subset, and evaluate
     # on the remaining subset.
@@ -222,12 +213,12 @@ def run(args):
           [labelReference[idx[0]] if idx[0] != None else '(none)' for idx in p])
 
       print "Calculating intermediate results for this fold. Writing to CSV."
-      intermResults.append(calculateTrialResults(model,
-        trialResults, labelReference, partitions[k][1],
+      intermResults.append(calculateResults(
+        model, trialResults, labelReference, partitions[k][1],
         os.path.join(modelPath, "evaluation_fold_" + str(k) + ".csv")))
 
     print "Calculating cumulative results for {0} trials.".format(args.kFolds)
-    results = model.evaluateFinalResults(intermResults)
+    results = model.evaluateCumulativeResults(intermResults)
     results["total_cm"].to_csv(os.path.join(modelPath, "evaluation_totals.csv"))
     if args.expectationDataPath:
       computeExpectedAccuracy(list(itertools.chain.from_iterable(predictions)),

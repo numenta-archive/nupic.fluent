@@ -26,6 +26,7 @@ import pandas
 import random
 
 from collections import Counter
+from fluent.utils.plotting import PlotNLP
 
 try:
   import simplejson as json
@@ -34,7 +35,7 @@ except ImportError:
 
 
 
-class ClassificationModel(object):
+class ClassificationModel(object):  ## TODO: update docstring
   """
   Base class for NLP models of classification tasks. When inheriting from this
   class please take note of which methods MUST be overridden, as documented
@@ -55,17 +56,13 @@ class ClassificationModel(object):
     - testModel()
   """
 
-  def __init__(self, n=16384, w=328, verbosity=1):
+  def __init__(self, n=16384, w=328, verbosity=1, plot=True, multiclass=False):
     """The SDR dimensions are standard for Cortical.io fingerprints."""
     self.n = n
     self.w = w
+    self.multiclass = multiclass
     self.verbosity = verbosity
-
-
-  def classifyRandomly(self, labels):
-    """Return accuracy of random classifications for the labels."""
-    randomLabels = numpy.random.randint(0, labels.max(), labels.shape)
-    return (randomLabels == labels).sum() / float(labels.shape[0])
+    self.plot = plot
 
 
   def encodeRandomly(self, sample):
@@ -88,7 +85,44 @@ class ClassificationModel(object):
       f.write(json.dumps(jsonPatterns, indent=1))
 
 
-  def evaluateTrialResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations
+  def classifyRandomly(self, labels):
+    """Return accuracy of random classifications for the labels."""
+    randomLabels = numpy.random.randint(0, labels.max(), labels.shape)
+    return (randomLabels == labels).sum() / float(labels.shape[0])
+
+
+  def _densifyPattern(self, bitmap):
+    """Return a numpy array of 0s and 1s to represent the input bitmap."""
+    densePattern = numpy.zeros(self.n)
+    for i in bitmap:
+      densePattern[i] = 1.0
+    return densePattern
+
+
+  @staticmethod
+  def winningLabels(labels, n=3):
+    """
+    Returns the most frequent item in the input list of labels. If there are
+    ties for the most frequent item, the x most frequent are returned,
+    where x<=n.
+    """
+    labelCount = Counter(labels).most_common()
+    maxCount = 0
+    for c in labelCount:  ## TODO: better way to do this?
+      if c[1] > maxCount:
+        maxCount = c[1]
+    winners = [c[0] for c in labelCount if c[1]==maxCount]
+
+    return winners if len(winners) <= n else winners[:n]
+
+
+  def calculateClassificationResults(self, classifications):  ## TODO: plot
+    """Calculate the classification accuracy for each category.
+    """
+    ## TODO
+
+
+  def evaluateResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations
     """
     Calculate statistics for the predicted classifications against the actual.
 
@@ -102,16 +136,70 @@ class ClassificationModel(object):
                                               accuracy (float) and confusion
                                               matrix (numpy array).
     """
+    if self.verbosity > 0:
+      self.printTrialReport(classifications, references, idx)
+
+    accuracy = self.calculateAccuracy(classifications)
+    cm = self.calculateConfusionMatrix(classifications, references)
+
+    return (accuracy, cm)
+
+
+  def evaluateCumulativeResults(self, intermResults):
+    """
+    Cumulative statistics for the outputs of evaluateTrialResults().
+
+    @param intermResults      (list)          List of returned results from
+                                              evaluateTrialResults().
+    @return                   (dict)          Returns a dictionary with entries
+                                              for max, mean, and min accuracies,
+                                              and the mean confusion matrix.
+    """
+    accuracy = []
+    cm = numpy.zeros((intermResults[0][1].shape))
+
+    # Find mean, max, and min values for the metrics.
+    for result in intermResults:
+      accuracy.append(result[0])
+      cm = numpy.add(cm, result[1])
+
+    results = {"max_accuracy":max(accuracy),
+               "mean_accuracy":sum(accuracy)/float(len(accuracy)),
+               "min_accuracy":min(accuracy),
+               "total_cm":cm}
+
+    if self.verbosity > 0:
+      self.printCumulativeReport(results)
+
+    if self.plot:
+      self.plotConfusionMatrix(cm)
+
+    return results
+
+
+  @staticmethod
+  def calculateAccuracy(classifications):   ## TODO: just get numpy arrays passed in?
+    """
+    Returns classification accuracy -- i.e. correct labels out of total labels.
+    """
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
-    if self.verbosity > 0:
-      self._printTrialReport(classifications, references, idx)
 
     actual = numpy.array(classifications[1])
-    predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: see above; this forces evaluation metrics to consider only the first predicted classification
-    accuracy = (actual == predicted).sum() / float(len(actual))
+    predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
 
-    # Calculate confusion matrix.
+    return (actual == predicted).sum() / float(len(actual))
+
+
+  @staticmethod
+  def calculateConfusionMatrix(classifications, references):  ## TODO: just get numpy arrays passed in?
+    """Returns confusion matrix as a pandas dataframe."""
+    if len(classifications[0]) != len(classifications[1]):
+      raise ValueError("Classification lists must have same length.")
+
+    actual = numpy.array(classifications[1])
+    predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
+
     total = len(references)
     cm = numpy.zeros((total, total+1))
     for i, p in enumerate(predicted):
@@ -128,44 +216,14 @@ class ClassificationModel(object):
       columns=references+["(none)"]+["Actual Totals"],
       index=references+["Prediction Totals"])
 
-    return (accuracy, cm)
-
-
-  def evaluateFinalResults(self, intermResults):
-    """
-    Cumulative statistics for the outputs of evaluateTrialResults().
-
-    @param intermResults      (list)          List of returned results from
-                                              evaluateTrialResults().
-    @return                   (list)          Returns a dictionary with entries
-                                              for max, mean, and min accuracies,
-                                              and the mean confusion matrix.
-    """
-    accuracy = []
-    cm = numpy.zeros((intermResults[0][1].shape))
-
-    # Find mean, max, and min values for the metrics.
-    for result in intermResults:
-      accuracy.append(result[0])
-      cm = numpy.add(cm, result[1])
-    ## TODO: add rows for Precision and Recall
-
-    results = {"max_accuracy":max(accuracy),
-               "mean_accuracy":sum(accuracy)/float(len(accuracy)),
-               "min_accuracy":min(accuracy),
-               "total_cm":cm}
-
-    if self.verbosity > 0:
-      self._printFinalReport(results)
-
-    return results
+    return cm
 
 
   @staticmethod
-  def _printTrialReport(labels, refs, idx):
+  def printTrialReport(labels, refs, idx):  ## TODO: pprint
     """Print columns for sample #, actual label, and predicted label."""
-    template = "{0:10}|{1:30}|{2:30}"
-    print "Evaluation results for this fold:"
+    template = "{0:<10}|{1:<30}|{2:<30}"
+    print "Evaluation results for the trial:"
     print template.format("#", "Actual", "Predicted")
     for i in xrange(len(labels[0])):
       if labels[0][i][0] == None:
@@ -176,8 +234,10 @@ class ClassificationModel(object):
 
 
   @staticmethod
-  def _printFinalReport(results):  ## TODO: pprint
-    """Prints results as returned by evaluateResults()."""
+  def printCumulativeReport(results):  ## TODO: pprint
+    """
+    Prints results as returned by evaluateFinalResults() after several trials.
+    """
     print "---------- RESULTS ----------"
     print "max, mean, min accuracies = "
     print "{0:.3f}, {1:.3f}, {2:.3f}".format(
@@ -185,28 +245,20 @@ class ClassificationModel(object):
     print "total confusion matrix =\n", results["total_cm"]
 
 
-  def _densifyPattern(self, bitmap):
-    """Return a numpy array of 0s and 1s to represent the input bitmap."""
-    densePattern = numpy.zeros(self.n)
-    for i in bitmap:
-      densePattern[i] = 1.0
-    return densePattern
+  @staticmethod
+  def printFinalReport(trainSize, accuracies):  ## TODO: pprint
+    """Prints result accuracies."""
+    template = "{0:<20}|{1:<10}"
+    print "Evaluation results for this experiment:"
+    print template.format("Size of training set", "Accuracy")
+    for i, a in enumerate(accuracies):
+      print template.format(trainSize[i], a)
 
 
-  def _winningLabels(self, labels, n=3):
-    """
-    Returns the most frequent item in the input list of labels. If there are
-    ties for the most frequent item, the x most frequent are returned,
-    where x<=n.
-    """
-    labelCount = Counter(labels).most_common()
-    maxCount = 0
-    for c in labelCount:  ## TODO: better way to do this?
-      if c[1] > maxCount:
-        maxCount = c[1]
-    winners = [c[0] for c in labelCount if c[1]==maxCount]
-
-    return winners if len(winners) <= n else winners[:n]
+  @staticmethod
+  def plotConfusionMatrix(cm):
+    """Output plotly confusion matrix."""
+    PlotNLP().confusionMatrix(cm)
 
 
   def encodePattern(self, pattern):
