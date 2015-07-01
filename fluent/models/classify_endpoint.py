@@ -105,14 +105,17 @@ class ClassificationModelEndpoint(ClassificationModel):
     """
     if label not in self.positives:
       self.positives[label] = []
-    self.positives[label].append(sample["text"])
+    
+    if sample["text"] != "":
+      self.positives[label].append(sample["text"])
 
     if label not in self.negatives:
       self.negatives[label] = []
 
     if negatives is not None:
       for neg in negatives:
-        self.negatives[label].append(neg["text"])
+        if neg["text"] != "":
+          self.negatives[label].append(neg["text"])
 
     self.categoryBitmaps[label] = self.client.createClassification(str(label),
       self.positives[label], self.negatives[label])["positions"]
