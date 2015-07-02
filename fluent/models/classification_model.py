@@ -108,7 +108,7 @@ class ClassificationModel(object):  ## TODO: update docstring
     """
     labelCount = Counter(labels).most_common()
     maxCount = 0
-    for c in labelCount:  ## TODO: better way to do this?
+    for c in labelCount:  ## TODO: better way to do this? -- most_common() should return a reverse sorted list so this is unnecessary
       if c[1] > maxCount:
         maxCount = c[1]
     winners = [c[0] for c in labelCount if c[1]==maxCount]

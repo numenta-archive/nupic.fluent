@@ -22,7 +22,7 @@
 Initial experiment runner for classification survey question responses.
 
 EXAMPLE: from the fluent directory, run...
-python experiments/baseline_runner.py data/sample_reviews/sample_reviews_data_training.csv
+python experiments/baseline_experiment.py data/sample_reviews/sample_reviews_data_training.csv
   - The runner sets up the data path such that the experiment runs on a single
   data file located in the nupic.fluent/data directory. The data path MUST BE
   SPECIFIED at the cmd line.
@@ -159,7 +159,7 @@ def run(args):
   print "Reading in data and preprocessing."
   preprocessTime = time.time()
   texter = TextPreprocess()
-  samples, labels = readCSV(dataPath, 2, [3])  # [3] is single class, range(3,6) is multi-class
+  samples, labels = readCSV(dataPath, 2, range(3,6))  # [3] is single class, range(3,6) is multi-class
   labelReference = list(set(labels))
   labels = numpy.array([labelReference.index(l) for l in labels], dtype="int8")
   samples = [texter.tokenize(sample,
@@ -167,7 +167,7 @@ def run(args):
                              removeStrings=["[identifier deleted]"],
                              correctSpell=True)
              for sample in samples]
-  # samples = [texter.tokenize(sample) for sample in samples]
+  # samples = [texter.tokenize(sample) for sample in samples] #TEXT PREPROCESSING
   print("Preprocessing complete; elapsed time is {0:.2f} seconds.".
         format(time.time() - preprocessTime))
   if args.verbosity > 1:
