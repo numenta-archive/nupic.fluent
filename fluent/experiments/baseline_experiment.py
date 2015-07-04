@@ -45,13 +45,14 @@ import itertools
 import numpy
 import os
 import time
+import collections
 
 from fluent.utils.csv_helper import readCSV
 from fluent.utils.data_split import KFolds
 from fluent.utils.text_preprocess import TextPreprocess
 
 
-def runExperiment(model, patterns, labels, idxSplits):
+def runExperiment(model, patterns, labels, idxSplits, sampleLabelList):
   """
   @param model          (Model)               Classification model instance.
   @param patterns       (list)                Each item is a dict with the
@@ -61,8 +62,12 @@ def runExperiment(model, patterns, labels, idxSplits):
   @return                                     Return same as testing().
   """
   model.resetModel()
-  training(model, [(patterns[i], labels[i]) for i in idxSplits[0]])
-  return testing(model, [(patterns[i], labels[i]) for i in idxSplits[1]])
+  training(model, [(patterns[i][0], labels[i]) for i in idxSplits[0]])
+  evalSet = []
+  for idx in idxSplits[1]:
+    goldLabels = sampleLabelList[idx]
+    evalSet.append((patterns[idx][0], goldLabels, patterns[idx][1]))
+  return testing(model, evalSet)
 
 
 # training() and testing() methods send one data sample at a time to the model,
@@ -84,9 +89,11 @@ def testing(model, evalSet):
   """
   trialResults = [[], []]
   for x in evalSet:
-    predicted = model.testModel(x[0])
+    # Take sample, # of labels as params and return predicted distribution over
+    # labels
+    predicted = model.testModel(x[0], numLabels=x[2])
     trialResults[0].append(predicted)
-    trialResults[1].append(x[1])
+    trialResults[1].append(x[1]) # TODO: Change this to actually include lists
   return trialResults
 
 
@@ -159,15 +166,39 @@ def run(args):
   print "Reading in data and preprocessing."
   preprocessTime = time.time()
   texter = TextPreprocess()
-  samples, labels = readCSV(dataPath, 2, range(3,6))  # [3] is single class, range(3,6) is multi-class
+
+  if args.useMultiClass:
+    rawSamples, labels = readCSV(dataPath, 2, range(3,6))  # [3] is single class, range(3,6) is multi-class
+  else:
+    rawSamples, labels = readCSV(dataPath, 2, [3])
+
   labelReference = list(set(labels))
   labels = numpy.array([labelReference.index(l) for l in labels], dtype="int8")
-  samples = [texter.tokenize(sample,
+
+  # Responsible for generating a list of list of labels for the
+  # gold standard labels
+  sampleLabelMapping = collections.defaultdict(list)
+  for idx, s in enumerate(rawSamples):
+    sampleLabelMapping[s].append(labels[idx])
+  sampleLabelList = []
+  for s in rawSamples:
+    sampleLabelList.append(sampleLabelMapping[s])
+
+  # Ensure each sample also has count of number of labels assigned
+  if args.textPreprocess:
+    samples = []
+    for sample in rawSamples:
+      samples.append((texter.tokenize(sample,
                              ignoreCommon=100,
                              removeStrings=["[identifier deleted]"],
-                             correctSpell=True)
-             for sample in samples]
-  # samples = [texter.tokenize(sample) for sample in samples] #TEXT PREPROCESSING
+                             correctSpell=True),
+                             len(sampleLabelMapping[sample])))
+  else:
+    samples = []
+    for sample in rawSamples:
+      samples.append((texter.tokenize(sample),
+                      len(sampleLabelMapping[sample])))
+
   print("Preprocessing complete; elapsed time is {0:.2f} seconds.".
         format(time.time() - preprocessTime))
   if args.verbosity > 1:
@@ -175,17 +206,23 @@ def run(args):
 
   print "Encoding the data."
   encodeTime = time.time()
-  patterns = [model.encodePattern(s) for s in samples]
+  patterns = []
+  for s in samples:
+    patterns.append((model.encodePattern(s[0]), s[1]))
   print("Done encoding; elapsed time is {0:.2f} seconds.".
         format(time.time() - encodeTime))
   model.logEncodings(patterns, modelPath)
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:
-    training(model, [(p, labels[i]) for i, p in enumerate(patterns)])
+    training(model, [(p[0], labels[i]) for i, p in enumerate(patterns)])
 
   if args.test:
-    results = testing(model, [(p, labels[i]) for i, p in enumerate(patterns)])
+    evalSet = []
+    for idx, p in enumerate(patterns):
+      goldLabels = sampleLabelList[idx]
+      evalSet.append((p[0], goldLabels, p[1]))
+    results = testing(model, evalSet)
     resultMetrics = calculateResults(
       model, results, labelReference, xrange(len(samples)),
       os.path.join(modelPath, "test_results.csv"))
@@ -202,7 +239,8 @@ def run(args):
     for k in xrange(args.kFolds):
       print "Training and testing for CV fold {0}.".format(k)
       kTime = time.time()
-      trialResults = runExperiment(model, patterns, labels, partitions[k])
+      trialResults = runExperiment(model, patterns, labels, partitions[k],
+                                   sampleLabelList)
       print("Fold complete; elapsed time is {0:.2f} seconds.".format(
             time.time() - kTime))
 
@@ -260,7 +298,15 @@ if __name__ == "__main__":
   parser.add_argument("--modelModuleName",
                       default="fluent.models.classify_random_sdr",
                       type=str,
-                      help="Model module (location of model class).")
+                      help="model module (location of model class).")
+  parser.add_argument("--useMultiClass",
+                      type=bool,
+                      help="Whether to use multiple classes per sample",
+                      default=False)
+  parser.add_argument("--textPreprocess",
+                      default=True,
+                      type=bool,
+                      help="Whether to preprocess text")
   parser.add_argument("--load",
                       help="Load the serialized model.",
                       default=False)

@@ -79,7 +79,7 @@ class ClassificationModel(object):  ## TODO: update docstring
     # Cast numpy arrays to list objects for serialization.
     jsonPatterns = copy.deepcopy(patterns)
     for jp in jsonPatterns:
-      jp["bitmap"] = jp.get("bitmap", None).tolist()
+      jp[0]["bitmap"] = jp[0].get("bitmap", None).tolist()
 
     with open(os.path.join(path, "encoding_log.txt"), "w") as f:
       f.write(json.dumps(jsonPatterns, indent=1))
@@ -97,6 +97,19 @@ class ClassificationModel(object):  ## TODO: update docstring
     for i in bitmap:
       densePattern[i] = 1.0
     return densePattern
+
+  def _getTopLabels(self, inferenceResult, numLabels=1):
+    """Returns the `n` most frequent labels in k nearest neighbors.
+
+    @param inferenceResult (numpy.array) Stores frequency of each category
+
+    @param numLabels (int) Return this number of most frequent labels
+          within top k
+
+    @return (numpy.array)  Return list of top `numLabels` labels
+
+  """
+    return inferenceResult.argsort[::-1][:numLabels]
 
 
   @staticmethod
@@ -186,10 +199,14 @@ class ClassificationModel(object):  ## TODO: update docstring
       raise ValueError("Classification lists must have same length.")
 
     actual = numpy.array(classifications[1])
-    predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
+    predicted = numpy.array([c for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
 
-    return (actual == predicted).sum() / float(len(actual))
+    accuracy = 0.0
+    for idx in range(len(actual)):
+      commonElems = numpy.intersect1d(actual[idx], predicted[idx])
+      accuracy += len(commonElems)/len(actual[idx])
 
+    return accuracy/len(actual)
 
   @staticmethod
   def calculateConfusionMatrix(classifications, references):  ## TODO: just get numpy arrays passed in?
@@ -198,16 +215,19 @@ class ClassificationModel(object):  ## TODO: update docstring
       raise ValueError("Classification lists must have same length.")
 
     actual = numpy.array(classifications[1])
-    predicted = numpy.array([c[0] for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
+    predicted = numpy.array([c for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
 
     total = len(references)
     cm = numpy.zeros((total, total+1))
     for i, p in enumerate(predicted):
       if p is not None:
-        cm[actual[i]][p] += 1
+        for aLabel in actual[i]:
+          for pLabel in p:
+            cm[aLabel][pLabel] += 1
       else:
         # No predicted label, so increment the "(none)" column.
-        cm[actual[i]][total] += 1
+        for aLabel in actual[i]:
+          cm[aLabel][total] += 1
     cm = numpy.vstack((cm, numpy.sum(cm, axis=0)))
     cm = numpy.hstack((cm, numpy.sum(cm, axis=1).reshape(total+1,1)))
 
@@ -227,10 +247,10 @@ class ClassificationModel(object):  ## TODO: update docstring
     print template.format("#", "Actual", "Predicted")
     for i in xrange(len(labels[0])):
       if labels[0][i][0] == None:
-        print template.format(idx[i], refs[labels[1][i]], "(none)")
+        print template.format(idx[i], [refs[label] for label in labels[1][i]], "(none)")
       else:
         print template.format(
-          idx[i], refs[labels[1][i]], [refs[label] for label in labels[0][i]])
+          idx[i], [refs[label] for label in labels[1][i]], [refs[label] for label in labels[0][i]])
 
 
   @staticmethod
@@ -283,5 +303,5 @@ class ClassificationModel(object):  ## TODO: update docstring
     raise NotImplementedError
 
 
-  def testModel(self, sample):
+  def testModel(self, sample, numLabels=1):
     raise NotImplementedError

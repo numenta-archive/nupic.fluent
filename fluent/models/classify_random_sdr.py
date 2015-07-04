@@ -84,7 +84,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
     # Cast numpy arrays to list objects for serialization.
     jsonPatterns = copy.deepcopy(patterns)
     for jp in jsonPatterns:
-      for tokenPattern in jp:
+      for tokenPattern in jp[0]:
         tokenPattern["bitmap"] = tokenPattern.get("bitmap", None).tolist()
 
     with open(os.path.join(path, "encoding_log.txt"), "w") as f:
@@ -112,12 +112,12 @@ class ClassificationModelRandomSDR(ClassificationModel):
       self.classifier.learn(s["bitmap"], label, isSparse=self.n)
 
 
-  def testModel(self, sample):
+  def testModel(self, sample, numLabels=1):
     """
-    Test the kNN classifier on the input sample. Returns the classification most
-    frequent amongst the classifications of the sample's individual tokens.
+    Test the kNN classifier on the input sample. Returns the classifications
+    most frequent amongst the classifications of the sample's individual tokens.
     We ignore the terms that are unclassified, picking the most frequent
-    classification among those that are detected.
+    classifications among those that are detected.
     @param sample           (list)        List of bitmaps, each representing the
                                           encoding of one token in the sample.
     @return classification  (list)        The n most-frequent classifications
@@ -130,12 +130,12 @@ class ClassificationModelRandomSDR(ClassificationModel):
     tokenLabels = []
     for s in sample:
       if s == []: continue
-      (tokenLabel, _, _, _) = self.classifier.infer(
-        self._densifyPattern(s["bitmap"])) #TODO: play with changing `numWinners`
-      #Recall `tokenLabel` is array of `n` most frequent labels sorted in descending order
+      (tokenLabel,inferenceResult, _, _) = self.classifier.infer(
+        self._densifyPattern(s["bitmap"]))
       if tokenLabel != None:
         # Only include classified tokens.
         tokenLabels.append(tokenLabel[0])  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
     if tokenLabels == []:
       return [None]
-    return self.winningLabels(tokenLabels, n=1)
+
+    return self.winningLabels(tokenLabels, n=numLabels)

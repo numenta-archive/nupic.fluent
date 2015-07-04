@@ -92,7 +92,7 @@ class ClassificationModelFingerprint(ClassificationModel):
       self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
 
 
-  def testModel(self, sample):
+  def testModel(self, sample, numLabels=1):
     """
     Test the kNN classifier on the input sample. Returns the classification most
     frequent amongst the classifications of the sample's individual tokens.
@@ -107,7 +107,7 @@ class ClassificationModelFingerprint(ClassificationModel):
     Note: to return multiple winner classifications, modify the return statement
     accordingly.
     """
-    (tokenLabel, _, _, _) = self.classifier.infer(
+    (tokenLabel, inferenceResult, _, _) = self.classifier.infer(
       self._densifyPattern(sample["bitmap"]))
     ## TODO: get list of closest classifications, not just the winner; implement this in base class
-    return list(tokenLabel) #Return `n` most-frequent classifications
+    return self._getTopLabels(inferenceResult, numLabels) #Return `n` most-frequent classifications

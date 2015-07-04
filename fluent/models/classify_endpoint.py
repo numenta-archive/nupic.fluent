@@ -118,7 +118,7 @@ class ClassificationModelEndpoint(ClassificationModel):
       self.positives[label], self.negatives[label])["positions"]
 
 
-  def testModel(self, sample, numberCats=1, metric="overlappingAll"):
+  def testModel(self, sample, numLabels=1, metric="overlappingAll"):
     """
     Test the Cortical.io classifier on the input sample. Returns a dictionary
     containing various distance metrics between the sample and the classes.
@@ -134,7 +134,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     for cat, catBitmap in self.categoryBitmaps.iteritems():
       distances[cat] = self.client.compare(sampleBitmap, catBitmap)
 
-    return self.winningLabels(distances, numberCats=1, metric="overlappingAll")  ## TODO: how do we handle return values of []? or len(winners)<numberCats?
+    return self.winningLabels(distances, numberCats=numLabels, metric="overlappingAll")  ## TODO: how do we handle return values of []? or len(winners)<numberCats?
 
 
   @staticmethod
