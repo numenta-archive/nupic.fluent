@@ -105,14 +105,17 @@ class ClassificationModelEndpoint(ClassificationModel):
     """
     if label not in self.positives:
       self.positives[label] = []
-    self.positives[label].append(sample["text"])
+    
+    if sample["text"] != "":
+      self.positives[label].append(sample["text"])
 
     if label not in self.negatives:
       self.negatives[label] = []
 
     if negatives is not None:
       for neg in negatives:
-        self.negatives[label].append(neg["text"])
+        if neg["text"] != "":
+          self.negatives[label].append(neg["text"])
 
     self.categoryBitmaps[label] = self.client.createClassification(str(label),
       self.positives[label], self.negatives[label])["positions"]
@@ -145,5 +148,11 @@ class ClassificationModelEndpoint(ClassificationModel):
     """
     metricValues = numpy.array([v[metric] for v in distances.values()])
     sortedIdx = numpy.argsort(metricValues)
+
+    # euclideanDistance and jaccardDistance are ascending
+    descendingOrder = set(["overlappingAll", "overlappingLeftRight",
+      "overlappingRightLeft", "cosineSimilarity", "weightedScoring"])
+    if metric in descendingOrder:
+      sortedIdx = sortedIdx[::-1]
 
     return [distances.keys()[catIdx] for catIdx in sortedIdx[:numberCats]]
