@@ -49,7 +49,8 @@ class ClassificationModelRandomSDR(ClassificationModel):
     #   specify 'distanceMethod'='rawOverlap' for overlap; Euclidean is std.
     #   verbosity=1 for debugging
     #   standard k is 1
-    self.classifier = KNNClassifier(exact=True, verbosity=verbosity-1)
+    self.classifier = KNNClassifier(exact=True, verbosity=verbosity-1,
+      distanceMethod="rawOverlap")
 
 
   def encodePattern(self, sample):
