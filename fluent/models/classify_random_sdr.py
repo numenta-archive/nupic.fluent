@@ -128,14 +128,17 @@ class ClassificationModelRandomSDR(ClassificationModel):
     accordingly.
     """
     tokenLabels = []
-    for s in sample:
+    totalInferenceResult = numpy.zeros(len(self.classifier._categoryList)) # Stores label frequency across all tokens
+    for idx, s in enumerate(sample):
       if s == []: continue
       (tokenLabel,inferenceResult, _, _) = self.classifier.infer(
         self._densifyPattern(s["bitmap"]))
+
+      totalInferenceResult += inferenceResult
       if tokenLabel != None:
         # Only include classified tokens.
-        tokenLabels.append(tokenLabel[0])  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
+        tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
     if tokenLabels == []:
       return [None]
 
-    return self.winningLabels(tokenLabels, n=numLabels)
+    return self._getTopLabels(totalInferenceResult, numLabels)

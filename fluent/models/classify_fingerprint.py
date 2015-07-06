@@ -109,5 +109,4 @@ class ClassificationModelFingerprint(ClassificationModel):
     """
     (tokenLabel, inferenceResult, _, _) = self.classifier.infer(
       self._densifyPattern(sample["bitmap"]))
-    ## TODO: get list of closest classifications, not just the winner; implement this in base class
     return self._getTopLabels(inferenceResult, numLabels) #Return `n` most-frequent classifications

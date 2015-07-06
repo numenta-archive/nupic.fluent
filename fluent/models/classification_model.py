@@ -109,7 +109,7 @@ class ClassificationModel(object):  ## TODO: update docstring
     @return (numpy.array)  Return list of top `numLabels` labels
 
   """
-    return inferenceResult.argsort[::-1][:numLabels]
+    return inferenceResult.argsort()[::-1][:numLabels]
 
 
   @staticmethod
@@ -145,6 +145,7 @@ class ClassificationModel(object):  ## TODO: update docstring
                                               ints or None, and items in actual
                                               classifications list are ints.
     @param references       (list)            Classification label strings.
+    @param idx              (list)            Indices from unknown `partitions` variable
     @return                 (tuple)           Returns a 2-item tuple w/ the
                                               accuracy (float) and confusion
                                               matrix (numpy array).
@@ -204,7 +205,7 @@ class ClassificationModel(object):  ## TODO: update docstring
     accuracy = 0.0
     for idx in range(len(actual)):
       commonElems = numpy.intersect1d(actual[idx], predicted[idx])
-      accuracy += len(commonElems)/len(actual[idx])
+      accuracy += len(commonElems)/float(len(actual[idx]))
 
     return accuracy/len(actual)
 

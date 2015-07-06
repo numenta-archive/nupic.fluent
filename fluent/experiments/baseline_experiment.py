@@ -93,7 +93,7 @@ def testing(model, evalSet):
     # labels
     predicted = model.testModel(x[0], numLabels=x[2])
     trialResults[0].append(predicted)
-    trialResults[1].append(x[1]) # TODO: Change this to actually include lists
+    trialResults[1].append(x[1])
   return trialResults
 
 
@@ -180,9 +180,7 @@ def run(args):
   sampleLabelMapping = collections.defaultdict(list)
   for idx, s in enumerate(rawSamples):
     sampleLabelMapping[s].append(labels[idx])
-  sampleLabelList = []
-  for s in rawSamples:
-    sampleLabelList.append(sampleLabelMapping[s])
+  sampleLabelList = [sampleLabelMapping[s] for s in rawSamples]
 
   # Ensure each sample also has count of number of labels assigned
   if args.textPreprocess:
