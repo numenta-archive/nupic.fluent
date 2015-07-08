@@ -22,7 +22,9 @@
 Initial experiment runner for classification survey question responses.
 
 EXAMPLE: from the fluent directory, run...
-python experiments/baseline_experiment.py data/sample_reviews/sample_reviews_data_training.csv
+  python experiments/baseline_experiment.py
+  data/sample_reviews/sample_reviews_data_training.csv
+
   - The runner sets up the data path such that the experiment runs on a single
   data file located in the nupic.fluent/data directory. The data path MUST BE
   SPECIFIED at the cmd line.
@@ -39,6 +41,8 @@ Please note the following definitions:
 - classification and label are used interchangeably
 """
 
+## TODO: update docstrings
+
 import argparse
 import collections
 import cPickle as pkl
@@ -52,24 +56,20 @@ from fluent.utils.data_split import KFolds
 from fluent.utils.text_preprocess import TextPreprocess
 
 
-def runExperiment(model, patterns, labels, idxSplits):
+def runExperiment(model, patterns, idxSplits):
   """
   @param model          (Model)               Classification model instance.
   @param patterns       (list)                Each item is a dict with the
                                               sample encoding a numpy array
                                               bitmap in field "bitmap".
-  @param labels         (numpy.array)         Ints specifying classifications.
   @param idxSplits      (tuple)               Tuple of train/eval split data
                                               indices. idxSplits[0] is `train`.
                                               idxSplits[1] is `eval`.
   @return                                     Return same as testing().
   """
   model.resetModel()
-  training(model, [(patterns[i][0], labels[i]) for i in idxSplits[0]])
-  evalSet = []
-  for idx in idxSplits[1]:
-    evalSet.append((patterns[idx][0], patterns[idx][1]))
-  return testing(model, evalSet)
+  training(model, [patterns[i] for i in idxSplits[0]])
+  return testing(model, [patterns[i] for i in idxSplits[1]])
 
 
 # training() and testing() methods send one data sample at a time to the model,
@@ -77,7 +77,7 @@ def runExperiment(model, patterns, labels, idxSplits):
 def training(model, trainSet):
   """Trains model on the bitmap patterns and corresponding labels lists."""
   for x in trainSet:
-    model.trainModel(x[0], x[1])
+    model.trainModel(x["pattern"], x["labels"])
 
 
 def testing(model, evalSet):
@@ -89,13 +89,13 @@ def testing(model, evalSet):
                                             classifications, and the second list
                                             is the actual classifications.
   """
-  trialResults = [[], []]
+  trialResults = ([], [])
   for x in evalSet:
     # Take sample, # of labels as params and return predicted distribution over
     # labels
-    predicted = model.testModel(x[0], numLabels=len(x[1]))
+    predicted = model.testModel(x["pattern"])
     trialResults[0].append(predicted)
-    trialResults[1].append(x[1])
+    trialResults[1].append(x["labels"])
   return trialResults
 
 
@@ -124,50 +124,41 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
   print "Accuracy against expected classifications = ", accuracy
 
 
-def setupData(args, texter, dataPath):
+def setupData(args, dataPath):
   """ Performs data preprocessing and setup given the user-specified args.
 
   @param args       (Namespace)             User-provided arguments via the
                                             command line
-  @param texter     (TextPreprocess)        Text preprocessing object
   @param dataPath   (str)                   Path where data is located
-  @return            (tuple)                Tuple where first entry is a list
+  @return           (tuple)                 Tuple where first entry is a list
                                             of the samples, the second is the
                                             list of gold labels per example,
                                             the third is the list of all
                                             possible labels, and the fourth is
                                             the labels per example in the data.
   """
-  if args.useMultiClass:
-    rawSamples, labels = readCSV(dataPath, 2, range(3,6))
-  else:
-    rawSamples, labels = readCSV(dataPath, 2, [3])
+  dataDict = readCSV(dataPath, 2, args.numClasses)
 
-  labelReference = list(set(labels))
-  labels = numpy.array([labelReference.index(l) for l in labels], dtype="int8")
+  labelReference = list(set(
+      itertools.chain.from_iterable(dataDict.values())))
 
-  # Responsible for generating a list of list of labels for the
-  # gold standard labels
-  sampleLabelMapping = collections.defaultdict(list)
-  for idx, s in enumerate(rawSamples):
-    sampleLabelMapping[s].append(int(labels[idx]))
+  for k, v in dataDict.iteritems():
+    dataDict[k] = numpy.array([labelReference.index(label) for label in v],
+                              dtype="int8")
 
-  # Ensure each sample also has count of number of labels assigned
+  texter = TextPreprocess()
   if args.textPreprocess:
-    samples = []
-    for sample in rawSamples:
-      samples.append((texter.tokenize(sample,
-                             ignoreCommon=100,
-                             removeStrings=["[identifier deleted]"],
-                             correctSpell=True),
-                                sampleLabelMapping[sample]))
+    samples = [(texter.tokenize(sample,
+                                ignoreCommon=100,
+                                removeStrings=["[identifier deleted]"],
+                                correctSpell=True),
+               labels) for sample, labels in dataDict.iteritems()]
   else:
-    samples = []
-    for sample in rawSamples:
-      samples.append((texter.tokenize(sample),
-                      sampleLabelMapping[sample]))
+    samples = [(texter.tokenize(sample), labels)
+               for sample, labels in dataDict.iteritems()]
 
-  return (samples, labelReference, labels)
+  return samples, labelReference
+
 
 def run(args):
   """
@@ -206,17 +197,15 @@ def run(args):
       module = __import__(args.modelModuleName, {}, {}, args.modelName)
       modelClass = getattr(module, args.modelName)
       model = modelClass(verbosity=args.verbosity,
-                         multiclass=args.useMultiClass)
+                         multiclass=args.numClasses)
     except ImportError:
       raise RuntimeError("Could not find model class \'%s\' to import."
                          % args.modelName)
 
   print "Reading in data and preprocessing."
   preprocessTime = time.time()
-  texter = TextPreprocess()
 
-  (samples, labelReference, labels) = setupData(args, texter,
-                                                                 dataPath)
+  samples, labelReference = setupData(args, dataPath)
 
   print("Preprocessing complete; elapsed time is {0:.2f} seconds.".
         format(time.time() - preprocessTime))
@@ -226,6 +215,9 @@ def run(args):
   print "Encoding the data."
   encodeTime = time.time()
   patterns = [(model.encodePattern(s[0]), s[1]) for s in samples]
+  patterns = [{"pattern": model.encodePattern(s[0]),
+              "labels": s[1]}
+              for s in samples]
 
   print("Done encoding; elapsed time is {0:.2f} seconds.".
         format(time.time() - encodeTime))
@@ -233,13 +225,10 @@ def run(args):
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:
-    training(model, [(p[0], labels[i]) for i, p in enumerate(patterns)])
+    training(model, patterns)
 
   if args.test:
-    evalSet = []
-    for idx, p in enumerate(patterns):
-      evalSet.append((p[0], s[1]))
-    results = testing(model, evalSet)
+    results = testing(model, patterns)
     resultMetrics = calculateResults(
       model, results, labelReference, xrange(len(samples)),
       os.path.join(modelPath, "test_results.csv"))
@@ -247,7 +236,7 @@ def run(args):
     if model.plot:
       model.plotConfusionMatrix(resultMetrics[1])
 
-  elif args.kFolds>1:
+  elif args.kFolds > 1:
     # Run k-folds cross validation -- train the model on a subset, and evaluate
     # on the remaining subset.
     partitions = KFolds(args.kFolds).split(range(len(samples)), randomize=True)
@@ -256,7 +245,7 @@ def run(args):
     for k in xrange(args.kFolds):
       print "Training and testing for CV fold {0}.".format(k)
       kTime = time.time()
-      trialResults = runExperiment(model, patterns, labels, partitions[k])
+      trialResults = runExperiment(model, patterns, partitions[k])
       print("Fold complete; elapsed time is {0:.2f} seconds.".format(
             time.time() - kTime))
 
@@ -278,8 +267,9 @@ def run(args):
       computeExpectedAccuracy(list(itertools.chain.from_iterable(predictions)),
         os.path.abspath(os.path.join(root, '../..', args.expectationDataPath)))
 
-  print "Calculating random classifier results for comparison."
-  print model.classifyRandomly(labels)
+  ## Commented out b/c broken; fix if using this runner again.
+  # print "Calculating random classifier results for comparison."
+  # print model.classifyRandomly(labels)
 
   print "Saving model to \'{0}\' directory.".format(modelPath)
   with open(
@@ -315,10 +305,10 @@ if __name__ == "__main__":
                       default="fluent.models.classify_random_sdr",
                       type=str,
                       help="model module (location of model class).")
-  parser.add_argument("--useMultiClass",
-                      type=bool,
-                      help="Whether to use multiple classes per sample",
-                      default=False)
+  parser.add_argument("--numClasses",
+                      help="Specifies the number of classes per sample.",
+                      type=int,
+                      default=3)
   parser.add_argument("--textPreprocess",
                       type=bool,
                       help="Whether to preprocess text",

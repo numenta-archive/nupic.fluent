@@ -49,39 +49,39 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.n = self.encoder.n
     self.w = int((self.encoder.targetSparsity/100) * self.n)
 
-    self.positives = {}
-    self.negatives = {}
     self.categoryBitmaps = {}
+    self.negatives = {}
+    self.positives = {}
 
 
-  def encodePattern(self, pattern):
+  def encodePattern(self, sample):
     """
     Encode an SDR of the input string by querying the Cortical.io API.
 
-    @param pattern        (list)          Tokenized sample, where each item is
+    @param sample         (list)          Tokenized sample, where each item is
                                           a string
-    @return               (dict)          The sample text, sparsity, and bitmap.
+    @return fp            (dict)          The sample text, sparsity, and bitmap.
     Example return dict:
-    {
-      "text": "Example text",
-      "sparsity": 0.03,
-      "bitmap": numpy.array()
-    }
+      {
+        "text": "Example text",
+        "sparsity": 0.03,
+        "bitmap": numpy.array([])
+      }
     """
-    text = " ".join(pattern)
-    fpInfo = self.encoder.encode(text)
-    if self.verbosity > 1:
-      print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
-
+    sample = " ".join(sample)
+    fpInfo = self.encoder.encode(sample)
     if fpInfo:
-      text = fpInfo["text"] if "text" in fpInfo else fpInfo["term"]
-      bitmap = numpy.array(fpInfo["fingerprint"]["positions"])
-      sparsity = fpInfo["sparsity"]
+      fp = {"text":fpInfo["text"] if "text" in fpInfo else fpInfo["term"],
+            "sparsity":fpInfo["sparsity"],
+            "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])
+            }
     else:
-      bitmap = self.encodeRandomly(text)
-      sparsity = float(self.w) / self.n
+      fp = {"text":sample,
+            "sparsity":float(self.w)/self.n,
+            "bitmap":self.encodeRandomly(sample)
+            }
 
-    return {"text": text, "sparsity": sparsity, "bitmap": bitmap}
+    return fp
 
 
   def resetModel(self):
@@ -91,37 +91,41 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.categoryBitmaps.clear()
 
 
-  def trainModel(self, sample, label, negatives=None):
+  ## TODO: move Cortical.io client logic to CioEncoder.
+  def trainModel(self, sample, labels, negatives=None):
     """
     Train the classifier on the input sample and label. Use Cortical.io's
     createClassification to make a bitmap that represents the class
 
     @param sample     (dict)            The sample text, sparsity, and bitmap.
-    @param label      (int)             Reference index for the classification
-                                        of this sample.
+    @param labels     (numpy array)     Reference indices for the
+                                        classifications of this sample.
     @param negatives  (list)            Each item is the dictionary containing
                                         text, sparsity and bitmap for the
-                                        negative samples
+                                        negative samples.
     """
-    if label not in self.positives:
-      self.positives[label] = []
-    
-    if sample["text"] != "":
-      self.positives[label].append(sample["text"])
+    for label in labels:
+      if label not in self.positives:
+        self.positives[label] = []
 
-    if label not in self.negatives:
-      self.negatives[label] = []
+      if sample["text"]:
+        self.positives[label].append(sample["text"])
 
-    if negatives is not None:
-      for neg in negatives:
-        if neg["text"] != "":
-          self.negatives[label].append(neg["text"])
+      if label not in self.negatives:
+        self.negatives[label] = []
 
-    self.categoryBitmaps[label] = self.client.createClassification(str(label),
-      self.positives[label], self.negatives[label])["positions"]
+      if negatives:
+        for neg in negatives:
+          if neg["text"]:
+            self.negatives[label].append(neg["text"])
+
+      self.categoryBitmaps[label] = self.client.createClassification(
+          str(label),
+          self.positives[label],
+          self.negatives[label])["positions"]
 
 
-  def testModel(self, sample, numLabels=1, metric="overlappingAll"):
+  def testModel(self, sample, numLabels=3, metric="overlappingAll"):
     """
     Test the Cortical.io classifier on the input sample. Returns a dictionary
     containing various distance metrics between the sample and the classes.
@@ -129,7 +133,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     @param sample         (dict)      The sample text, sparsity, and bitmap.
     @return               (list)      Winning classifications based on the
                                       specified metric. The number of items
-                                      returned will be <= numberCats.
+                                      returned will be <= numLabels.
     """
     sampleBitmap = sample["bitmap"].tolist()
 
@@ -137,11 +141,11 @@ class ClassificationModelEndpoint(ClassificationModel):
     for cat, catBitmap in self.categoryBitmaps.iteritems():
       distances[cat] = self.client.compare(sampleBitmap, catBitmap)
 
-    return self.winningLabels(distances, numberCats=numLabels, metric="overlappingAll")  ## TODO: how do we handle return values of []? or len(winners)<numberCats?
+    return self.getWinningLabels(distances, numLabels=numLabels, metric=metric)
 
 
   @staticmethod
-  def winningLabels(distances, numLabels, metric):
+  def getWinningLabels(distances, numLabels, metric):
     """
     Return indices of winning categories, based off of the input metric.
     Overrides the base class implementation.

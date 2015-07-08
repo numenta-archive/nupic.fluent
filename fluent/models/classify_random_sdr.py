@@ -85,8 +85,9 @@ class ClassificationModelRandomSDR(ClassificationModel):
     # Cast numpy arrays to list objects for serialization.
     jsonPatterns = copy.deepcopy(patterns)
     for jp in jsonPatterns:
-      for tokenPattern in jp[0]:
+      for tokenPattern in jp["pattern"]:
         tokenPattern["bitmap"] = tokenPattern.get("bitmap", None).tolist()
+      jp["labels"] = jp.get("labels", None).tolist()
 
     with open(os.path.join(path, "encoding_log.txt"), "w") as f:
       f.write(json.dumps(jsonPatterns, indent=1))
@@ -97,52 +98,48 @@ class ClassificationModelRandomSDR(ClassificationModel):
     self.classifier.clear()
 
 
-  def trainModel(self, sample, label):
+  def trainModel(self, sample, labels):
     """
-    Train the classifier on the input sample and label.
+    Train the classifier on the input sample and label. This model is unique in
+    that a single sample contains multiple encoded patterns.
 
-    @param sample     (list)            List of bitmaps, each representing the
-                                        encoding of one token in the sample.
-    @param label      (int)             Reference index for the classification
-                                        of this sample.
+    @param sample      (list)         List of dicts, each representing the
+                                      encoding of one token in the sample.
+    @param labels      (numpy array)  Reference indices for the classifications
+                                      of this sample.
     """
     # This experiment classifies individual tokens w/in each sample. Train the
     # kNN classifier on each token.
     for s in sample:
-      if s == []: continue
-      self.classifier.learn(s["bitmap"], label, isSparse=self.n)
+      if not s: continue
+      for label in labels:
+        self.classifier.learn(s["bitmap"], label, isSparse=self.n)
 
 
-  def testModel(self, sample, numLabels=1):
+  def testModel(self, sample, numLabels=3):
     """
-    Test the kNN classifier on the input sample. Returns the classifications
+    Test the classifier on the input sample. Returns the classifications
     most frequent amongst the classifications of the sample's individual tokens.
     We ignore the terms that are unclassified, picking the most frequent
     classifications among those that are detected.
-    @param sample           (list)        List of bitmaps, each representing the
-                                          encoding of one token in the sample.
-    @return classification  (list)        The n most-frequent classifications
+    @param sample           (list)        List of encodings, one for each
+                                          token in the sample.
+    @param numLabels        (int)         Number of predicted classifications.
+    @return                 (list)        The n most-frequent classifications
                                           for the data samples; for more, see
                                           the KNNClassifier.infer()
                                           documentation. Values are int or None.
-    Note: to return multiple winner classifications, modify the return statement
-    accordingly.
     """
-    tokenLabels = []
-    totalInferenceResult = None # Stores label frequency across all tokens
+    totalInferenceResult = None
     for idx, s in enumerate(sample):
-      if s == []: continue
-      (tokenLabel,inferenceResult, _, _) = self.classifier.infer(
+      if not s: continue
+
+      (_, inferenceResult, _, _) = self.classifier.infer(
         self._densifyPattern(s["bitmap"]))
 
       if totalInferenceResult is None:
         totalInferenceResult = inferenceResult
       else:
         totalInferenceResult += inferenceResult
-      if tokenLabel != None:
-        # Only include classified tokens.
-        tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
-    if tokenLabels == []:
-      return [None]
 
-    return self._getTopLabels(totalInferenceResult, numLabels)
+    return self.getWinningLabels(totalInferenceResult, numLabels)

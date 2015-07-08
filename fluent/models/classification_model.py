@@ -35,7 +35,8 @@ except ImportError:
 
 
 
-class ClassificationModel(object):  ## TODO: update docstring
+## TODO: update docstring
+class ClassificationModel(object):
   """
   Base class for NLP models of classification tasks. When inheriting from this
   class please take note of which methods MUST be overridden, as documented
@@ -79,7 +80,8 @@ class ClassificationModel(object):  ## TODO: update docstring
     # Cast numpy arrays to list objects for serialization.
     jsonPatterns = copy.deepcopy(patterns)
     for jp in jsonPatterns:
-      jp[0]["bitmap"] = jp[0].get("bitmap", None).tolist()
+      jp["pattern"]["bitmap"] = jp["pattern"].get("bitmap", None).tolist()
+      jp["labels"] = jp.get("labels", None).tolist()
 
     with open(os.path.join(path, "encoding_log.txt"), "w") as f:
       f.write(json.dumps(jsonPatterns, indent=1))
@@ -99,35 +101,20 @@ class ClassificationModel(object):  ## TODO: update docstring
     return densePattern
 
 
-  def _getTopLabels(self, inferenceResult, numLabels=1):
-    """
-    Returns the `n` most frequent labels in k nearest neighbors.
-
-    @param inferenceResult (numpy.array) Stores frequency of each category
-    @param numLabels       (int)         Return this number of most frequent labels
-                                         within top k
-    @return                (numpy.array) Return list of top `numLabels` labels
-
-    """
-    return inferenceResult.argsort()[::-1][:numLabels]
-
-
   @staticmethod
-  def winningLabels(labels, n=3):
+  def getWinningLabels(labelFreq, numLabels=3):
     """
-    Returns the most frequent item in the input list of labels. If there are
-    ties for the most frequent item, the x most frequent are returned,
-    where x<=n.
+    Returns most frequent indices.
+
+    @param labelFreq    (numpy.array)   Ints that (in this context) represent
+                                        the frequency of inferred labels.
+    @param numLabels    (int)           Return this number of most frequent
+                                        labels within top k
+    @return             (numpy.array)   Indicates largest elements in labelFreq,
+                                        sorted greatest to least. Length is up
+                                        to numLabels.
     """
-    labelCount = Counter(labels).most_common()
-    if len(labelCount):
-      maxCount = labelCount[0][1] # Max count stored in second entry of first tuple
-    else:
-      maxCount = 0
-
-    winners = [c[0] for c in labelCount if c[1]==maxCount]
-
-    return winners if len(winners) <= n else winners[:n]
+    return labelFreq.argsort()[::-1][:numLabels]
 
 
   def calculateClassificationResults(self, classifications):  ## TODO: plot
@@ -136,19 +123,18 @@ class ClassificationModel(object):  ## TODO: update docstring
     ## TODO
 
 
-  def evaluateResults(self, classifications, references, idx): ## TODO: evaluation metrics for multiple classifcations
+  def evaluateResults(self, classifications, references, idx):
     """
     Calculate statistics for the predicted classifications against the actual.
 
-    @param classifications  (list)            Two lists: (0) predictions and
+    @param classifications  (tuple)           Two lists: (0) predictions and
                                               (1) actual classifications. Items
-                                              in the predictions list are lists
-                                              of ints or None, and items in
-                                              actual classifications list are
-                                              ints.
+                                              in the predictions list are numpy
+                                              arrays of ints or [None], and
+                                              items in actual classifications
+                                              list are numpy arrays of ints.
     @param references       (list)            Classification label strings.
-    @param idx              (list)            Indices from unknown `partitions`
-                                              variable
+    @param idx              (list)            Indices of test samples.
     @return                 (tuple)           Returns a 2-item tuple w/ the
                                               accuracy (float) and confusion
                                               matrix (numpy array).
@@ -195,41 +181,42 @@ class ClassificationModel(object):  ## TODO: update docstring
 
 
   @staticmethod
-  def calculateAccuracy(classifications):   ## TODO: just get numpy arrays passed in?
+  def calculateAccuracy(classifications):
     """
-    Returns classification accuracy -- i.e. correct labels out of total labels.
+    @param classifications    (tuple)       First element is list of predicted
+                                            labels, second is list of actuals;
+                                            items are numpy arrays.
+    @return                   (float)       Correct labels out of total labels,
+                                            where a label is correct if it is
+                                            amongst the actuals.
     """
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
 
-    actual = numpy.array(classifications[1])
-    predicted = numpy.array(classifications[0])
-
     accuracy = 0.0
-    for aLabel, pLabel in zip(actual, predicted):
-      commonElems = numpy.intersect1d(aLabel, pLabel)
-      accuracy += len(commonElems)/float(len(aLabel))
+    for actual, predicted in zip(classifications[1], classifications[0]):
+      commonElems = numpy.intersect1d(actual, predicted)
+      accuracy += len(commonElems)/float(len(actual))
 
-    return accuracy/len(actual)
+    return accuracy/len(classifications[1])
 
+
+  # TODO: Figure out better way to report multilabel outputs--only handles
+  # single label now
   @staticmethod
-  def calculateConfusionMatrix(classifications, references):  ## TODO: just get numpy arrays passed in?
+  def calculateConfusionMatrix(classifications, references):
     """Returns confusion matrix as a pandas dataframe."""
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
 
-    actual = numpy.array(classifications[1])
-    predicted = numpy.array(classifications[0])
-
     total = len(references)
     cm = numpy.zeros((total, total+1))
-    for aLabel, pLabel in zip(actual, predicted):
-      if pLabel is not None:
-        cm[aLabel[0]][pLabel[0]] += 1 # TODO: Figure out better way to report
-                          # multilabel outputs--only handles single label now
+    for actual, predicted in zip(classifications[1], classifications[0]):
+      if predicted is not None:
+        cm[actual[0]][predicted[0]] += 1
       else:
         # No predicted label, so increment the "(none)" column.
-        cm[aLabel[0]][total] += 1
+        cm[actual[0]][total] += 1
     cm = numpy.vstack((cm, numpy.sum(cm, axis=0)))
     cm = numpy.hstack((cm, numpy.sum(cm, axis=1).reshape(total+1,1)))
 
@@ -242,21 +229,25 @@ class ClassificationModel(object):  ## TODO: update docstring
 
 
   @staticmethod
-  def printTrialReport(labels, refs, idx):  ## TODO: pprint
+  def printTrialReport(labels, refs, idx):
     """Print columns for sample #, actual label, and predicted label."""
-    template = "{0:<10}|{1:<30}|{2:<30}"
+    template = "{0:<10}|{1:<55}|{2:<55}"
     print "Evaluation results for the trial:"
     print template.format("#", "Actual", "Predicted")
     for i in xrange(len(labels[0])):
       if labels[0][i][0] == None:
-        print template.format(idx[i], [refs[label] for label in labels[1][i]], "(none)")
+        print template.format(idx[i],
+                              [refs[label] for label in labels[1][i]],
+                              "(none)")
       else:
-        print template.format(
-          idx[i], [refs[label] for label in labels[1][i]], [refs[label] for label in labels[0][i]])
+        print template.format(idx[i],
+                              [refs[label] for label in labels[1][i]],
+                              [refs[label] for label in labels[0][i]])
 
 
+  ## TODO: pprint
   @staticmethod
-  def printCumulativeReport(results):  ## TODO: pprint
+  def printCumulativeReport(results):
     """
     Prints results as returned by evaluateFinalResults() after several trials.
     """
@@ -268,7 +259,7 @@ class ClassificationModel(object):  ## TODO: update docstring
 
 
   @staticmethod
-  def printFinalReport(trainSize, accuracies):  ## TODO: pprint
+  def printFinalReport(trainSize, accuracies):
     """Prints result accuracies."""
     template = "{0:<20}|{1:<10}"
     print "Evaluation results for this experiment:"
@@ -301,9 +292,9 @@ class ClassificationModel(object):  ## TODO: update docstring
     raise NotImplementedError
 
 
-  def trainModel(self, sample, label):
+  def trainModel(self, sample, labels):
     raise NotImplementedError
 
 
-  def testModel(self, sample, numLabels=1):
+  def testModel(self, sample, numLabels):
     raise NotImplementedError

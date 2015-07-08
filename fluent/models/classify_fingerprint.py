@@ -20,7 +20,6 @@
 # ----------------------------------------------------------------------
 
 import numpy
-import string
 
 from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
@@ -55,19 +54,23 @@ class ClassificationModelFingerprint(ClassificationModel):
 
     @param sample     (list)            Tokenized sample, where each item is a
                                         string token.
-    @return           (numpy.array)     Bitmap of the encoding.
+    @return fp        (dict)            The sample text, sparsity, and bitmap.
+    Example return dict:
+      {
+        "text": "Example text",
+        "sparsity": 0.03,
+        "bitmap": numpy.array([])
+      }
     """
-    sample = string.join(sample)
+    sample = " ".join(sample)
     fpInfo = self.encoder.encode(sample)
     if fpInfo:
-      fp = {
-          "text":fpInfo["text"] if "text" in fpInfo else fpInfo["term"],
-          "sparsity":fpInfo["sparsity"],
-          "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])
-          }
+      fp = {"text":fpInfo["text"] if "text" in fpInfo else fpInfo["term"],
+            "sparsity":fpInfo["sparsity"],
+            "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])
+            }
     else:
-      fp = {
-            "text":sample,
+      fp = {"text":sample,
             "sparsity":float(self.w)/self.n,
             "bitmap":self.encodeRandomly(sample)
             }
@@ -80,26 +83,27 @@ class ClassificationModelFingerprint(ClassificationModel):
     self.classifier.clear()
 
 
-  def trainModel(self, sample, label):
+  def trainModel(self, sample, labels):
     """
-    Train the classifier on the input sample and label.
+    Train the classifier on the input sample and labels.
 
-    @param sample     (numpy.array)     Bitmap encoding of the sample.
-    @param label      (int)             Reference index for the classification
-                                        of this sample.
+    @param sample     (dict)          The sample text, sparsity, and bitmap.
+    @param labels     (numpy array)   Reference indices for the classifications
+                                      of this sample.
     """
     if sample["bitmap"].any():
-      self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
+      for label in labels:
+        self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
 
 
-  def testModel(self, sample, numLabels=1):
+  def testModel(self, sample, numLabels=3):
     """
     Test the kNN classifier on the input sample. Returns the classification most
     frequent amongst the classifications of the sample's individual tokens.
     We ignore the terms that are unclassified, picking the most frequent
     classification among those that are detected.
 
-    @param sample     (numpy.array)     Bitmap encoding of the sample.
+    @param sample     (numpy array)     Bitmap encoding of the sample.
     @return           (list)            The n most-frequent classifications
                                         for the data samples; for more, see the
                                         KNNClassifier.infer() documentation.
@@ -109,4 +113,4 @@ class ClassificationModelFingerprint(ClassificationModel):
     """
     (_, inferenceResult, _, _) = self.classifier.infer(
       self._densifyPattern(sample["bitmap"]))
-    return self._getTopLabels(inferenceResult, numLabels)
+    return self.getWinningLabels(inferenceResult, numLabels)
