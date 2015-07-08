@@ -36,8 +36,8 @@ class ClassificationModelFingerprint(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, verbosity=1):
-    super(ClassificationModelFingerprint, self).__init__(verbosity)
+  def __init__(self, verbosity=1, multiclass=False):
+    super(ClassificationModelFingerprint, self).__init__(verbosity, multiclass)
 
     # Init kNN classifier and Cortical.io encoder; need valid API key (see
     # CioEncoder init for details).
@@ -107,6 +107,6 @@ class ClassificationModelFingerprint(ClassificationModel):
     Note: to return multiple winner classifications, modify the return statement
     accordingly.
     """
-    (tokenLabel, inferenceResult, _, _) = self.classifier.infer(
+    (_, inferenceResult, _, _) = self.classifier.infer(
       self._densifyPattern(sample["bitmap"]))
-    return self._getTopLabels(inferenceResult, numLabels) #Return `n` most-frequent classifications
+    return self._getTopLabels(inferenceResult, numLabels)

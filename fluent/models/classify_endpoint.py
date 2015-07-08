@@ -37,11 +37,11 @@ class ClassificationModelEndpoint(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, verbosity=1):
+  def __init__(self, verbosity=1, multiclass=False):
     """
     Initialize the CorticalClient and CioEncoder. Requires a valid API key
     """
-    super(ClassificationModelEndpoint, self).__init__(verbosity)
+    super(ClassificationModelEndpoint, self).__init__(verbosity, multiclass)
 
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
     self.client = CorticalClient(self.encoder.apiKey)
@@ -141,7 +141,7 @@ class ClassificationModelEndpoint(ClassificationModel):
 
 
   @staticmethod
-  def winningLabels(distances, numberCats, metric):
+  def winningLabels(distances, numLabels, metric):
     """
     Return indices of winning categories, based off of the input metric.
     Overrides the base class implementation.
@@ -155,4 +155,4 @@ class ClassificationModelEndpoint(ClassificationModel):
     if metric in descendingOrder:
       sortedIdx = sortedIdx[::-1]
 
-    return [distances.keys()[catIdx] for catIdx in sortedIdx[:numberCats]]
+    return [distances.keys()[catIdx] for catIdx in sortedIdx[:numLabels]]

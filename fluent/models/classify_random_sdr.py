@@ -42,8 +42,9 @@ class ClassificationModelRandomSDR(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, n=100, w=20, verbosity=1):
-    super(ClassificationModelRandomSDR, self).__init__(n, w, verbosity)
+  def __init__(self, n=100, w=20, verbosity=1, multiclass=False):
+    super(ClassificationModelRandomSDR, self).__init__(n, w, verbosity,
+                                                       multiclass)
 
     # Init kNN classifier:
     #   specify 'distanceMethod'='rawOverlap' for overlap; Euclidean is std.

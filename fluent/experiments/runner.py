@@ -19,6 +19,7 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import collections
 import cPickle as pkl
 import numpy
 import os
@@ -83,25 +84,30 @@ class Runner(object):
       raise ValueError("Multiclass model requires more than one CSV column of "
                        "classifications.")
 
-    samples, labels = readCSV(self.dataFile, sampleIdx, labelIdx)
+    rawSamples, labels = readCSV(self.dataFile, sampleIdx, labelIdx)
     texter = TextPreprocess()
-    
+
     if (not isinstance(self.trainSize, list) or
       self.trainSize[0] < 0 or
-      self.trainSize[0] > len(samples)):
+      self.trainSize[0] > len(rawSamples)):
       raise ValueError("Invalid size(s) for training set.")
     
     self.labelRefs = list(set(labels))
     self.labels = numpy.array(
       [self.labelRefs.index(l) for l in labels], dtype="int8")
+
+    sampleLabelMapping = collections.defaultdict(list)
+    for idx, s in enumerate(rawSamples):
+      sampleLabelMapping[s].append(int(self.labels[idx]))
     if preprocess:
-      self.samples = [texter.tokenize(sample,
+      self.samples = [(texter.tokenize(sample,
                                       ignoreCommon=100,
                                       removeStrings=["[identifier deleted]"],
-                                      correctSpell=True)
-                      for sample in samples]
+                                      correctSpell=True),
+                       sampleLabelMapping[sample]) for sample in rawSamples]
     else:
-      self.samples = [texter.tokenize(sample) for sample in samples]
+      self.samples = [(texter.tokenize(sample), sampleLabelMapping[sample])
+                      for sample in rawSamples]
 
     if self.verbosity > 1:
       for i, s in enumerate(self.samples):
@@ -112,9 +118,9 @@ class Runner(object):
     """Load or instantiate the classification model."""
     if self.load:
       with open(
-        os.path.join(modelPath, "model.pkl"), "rb") as f:
+        os.path.join(self.modelPath, "model.pkl"), "rb") as f:
         self.model = pkl.load(f)
-      print "Model loaded from \'{0}\'.".format(modelPath)
+      print "Model loaded from \'{0}\'.".format(self.modelPath)
     else:
       try:
         module = __import__(self.modelModuleName, {}, {}, self.modelName)
@@ -127,7 +133,7 @@ class Runner(object):
 
   def encodeSamples(self):
     """Encode the text samples into bitmap patterns, and log to txt file."""
-    self.patterns = [self.model.encodePattern(s) for s in self.samples]
+    self.patterns = [(self.model.encodePattern(s[0]), s[1]) for s in self.samples]
     self.model.logEncodings(self.patterns, self.modelPath)
 
 
@@ -153,15 +159,15 @@ class Runner(object):
 
   def training(self, idx):
     for i in idx:
-      self.model.trainModel(self.patterns[i], self.labels[i])
+      self.model.trainModel(self.patterns[i][0], self.labels[i])
 
 
   def testing(self, idx):
     results = ([], [])
     for i in idx:
-      predicted = self.model.testModel(self.patterns[i])
+      predicted = self.model.testModel(self.patterns[i][0])
       results[0].append(predicted)
-      results[1].append(self.labels[i])
+      results[1].append(self.patterns[i][1])
 
     self.results.append(results)
     

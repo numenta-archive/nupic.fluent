@@ -40,33 +40,35 @@ Please note the following definitions:
 """
 
 import argparse
+import collections
 import cPickle as pkl
 import itertools
 import numpy
 import os
 import time
-import collections
 
 from fluent.utils.csv_helper import readCSV
 from fluent.utils.data_split import KFolds
 from fluent.utils.text_preprocess import TextPreprocess
 
 
-def runExperiment(model, patterns, labels, idxSplits, sampleLabelList):
+def runExperiment(model, patterns, labels, idxSplits):
   """
   @param model          (Model)               Classification model instance.
   @param patterns       (list)                Each item is a dict with the
                                               sample encoding a numpy array
                                               bitmap in field "bitmap".
   @param labels         (numpy.array)         Ints specifying classifications.
+  @param idxSplits      (tuple)               Tuple of train/eval split data
+                                              indices. idxSplits[0] is `train`.
+                                              idxSplits[1] is `eval`.
   @return                                     Return same as testing().
   """
   model.resetModel()
   training(model, [(patterns[i][0], labels[i]) for i in idxSplits[0]])
   evalSet = []
   for idx in idxSplits[1]:
-    goldLabels = sampleLabelList[idx]
-    evalSet.append((patterns[idx][0], goldLabels, patterns[idx][1]))
+    evalSet.append((patterns[idx][0], patterns[idx][1]))
   return testing(model, evalSet)
 
 
@@ -91,7 +93,7 @@ def testing(model, evalSet):
   for x in evalSet:
     # Take sample, # of labels as params and return predicted distribution over
     # labels
-    predicted = model.testModel(x[0], numLabels=x[2])
+    predicted = model.testModel(x[0], numLabels=len(x[1]))
     trialResults[0].append(predicted)
     trialResults[1].append(x[1])
   return trialResults
@@ -121,6 +123,51 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
 
   print "Accuracy against expected classifications = ", accuracy
 
+
+def setupData(args, texter, dataPath):
+  """ Performs data preprocessing and setup given the user-specified args.
+
+  @param args       (Namespace)             User-provided arguments via the
+                                            command line
+  @param texter     (TextPreprocess)        Text preprocessing object
+  @param dataPath   (str)                   Path where data is located
+  @return            (tuple)                Tuple where first entry is a list
+                                            of the samples, the second is the
+                                            list of gold labels per example,
+                                            the third is the list of all
+                                            possible labels, and the fourth is
+                                            the labels per example in the data.
+  """
+  if args.useMultiClass:
+    rawSamples, labels = readCSV(dataPath, 2, range(3,6))
+  else:
+    rawSamples, labels = readCSV(dataPath, 2, [3])
+
+  labelReference = list(set(labels))
+  labels = numpy.array([labelReference.index(l) for l in labels], dtype="int8")
+
+  # Responsible for generating a list of list of labels for the
+  # gold standard labels
+  sampleLabelMapping = collections.defaultdict(list)
+  for idx, s in enumerate(rawSamples):
+    sampleLabelMapping[s].append(int(labels[idx]))
+
+  # Ensure each sample also has count of number of labels assigned
+  if args.textPreprocess:
+    samples = []
+    for sample in rawSamples:
+      samples.append((texter.tokenize(sample,
+                             ignoreCommon=100,
+                             removeStrings=["[identifier deleted]"],
+                             correctSpell=True),
+                                sampleLabelMapping[sample]))
+  else:
+    samples = []
+    for sample in rawSamples:
+      samples.append((texter.tokenize(sample),
+                      sampleLabelMapping[sample]))
+
+  return (samples, labelReference, labels)
 
 def run(args):
   """
@@ -158,7 +205,8 @@ def run(args):
     try:
       module = __import__(args.modelModuleName, {}, {}, args.modelName)
       modelClass = getattr(module, args.modelName)
-      model = modelClass(verbosity=args.verbosity)
+      model = modelClass(verbosity=args.verbosity,
+                         multiclass=args.useMultiClass)
     except ImportError:
       raise RuntimeError("Could not find model class \'%s\' to import."
                          % args.modelName)
@@ -167,35 +215,8 @@ def run(args):
   preprocessTime = time.time()
   texter = TextPreprocess()
 
-  if args.useMultiClass:
-    rawSamples, labels = readCSV(dataPath, 2, range(3,6))  # [3] is single class, range(3,6) is multi-class
-  else:
-    rawSamples, labels = readCSV(dataPath, 2, [3])
-
-  labelReference = list(set(labels))
-  labels = numpy.array([labelReference.index(l) for l in labels], dtype="int8")
-
-  # Responsible for generating a list of list of labels for the
-  # gold standard labels
-  sampleLabelMapping = collections.defaultdict(list)
-  for idx, s in enumerate(rawSamples):
-    sampleLabelMapping[s].append(labels[idx])
-  sampleLabelList = [sampleLabelMapping[s] for s in rawSamples]
-
-  # Ensure each sample also has count of number of labels assigned
-  if args.textPreprocess:
-    samples = []
-    for sample in rawSamples:
-      samples.append((texter.tokenize(sample,
-                             ignoreCommon=100,
-                             removeStrings=["[identifier deleted]"],
-                             correctSpell=True),
-                             len(sampleLabelMapping[sample])))
-  else:
-    samples = []
-    for sample in rawSamples:
-      samples.append((texter.tokenize(sample),
-                      len(sampleLabelMapping[sample])))
+  (samples, labelReference, labels) = setupData(args, texter,
+                                                                 dataPath)
 
   print("Preprocessing complete; elapsed time is {0:.2f} seconds.".
         format(time.time() - preprocessTime))
@@ -204,9 +225,8 @@ def run(args):
 
   print "Encoding the data."
   encodeTime = time.time()
-  patterns = []
-  for s in samples:
-    patterns.append((model.encodePattern(s[0]), s[1]))
+  patterns = [(model.encodePattern(s[0]), s[1]) for s in samples]
+
   print("Done encoding; elapsed time is {0:.2f} seconds.".
         format(time.time() - encodeTime))
   model.logEncodings(patterns, modelPath)
@@ -218,8 +238,7 @@ def run(args):
   if args.test:
     evalSet = []
     for idx, p in enumerate(patterns):
-      goldLabels = sampleLabelList[idx]
-      evalSet.append((p[0], goldLabels, p[1]))
+      evalSet.append((p[0], s[1]))
     results = testing(model, evalSet)
     resultMetrics = calculateResults(
       model, results, labelReference, xrange(len(samples)),
@@ -237,8 +256,7 @@ def run(args):
     for k in xrange(args.kFolds):
       print "Training and testing for CV fold {0}.".format(k)
       kTime = time.time()
-      trialResults = runExperiment(model, patterns, labels, partitions[k],
-                                   sampleLabelList)
+      trialResults = runExperiment(model, patterns, labels, partitions[k])
       print("Fold complete; elapsed time is {0:.2f} seconds.".format(
             time.time() - kTime))
 
@@ -302,9 +320,9 @@ if __name__ == "__main__":
                       help="Whether to use multiple classes per sample",
                       default=False)
   parser.add_argument("--textPreprocess",
-                      default=True,
                       type=bool,
-                      help="Whether to preprocess text")
+                      help="Whether to preprocess text",
+                      default=False)
   parser.add_argument("--load",
                       help="Load the serialized model.",
                       default=False)

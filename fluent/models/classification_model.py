@@ -98,17 +98,17 @@ class ClassificationModel(object):  ## TODO: update docstring
       densePattern[i] = 1.0
     return densePattern
 
+
   def _getTopLabels(self, inferenceResult, numLabels=1):
-    """Returns the `n` most frequent labels in k nearest neighbors.
+    """
+    Returns the `n` most frequent labels in k nearest neighbors.
 
     @param inferenceResult (numpy.array) Stores frequency of each category
+    @param numLabels       (int)         Return this number of most frequent labels
+                                         within top k
+    @return                (numpy.array) Return list of top `numLabels` labels
 
-    @param numLabels (int) Return this number of most frequent labels
-          within top k
-
-    @return (numpy.array)  Return list of top `numLabels` labels
-
-  """
+    """
     return inferenceResult.argsort()[::-1][:numLabels]
 
 
@@ -120,10 +120,11 @@ class ClassificationModel(object):  ## TODO: update docstring
     where x<=n.
     """
     labelCount = Counter(labels).most_common()
-    maxCount = 0
-    for c in labelCount:  ## TODO: better way to do this? -- most_common() should return a reverse sorted list so this is unnecessary
-      if c[1] > maxCount:
-        maxCount = c[1]
+    if len(labelCount):
+      maxCount = labelCount[0][1] # Max count stored in second entry of first tuple
+    else:
+      maxCount = 0
+
     winners = [c[0] for c in labelCount if c[1]==maxCount]
 
     return winners if len(winners) <= n else winners[:n]
@@ -139,13 +140,15 @@ class ClassificationModel(object):  ## TODO: update docstring
     """
     Calculate statistics for the predicted classifications against the actual.
 
-    @param classifications  (list)            Two lists: (0) predictions and (1)
-                                              actual classifications. Items in
-                                              the predictions list are lists of
-                                              ints or None, and items in actual
-                                              classifications list are ints.
+    @param classifications  (list)            Two lists: (0) predictions and
+                                              (1) actual classifications. Items
+                                              in the predictions list are lists
+                                              of ints or None, and items in
+                                              actual classifications list are
+                                              ints.
     @param references       (list)            Classification label strings.
-    @param idx              (list)            Indices from unknown `partitions` variable
+    @param idx              (list)            Indices from unknown `partitions`
+                                              variable
     @return                 (tuple)           Returns a 2-item tuple w/ the
                                               accuracy (float) and confusion
                                               matrix (numpy array).
@@ -185,7 +188,7 @@ class ClassificationModel(object):  ## TODO: update docstring
     if self.verbosity > 0:
       self.printCumulativeReport(results)
 
-    if self.plot:
+    if self.plot and self.multiclass:
       self.plotConfusionMatrix(cm)
 
     return results
@@ -200,12 +203,12 @@ class ClassificationModel(object):  ## TODO: update docstring
       raise ValueError("Classification lists must have same length.")
 
     actual = numpy.array(classifications[1])
-    predicted = numpy.array([c for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
+    predicted = numpy.array(classifications[0])
 
     accuracy = 0.0
-    for idx in range(len(actual)):
-      commonElems = numpy.intersect1d(actual[idx], predicted[idx])
-      accuracy += len(commonElems)/float(len(actual[idx]))
+    for aLabel, pLabel in zip(actual, predicted):
+      commonElems = numpy.intersect1d(aLabel, pLabel)
+      accuracy += len(commonElems)/float(len(aLabel))
 
     return accuracy/len(actual)
 
@@ -216,19 +219,17 @@ class ClassificationModel(object):  ## TODO: update docstring
       raise ValueError("Classification lists must have same length.")
 
     actual = numpy.array(classifications[1])
-    predicted = numpy.array([c for c in classifications[0]])  ## TODO: multiclass; this forces evaluation metrics to consider only the first predicted classification
+    predicted = numpy.array(classifications[0])
 
     total = len(references)
     cm = numpy.zeros((total, total+1))
-    for i, p in enumerate(predicted):
-      if p is not None:
-        for aLabel in actual[i]:
-          for pLabel in p:
-            cm[aLabel][pLabel] += 1
+    for aLabel, pLabel in zip(actual, predicted):
+      if pLabel is not None:
+        cm[aLabel[0]][pLabel[0]] += 1 # TODO: Figure out better way to report
+                          # multilabel outputs--only handles single label now
       else:
         # No predicted label, so increment the "(none)" column.
-        for aLabel in actual[i]:
-          cm[aLabel][total] += 1
+        cm[aLabel[0]][total] += 1
     cm = numpy.vstack((cm, numpy.sum(cm, axis=0)))
     cm = numpy.hstack((cm, numpy.sum(cm, axis=1).reshape(total+1,1)))
 
