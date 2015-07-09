@@ -34,173 +34,173 @@ class ClassificationModelTest(unittest.TestCase):
   """Test the functionality of the classification models."""
 
   def testClassificationModelTopLabels(self):
-    """ Tests whether classification base class returns multiple labels
-        correctly.
+    """
+    Tests whether classification base class returns multiple labels correctly.
     """
     model = ClassificationModel()
     inferenceResult = numpy.array([3, 1, 4, 0])
 
-    topLabels = model._getTopLabels(inferenceResult, numLabels=1)
+    topLabels = model.getWinningLabels(inferenceResult, numLabels=1)
     self.assertTrue(numpy.allclose(topLabels, numpy.array([2])),
                     "Output labels do not match what is expected.")
 
-    topLabels = model._getTopLabels(inferenceResult, numLabels=2)
+    topLabels = model.getWinningLabels(inferenceResult, numLabels=2)
     self.assertTrue(numpy.allclose(topLabels, numpy.array([2,0])),
                     "Output labels do not match what is expected.")
 
-    topLabels = model._getTopLabels(inferenceResult, numLabels=4)
+    topLabels = model.getWinningLabels(inferenceResult, numLabels=6)
     self.assertTrue(numpy.allclose(topLabels, numpy.array([2,0,1,3])),
                     "Output labels do not match what is expected.")
 
 
-  def testClassificationModelEvalResultsNone(self):
-    """Tests `evaluateResults` method of classification model base class
-    checking that accuracy on single label with `None  outputs is as
-    expected."""
-
+  def testCalculateAccuracyMixedSamples(self):
+    """
+    Tests testCalculateAccuracy() method of classification model base class for
+    test samples with mixed classifications.
+    """
     model = ClassificationModel()
 
-    actualLabels = [[2],[1],[0]]
-    predictedLabels = [[None],[2],[None]]
-    classifications = [predictedLabels, actualLabels]
-    labels = ['cat','fat','sat']
+    actualLabels = [numpy.array([0, 1, 2])]
+    predictedLabels1 = [numpy.array([1, 2, 0])]
+    predictedLabels2 = [numpy.array([1])]
+    predictedLabels3 = [None]
+    classifications1 = [predictedLabels1, actualLabels]
+    classifications2 = [predictedLabels2, actualLabels]
+    classifications3 = [predictedLabels3, actualLabels]
 
-    (accuracy, cm) = model.evaluateResults(classifications, labels, xrange(3))
-    self.assertTrue(numpy.allclose(accuracy, 0.),
-                    "Output accuracy does not match what is expected.")
+    self.assertAlmostEqual(model.calculateAccuracy(classifications1), 1.0)
+    self.assertAlmostEqual(model.calculateAccuracy(classifications2),
+                           float(1)/3)
+    self.assertAlmostEqual(model.calculateAccuracy(classifications3), 0.0)
 
 
-  def testClassificationModelEvalResultsSimple(self):
-    """Tests `evaluateResults` method of classification model base class
-    checking that accuracy on single label outputs is as expected."""
-
+  def testCalculateAccuracyMultipleSamples(self):
+    """
+    Tests testCalculateAccuracy() method of classification model base class for
+    three test samples.
+    """
     model = ClassificationModel()
 
-    actualLabels = [[2],[1],[0]]
-    predictedLabels = [[1],[2],[0]]
+    actualLabels = [numpy.array([0]),
+                    numpy.array([0, 2]),
+                    numpy.array([0, 1, 2])]
+    predictedLabels = [numpy.array([0]),
+                       [None],
+                       numpy.array([1, 2, 0])]
     classifications = [predictedLabels, actualLabels]
-    labels = ['cat','fat','sat']
 
-    (accuracy, cm) = model.evaluateResults(classifications, labels, xrange(3))
-    self.assertTrue(numpy.allclose(accuracy, 1.0/3),
-                    "Output accuracy does not match what is expected.")
+    self.assertAlmostEqual(model.calculateAccuracy(classifications), float(2)/3)
 
 
-  def testClassificationModelEvalResultsHard(self):
-    """Tests `evaluateResults` method of classification model base class
-    checking that accuracy on multiple label outputs is as expected."""
-
-    model = ClassificationModel()
-
-    actualLabels = [[2, 1],[1],[0, 1]]
-    predictedLabels = [[1],[2],[0]]
-    classifications = [predictedLabels, actualLabels]
-    labels = ['cat','fat','sat']
-
-    (accuracy, cm) = model.evaluateResults(classifications, labels, xrange(3))
-    self.assertTrue(numpy.allclose(accuracy, 1./3),
-                    "Output accuracy does not match what is expected.")
-
-
-  def testClassifyRandomSDRSimple(self):
-    """Tests simple classification with single label for `randomSDR`."""
-    samples =[['cat'], ['fat']]
-    labels = numpy.array([0, 1])
+  def testClassifyRandomSDRSingleClass(self):
+    """Tests simple classification with single label for randomSDR model."""
     model = ClassificationModelRandomSDR()
 
-    patterns = []
-    [patterns.append(model.encodePattern(samples[idx])) for idx in xrange(2)]
+    samples =[(["Ender"], numpy.array([0])),
+              (["Valentine"], numpy.array([1])),
+              (["Peter"], numpy.array([1]))]
 
-    for label, pattern in zip(labels, patterns):
-      model.trainModel(pattern, label)
+    patterns = [{"pattern": model.encodePattern(s[0]),
+                 "labels": s[1]}
+                for s in samples]
 
-    output = [model.testModel(p, 1) for p in patterns]
+    for i in xrange(len(samples)):
+      model.trainModel(patterns[i]["pattern"], patterns[i]["labels"])
 
-    self.assertEquals(labels[0], output[0], "Output labels do not match what "
-                                            "is expected.")
-    self.assertEquals(labels[1], output[1], "Output labels do not match what "
-                                            "is expected.")
+    output = [model.testModel(p["pattern"]) for p in patterns]
+
+    self.assertSequenceEqual(output[0].tolist(), [0, 1],
+                             "Incorrect output for first sample.")
+    self.assertSequenceEqual(output[1].tolist(), [1, 0],
+                             "Incorrect output for first sample.")
+    self.assertSequenceEqual(output[2].tolist(), [1, 0],
+                             "Incorrect output for first sample.")
 
 
-  def testClassifyRandomSDRHard(self):
-    """Tests simple classification with multiple labels for `randomSDR`."""
-    samples =[['cat'], ['fat']]
-    labels = numpy.array([0, 1])
+  def testClassifyRandomSDRMultiClass(self):
+    """Tests simple classification with multiple labels for randomSDR model."""
     model = ClassificationModelRandomSDR()
 
-    patterns = [model.encodePattern(samples[idx]) for idx in xrange(2)]
+    samples =[(["Ender"], numpy.array([0, 1])),
+              (["Valentine"], numpy.array([0])),
+              (["Peter"], numpy.array([1])),
+              (["Rackham"], numpy.array([0, 1]))]
 
-    for label, pattern in zip(labels, patterns):
-      model.trainModel(pattern, label)
+    patterns = [{"pattern": model.encodePattern(s[0]),
+                 "labels": s[1]}
+                for s in samples]
 
-    output = [model.testModel(p, 2) for p in patterns]
+    for i in xrange(len(samples)):
+      model.trainModel(patterns[i]["pattern"], patterns[i]["labels"])
 
-    self.assertTrue(numpy.allclose(output[0], numpy.array([0,1])),
-                    "Output labels do not match what is expected.")
-    self.assertTrue(numpy.allclose(output[1], numpy.array([1,0])),
-                    "Output labels do not match what is expected.")
+    output = [model.testModel(p["pattern"]) for p in patterns]
 
-
-  @unittest.skip("Ignore tests until its more clear how the Cortical.io "
-                 "classifier is performing inference")
-  def testClassifyEndpoint(self):
-    """Tests sample classification with single label for `endpoint`."""
-    samples =[['cat'], ['fat']]
-    labels = numpy.array([0, 1])
-    model = ClassificationModelEndpoint()
-
-    patterns = []
-    [patterns.append(model.encodePattern(samples[idx])) for idx in xrange(2)]
-
-    for idx, p in enumerate(patterns):
-      model.trainModel(p, labels[idx])
-
-    output = [model.testModel(p, 1) for p in patterns]
-
-    self.assertTrue(numpy.allclose(output[0], numpy.array([0])),
-                    "Output labels do not match what is expected.")
-    self.assertTrue(numpy.allclose(output[1], numpy.array([1])),
-                    "Output labels do not match what is expected.")
+    self.assertSequenceEqual(output[0].tolist(), [0, 1],
+                             "Incorrect output for first sample.")
+    self.assertSequenceEqual(output[1].tolist(), [0, 1],
+                             "Incorrect output for first sample.")
+    self.assertSequenceEqual(output[2].tolist(), [1, 0],
+                             "Incorrect output for first sample.")
+    self.assertSequenceEqual(output[3].tolist(), [0, 1],
+                             "Incorrect output for first sample.")
 
 
-  def testClassifyFingerprint(self):
-    """Tests sample classification with single label for `fingerprint`."""
-    samples =[['cat'], ['fat']]
-    labels = numpy.array([0, 1])
+  def testClassifyFPSingleClass(self):
+    """Tests simple classification with single label for fingerprint model."""
     model = ClassificationModelFingerprint()
 
-    patterns = []
-    [patterns.append(model.encodePattern(samples[idx])) for idx in xrange(2)]
+    samples =[(["Ender"], numpy.array([0])),
+              (["Valentine"], numpy.array([1])),
+              (["Peter"], numpy.array([1]))]
 
-    for label, pattern in zip(labels, patterns):
-      model.trainModel(pattern, label)
+    patterns = [{"pattern": model.encodePattern(s[0]),
+                 "labels": s[1]}
+                for s in samples]
 
-    output = [model.testModel(p, 1) for p in patterns]
+    for i in xrange(len(samples)):
+      model.trainModel(patterns[i]["pattern"], patterns[i]["labels"])
 
-    self.assertEquals(labels[0], output[0],
-                      "Output labels do not match what is expected.")
-    self.assertEquals(labels[1], output[1],
-                      "Output labels do not match what is expected.")
+    output = [model.testModel(p["pattern"]) for p in patterns]
+
+    self.assertSequenceEqual(output[0].tolist(), [0, 1],
+                             "Incorrect output for first sample.")
+    self.assertSequenceEqual(output[1].tolist(), [1, 0],
+                             "Incorrect output for first sample.")
+    self.assertSequenceEqual(output[2].tolist(), [1, 0],
+                             "Incorrect output for first sample.")
 
 
-  def testClassifyFingerprintHard(self):
-    """Tests simple classification with multiple labels for `fingerprint`."""
-    samples =[['cat'], ['fat']]
-    labels = numpy.array([0, 1])
-    model = ClassificationModelRandomSDR()
+  def testClassifyFPMultiClass(self):
+    """
+    Tests simple classification with multiple labels for fingerprint model.
+    """
+    model = ClassificationModelFingerprint()
 
-    patterns = []
-    [patterns.append(model.encodePattern(samples[idx])) for idx in xrange(2)]
+    samples =[(["Ender"], numpy.array([0, 1])),
+              (["Valentine"], numpy.array([0])),
+              (["Peter"], numpy.array([1])),
+              (["Rackham"], numpy.array([0, 1]))]
 
-    for label, pattern in zip(labels, patterns):
-      model.trainModel(pattern, label)
+    patterns = [{"pattern": model.encodePattern(s[0]),
+                 "labels": s[1]}
+                for s in samples]
 
-    output = [model.testModel(p, 2) for p in patterns]
+    for i in xrange(len(samples)):
+      model.trainModel(patterns[i]["pattern"], patterns[i]["labels"])
 
-    self.assertTrue(numpy.allclose(output[0], numpy.array([0,1])),
-                    "Output labels do not match what is expected.")
-    self.assertTrue(numpy.allclose(output[1], numpy.array([1,0])),
-                    "Output labels do not match what is expected.")
+    output = [model.testModel(p["pattern"]) for p in patterns]
+
+    self.assertSequenceEqual(output[0].tolist(), [0, 1],
+                             "Incorrect output for first sample.")
+    self.assertSequenceEqual(output[1].tolist(), [0, 1],
+                             "Incorrect output for first sample.")
+    self.assertSequenceEqual(output[2].tolist(), [1, 0],
+                             "Incorrect output for first sample.")
+    self.assertSequenceEqual(output[3].tolist(), [0, 1],
+                             "Incorrect output for first sample.")
+
+
+## TODO: ClassificationModelEndpoint tests
 
 
 if __name__ == "__main__":
