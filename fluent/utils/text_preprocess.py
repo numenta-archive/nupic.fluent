@@ -43,22 +43,16 @@ class TextPreprocess(object):
                contrCSV="contractions.csv"):
     """
     @param corpusTxt      (str)       A compilation of most frequent words. The
-                                      default file 'compilation.txt' is the
-                                      most frequent words from both British
-                                      National Corpus, Wiktionary, and books
-                                      from Project Guttenberg. This file is
-                                      required.
+        default file 'compilation.txt' is the most frequent words from both
+        British National Corpus, Wiktionary, and books from Project Guttenberg.
+
     @param abbrCSV        (str)       A compilation of domain specific
-                                      abbreviations. The file is a csv with the
-                                      header "Abbr,Expansion". The default file
-                                      'abbreviations.csv' contains basic
-                                      abbreviations. This file is not required.
-    @param contrCSV       (str)       A compilation of common contractions.
-                                      The file is a csv with the header
-                                      "Contr,Expansion". The default file
-                                      'contractions.csv' contains a short list
-                                      of common contractions.  This file is not
-                                      required.
+        abbreviations. The file is a csv with the header "Abbr,Expansion". The
+        default file 'abbreviations.csv' contains basic abbreviations.
+
+    @param contrCSV       (str)       A compilation of common contractions. The
+        file is a csv with the header "Contr,Expansion". The default file
+        'contractions.csv' contains a short list of common contractions.
     """
     self.abbrCSV = abbrCSV
     self.contrCSV = contrCSV
@@ -71,14 +65,12 @@ class TextPreprocess(object):
 
 
   def _setupCorpus(self, corpusSource):
-    """
-    Create member vars for English language corpus and bag of words.
-    """
+    """Create member vars for English language corpus and bag of words."""
     corpusPath = os.path.abspath(os.path.join(
         os.path.dirname(__file__), '../..', 'data/etc', corpusSource))
     try:
       self.corpus = file(corpusPath).read()
-    except IOError("Could not open corpus text."):
+    except IOError:
       raise
 
     self.bagOfWords = Counter(self.tokenize(self.corpus))
@@ -138,8 +130,7 @@ class TextPreprocess(object):
           expSuffix = "{}{}".format(expansion, suffix)
           expansionPairs[originalSuffix] = expSuffix
 
-    except IOError as e:
-      print e
+    except IOError:
       raise
 
     # Add an empty string if empty so the regex compiles
