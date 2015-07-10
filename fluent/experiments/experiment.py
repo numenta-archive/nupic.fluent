@@ -22,12 +22,15 @@
 Experiment runner for classification survey question responses.
 """
 
+## TODO: after merging PlotNLP code, set the defualt plotting to 1.
+
 import argparse
 import os
 import pprint
 import time
 
 from fluent.experiments.runner import Runner
+from fluent.utils.plotting import PlotNLP
 
 
 def checkInputs(args):
@@ -47,18 +50,19 @@ def checkInputs(args):
 
 def run(args):
   start = time.time()
-  
+
   root = os.path.dirname(os.path.realpath(__file__))
-  dataFile = os.path.join(root, "../..", args.dataFile)
   resultsDir = os.path.join(root, args.resultsDir)
 
-  runner = Runner(dataFile=dataFile,
+  runner = Runner(dataPath=args.dataPath,
                   resultsDir=resultsDir,
                   experimentName=args.experimentName,
                   load=args.load,
                   modelName=args.modelName,
                   modelModuleName=args.modelModuleName,
-                  multiclass=args.multiclass,
+                  numClasses=args.numClasses,
+                  plots=args.plots,
+                  randomSplit=args.randomSplit,
                   trainSize=args.trainSize,
                   verbosity=args.verbosity)
 
@@ -76,7 +80,7 @@ def run(args):
          "experiment.".format(time.time() - encodeTime))
 
   runner.runExperiment()
-  
+
   runner.calculateResults()
 
   runner.save()
@@ -88,7 +92,8 @@ if __name__ == "__main__":
 
   parser = argparse.ArgumentParser()
 
-  parser.add_argument("dataFile")
+  parser.add_argument("dataPath",
+                      help="absolute path to data CSV.")
   parser.add_argument("-e", "--experimentName",
                       default="survey_baseline_example",
                       type=str,
@@ -97,7 +102,7 @@ if __name__ == "__main__":
                       default="ClassificationModelRandomSDR",
                       type=str,
                       help="Name of model class. Also used for model results "
-                      "directory and pickle checkpoint.")
+                           "directory and pickle checkpoint.")
   parser.add_argument("-mm", "--modelModuleName",
                       default="fluent.models.classify_random_sdr",
                       type=str,
@@ -108,11 +113,23 @@ if __name__ == "__main__":
   parser.add_argument("--load",
                       help="Load the serialized model.",
                       default=False)
-  parser.add_argument("--multiclass",
-                      help="Model will train on multiple classes per sample.",  ## TODO: add multiclass testing
-                      default=False)
+  parser.add_argument("--numClasses",
+                      help="Specifies the number of classes per sample.",
+                      type=int,
+                      default=3)
+  parser.add_argument("--plots",
+                      default=0,
+                      type=int,
+                      help="0 for no evaluation plots, 1 for classification "
+                           "accuracy plots, 2 includes the confusion matrix.")
+  parser.add_argument("--randomSplit",
+                      default=True,
+                      help="To split the train and test sets, True will split "
+                            "the samples randomly, False will allocate the "
+                            "first n samples to training with the remainder "
+                            "for testing.")
   parser.add_argument("--trainSize",
-                      default=[13],
+                      default=[7, 7, 7, 13, 13, 13],
                       nargs="+",
                       type=int,
                       help="Number of samples to use in training. Separate "
@@ -121,15 +138,15 @@ if __name__ == "__main__":
                       default=1,
                       type=int,
                       help="verbosity 0 will print out experiment steps, "
-                      "verbosity 1 will include results, and verbosity > 1 "
-                      "will print out preprocessed tokens and kNN inference "
-                      "metrics.")
+                           "verbosity 1 will include results, and verbosity > "
+                            "1 will print out preprocessed tokens and kNN "
+                            "inference metrics.")
   parser.add_argument("--skipConfirmation",
                       help="If specified will skip the user confirmation step",
                       default=False,
                       action="store_true")
 
   args = parser.parse_args()
-  
+
   if args.skipConfirmation or checkInputs(args):
     run(args)
