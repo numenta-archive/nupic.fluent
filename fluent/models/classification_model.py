@@ -149,7 +149,7 @@ class ClassificationModel(object):
         if a in predicted:
           correct[idx] += 1
 
-    return [(l, correct[i] / float(total[i])) for i,l in enumerate(labels)]
+    return zip(labels, correct / total)
 
   def evaluateResults(self, classifications, references, idx):
     """
