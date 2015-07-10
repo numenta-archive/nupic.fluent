@@ -42,15 +42,14 @@ class ClassificationModelRandomSDR(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, n=100, w=20, verbosity=1):
-    super(ClassificationModelRandomSDR, self).__init__(n, w, verbosity)
+  def __init__(self, n=100, w=20, verbosity=1, numClasses=3):
+    super(ClassificationModelRandomSDR, self).__init__(n, w, verbosity,
+                                                       numClasses)
 
-    # Init kNN classifier:
-    #   specify 'distanceMethod'='rawOverlap' for overlap; Euclidean is std.
-    #   verbosity=1 for debugging
-    #   standard k is 1
-    self.classifier = KNNClassifier(exact=True, verbosity=verbosity-1,
-      distanceMethod="rawOverlap")
+    self.classifier = KNNClassifier(exact=True,
+                                    distanceMethod='rawOverlap',
+                                    k=numClasses,
+                                    verbosity=verbosity-1)
 
 
   def encodePattern(self, sample):
@@ -85,8 +84,9 @@ class ClassificationModelRandomSDR(ClassificationModel):
     # Cast numpy arrays to list objects for serialization.
     jsonPatterns = copy.deepcopy(patterns)
     for jp in jsonPatterns:
-      for tokenPattern in jp:
+      for tokenPattern in jp["pattern"]:
         tokenPattern["bitmap"] = tokenPattern.get("bitmap", None).tolist()
+      jp["labels"] = jp.get("labels", None).tolist()
 
     with open(os.path.join(path, "encoding_log.txt"), "w") as f:
       f.write(json.dumps(jsonPatterns, indent=1))
@@ -97,45 +97,47 @@ class ClassificationModelRandomSDR(ClassificationModel):
     self.classifier.clear()
 
 
-  def trainModel(self, sample, label):
+  def trainModel(self, sample, labels):
     """
-    Train the classifier on the input sample and label.
+    Train the classifier on the input sample and label. This model is unique in
+    that a single sample contains multiple encoded patterns.
 
-    @param sample     (list)            List of bitmaps, each representing the
-                                        encoding of one token in the sample.
-    @param label      (int)             Reference index for the classification
-                                        of this sample.
+    @param sample      (list)         List of dicts, each representing the
+                                      encoding of one token in the sample.
+    @param labels      (numpy array)  Reference indices for the classifications
+                                      of this sample.
     """
     # This experiment classifies individual tokens w/in each sample. Train the
-    # kNN classifier on each token.
+    # classifier on each token.
     for s in sample:
-      if s == []: continue
-      self.classifier.learn(s["bitmap"], label, isSparse=self.n)
+      if not s: continue
+      for label in labels:
+        self.classifier.learn(s["bitmap"], label, isSparse=self.n)
 
 
-  def testModel(self, sample):
+  def testModel(self, sample, numLabels=3):
     """
-    Test the kNN classifier on the input sample. Returns the classification most
-    frequent amongst the classifications of the sample's individual tokens.
+    Test the classifier on the input sample. Returns the classifications
+    most frequent amongst the classifications of the sample's individual tokens.
     We ignore the terms that are unclassified, picking the most frequent
-    classification among those that are detected.
-    @param sample           (list)        List of bitmaps, each representing the
-                                          encoding of one token in the sample.
-    @return classification  (list)        The n most-frequent classifications
-                                          for the data samples; for more, see
-                                          the KNNClassifier.infer()
-                                          documentation. Values are int or None.
-    Note: to return multiple winner classifications, modify the return statement
-    accordingly.
+    classifications among those that are detected.
+    @param sample           (list)          List of dict encodings, one for each
+                                            token in the sample.
+    @param numLabels        (int)           Number of predicted classifications.
+    @return                 (numpy array)   The numLabels most-frequent
+                                            classifications for the data
+                                            samples; values are int or empty.
     """
-    tokenLabels = []
-    for s in sample:
-      if s == []: continue
-      (tokenLabel, _, _, _) = self.classifier.infer(
+    totalInferenceResult = None
+    for idx, s in enumerate(sample):
+      if not s: continue
+
+      (w, inferenceResult, _, _) = self.classifier.infer(
         self._densifyPattern(s["bitmap"]))
-      if tokenLabel != None:
-        # Only include classified tokens.
-        tokenLabels.append(tokenLabel)  ## TODO: consider using numpy array (preallocated to len(samples)) for more efficiency
-    if tokenLabels == []:
-      return [None]
-    return self.winningLabels(tokenLabels, n=1)
+
+      if totalInferenceResult is None:
+        totalInferenceResult = inferenceResult
+      else:
+        totalInferenceResult += inferenceResult
+
+    return self.getWinningLabels(totalInferenceResult, numLabels)

@@ -19,46 +19,40 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 """
-This file contains utility functions to use with nupic.fluent experiments.
+This file contains CSV utility functions to use with nupic.fluent experiments.
 """
 
 import csv
 
+from collections import OrderedDict
 
-def readCSV(csvFile, sampleIdx, labelIdx):
+
+def readCSV(csvFile, sampleIdx, numLabels):
   """
   Read in a CSV file w/ the following formatting:
-  - one header row
-  - one page
+    - one header row
+    - one page
+    - one column of samples, followed by column(s) of labels
 
-  Note: if a given sample has >1 labels, the sample will be repeated, once for
-  each label.
-
-  @param csvFile            (str)             File name for the input CSV.
-  @param sampleIdx          (int)             Column number of the text samples.
-  @param labelIdx           (list)            List of integers specifying the
-                                              columns of the labels.
-  @return sampleList        (list)            List of str items, one for each
-                                              sample.
-  @return labelList         (list)            List of str items, where each item
-                                              is the classification label
-                                              corresponding to the sample at the
-                                              same index in sampleList.
+  @param csvFile         (str)          File name for the input CSV.
+  @param sampleIdx       (int)          Column number of the text samples.
+  @param numLabels       (int)          Number of columns of category labels.
+  @return                (OrderedDict)  Keys are samples, values are lists of
+                                        corresponding category labels (strings).
   """
   try:
     with open(csvFile) as f:
       reader = csv.reader(f)
       next(reader, None)
-      sampleList = []
-      labelList = []
+      
+      dataDict = OrderedDict()
+      labelIdx = range(sampleIdx + 1, sampleIdx + 1 + numLabels)
+
       for line in reader:
-        # May be multiple labels for this sample.
-        labels = []
-        [labels.append(line[i]) for i in labelIdx if line[i]]
-        for label in labels:
-          sampleList.append(line[sampleIdx])
-          labelList.append(label)
-      return sampleList, labelList
+        dataDict[line[sampleIdx]] = [line[i] for i in labelIdx if line[i]]
+    
+      return dataDict
+
   except IOError as e:
     print e
 

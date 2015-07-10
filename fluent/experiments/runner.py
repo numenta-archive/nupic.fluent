@@ -19,12 +19,15 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import collections
 import cPickle as pkl
+import itertools
 import numpy
 import os
 import random
 
 from fluent.utils.csv_helper import readCSV
+# from fluent.utils.plotting import PlotNLP
 from fluent.utils.text_preprocess import TextPreprocess
 
 
@@ -36,34 +39,42 @@ class Runner(object):
   """
 
   def __init__(self,
-               dataFile,
+               dataPath,
                resultsDir,
                experimentName,
                load,
                modelName,
                modelModuleName,
-               multiclass,
+               numClasses,
+               plots,
+               randomSplit,
                trainSize,
                verbosity):
     """
-    @param dataFile         (str)     Raw data file for the experiment.
+    @param dataPath         (str)     Path to raw data file for the experiment.
     @param resultsDir       (str)     Directory where for the results metrics.
     @param experimentName   (str)     Experiment name, used for saving results.
     @param load             (bool)    True if a serialized model is to be
                                       loaded.
     @param modelName        (str)     Name of nupic.fluent Model subclass.
     @param modeModuleName   (str)     Model module -- location of the subclass.
+    @param numClasses       (int)     Number of classes (labels) per sample.
+    @param plots            (int)     Specifies plotting of evaluation metrics.
+    @param randomSplit      (bool)    Indicates method for splitting train/test
+                                      samples; True is random, False is ordered.
     @param trainSize        (str)     Number of samples to use in training.
     @param verbosity        (int)     Greater value prints out more progress.
 
     """
-    self.dataFile = dataFile
+    self.dataPath = dataPath
     self.resultsDir = resultsDir
     self.experimentName = experimentName
     self.load = load
     self.modelName = modelName
     self.modelModuleName = modelModuleName
-    self.multiclass = multiclass
+    self.numClasses = numClasses
+    # self.plots = plots
+    self.randomlySplitSamples = randomSplit
     self.trainSize = trainSize
     self.verbosity = verbosity
 
@@ -72,49 +83,68 @@ class Runner(object):
     if not os.path.exists(self.modelPath):
       os.makedirs(self.modelPath)
 
+    # if self.plots:
+    #   self.plotter = PlotNLP
 
-  def setupData(self, preprocess=False, sampleIdx=2, labelIdx=[3]):
+    self.dataDice = None
+    self.labels = None
+    self.labelRefs = None
+    self.partitions = []
+    self.samples = None
+    self.results = []
+
+
+  def _mapLabelRefs(self):
+    """Replace the label strings in self.dataDict with corresponding ints."""
+    self.labelRefs = list(set(
+        itertools.chain.from_iterable(self.dataDict.values())))
+
+    for k, v in self.dataDict.iteritems():
+      self.dataDict[k] = numpy.array(
+          [self.labelRefs.index(label) for label in v], dtype="int8")
+
+
+  def _preprocess(self, preprocess):
+    """Tokenize the samples, with or without preprocessing."""
+    texter = TextPreprocess()
+    if preprocess:
+      self.samples = [(texter.tokenize(sample,
+                                       ignoreCommon=100,
+                                       removeStrings=["[identifier deleted]"],
+                                       correctSpell=True),
+                      labels) for sample, labels in self.dataDict.iteritems()]
+    else:
+      self.samples = [(texter.tokenize(sample), labels)
+                      for sample, labels in self.dataDict.iteritems()]
+
+
+  def setupData(self, preprocess=False, sampleIdx=2):
     """
     Get the data from CSV and preprocess if specified.
     One index in labelIdx implies the model will train on a single
     classification per sample.
     """
-    if self.model.multiclass and len(labelIdx) < 2:
-      raise ValueError("Multiclass model requires more than one CSV column of "
-                       "classifications.")
+    self.dataDict = readCSV(self.dataPath, sampleIdx, self.numClasses)
 
-    samples, labels = readCSV(self.dataFile, sampleIdx, labelIdx)
-    texter = TextPreprocess()
-    
-    if (not isinstance(self.trainSize, list) or
-      self.trainSize[0] < 0 or
-      self.trainSize[0] > len(samples)):
+    if not (isinstance(self.trainSize, list) or
+        all([0 <= size <= len(self.dataDict) for size in self.trainSize])):
       raise ValueError("Invalid size(s) for training set.")
-    
-    self.labelRefs = list(set(labels))
-    self.labels = numpy.array(
-      [self.labelRefs.index(l) for l in labels], dtype="int8")
-    if preprocess:
-      self.samples = [texter.tokenize(sample,
-                                      ignoreCommon=100,
-                                      removeStrings=["[identifier deleted]"],
-                                      correctSpell=True)
-                      for sample in samples]
-    else:
-      self.samples = [texter.tokenize(sample) for sample in samples]
+
+    self._mapLabelRefs()
+
+    self._preprocess(preprocess)
 
     if self.verbosity > 1:
-      for i, s in enumerate(self.samples):
-        print i, s, self.labelRefs[self.labels[i]]
+      for i, s in enumerate(self.samples): print i, s
 
 
+  ## TODO: does model need to know if multiclass??
   def initModel(self):
     """Load or instantiate the classification model."""
     if self.load:
-      with open(
-        os.path.join(modelPath, "model.pkl"), "rb") as f:
+      with open(os.path.join(self.modelPath, "model.pkl"), "rb") as f:
         self.model = pkl.load(f)
-      print "Model loaded from \'{0}\'.".format(modelPath)
+      print "Model loaded from \'{0}\'.".format(self.modelPath)
     else:
       try:
         module = __import__(self.modelModuleName, {}, {}, self.modelName)
@@ -126,52 +156,59 @@ class Runner(object):
 
 
   def encodeSamples(self):
-    """Encode the text samples into bitmap patterns, and log to txt file."""
-    self.patterns = [self.model.encodePattern(s) for s in self.samples]
+    """
+    Encode the text samples into bitmap patterns, and log to txt file. The
+    encoded patterns are stored in a dict along with their corresponding class
+    labels.
+    """
+    self.patterns = [{"pattern": self.model.encodePattern(s[0]),
+                     "labels": s[1]}
+                     for s in self.samples]
     self.model.logEncodings(self.patterns, self.modelPath)
-
 
   def runExperiment(self):
     """Train and test the model for each trial specified by self.trainSize."""
-    self.testIndices = []
-    self.results = []
     for i, size in enumerate(self.trainSize):
-      partitions = self.partitionIndices(len(self.samples), size)
+      self.partitions.append(self.partitionIndices(size))
+
       if self.verbosity > 0:
         print ("\tRunner randomly selects to train on sample(s) {0}, and test "
-               "on sample(s) {1}.".format(partitions[0], partitions[1]))
+               "on sample(s) {1}.".
+               format(self.partitions[i][0], self.partitions[i][1]))
 
       self.model.resetModel()
       print "\tTraining for run {0} of {1}.".format(i+1, len(self.trainSize))
-      self.training(partitions[0])
+      self.training(i)
       print "\tTesting for this run."
-      self.testing(partitions[1])
-
-      # Save the test indices for printing the results evaluation.
-      self.testIndices.append(partitions[1])
+      self.testing(i)
 
 
-  def training(self, idx):
-    for i in idx:
-      self.model.trainModel(self.patterns[i], self.labels[i])
+  def training(self, trial):
+    """
+    Train the model one-by-one on each pattern specified in this trials
+    partition of indices.
+    """
+    for i in self.partitions[trial][0]:
+      self.model.trainModel(self.patterns[i]["pattern"],
+                            self.patterns[i]["labels"])
 
 
-  def testing(self, idx):
+  def testing(self, trial):
     results = ([], [])
-    for i in idx:
-      predicted = self.model.testModel(self.patterns[i])
+    for i in self.partitions[trial][1]:
+      predicted = self.model.testModel(self.patterns[i]["pattern"])
       results[0].append(predicted)
-      results[1].append(self.labels[i])
+      results[1].append(self.patterns[i]["labels"])
 
     self.results.append(results)
-    
+
 
   def calculateResults(self):
     """Calculate evaluation metrics from the result classifications."""
-
-    resultCalcs = [self.model.evaluateResults(
-      self.results[i], self.labelRefs, self.testIndices[i])
-      for i in xrange(len(self.trainSize))]
+    resultCalcs = [self.model.evaluateResults(self.results[i],
+                                              self.labelRefs,
+                                              self.partitions[i][1])
+                   for i in xrange(len(self.trainSize))]
 
     self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
     ## TODO: plot accuracies; see Model base class
@@ -184,9 +221,16 @@ class Runner(object):
       pkl.dump(self.model, f)
 
 
-  @staticmethod
-  def partitionIndices(length, split):  ## TODO: use StandardSplit in data_split.py
-    """Return two lists of indices; randomly sampled, not repeated."""
-    trainIdx = random.sample(xrange(length), split)
-    testIdx = [i for i in xrange(length) if i not in trainIdx]
+  ## TODO: use StandardSplit in data_split.py
+  def partitionIndices(self, split):
+    """Returns train and test indices."""
+    length = len(self.samples)
+    if self.randomlySplitSamples:
+      # Randomly sampled, not repeated
+      trainIdx = random.sample(xrange(length), split)
+      testIdx = [i for i in xrange(length) if i not in trainIdx]
+    else:
+      trainIdx = range(split)
+      testIdx = range(split, length)
+
     return (trainIdx, testIdx)
