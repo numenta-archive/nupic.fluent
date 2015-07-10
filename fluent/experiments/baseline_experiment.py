@@ -58,14 +58,12 @@ from fluent.utils.text_preprocess import TextPreprocess
 
 def runExperiment(model, patterns, idxSplits):
   """
-  @param model          (Model)               Classification model instance.
-  @param patterns       (list)                Each item is a dict with the
-                                              sample encoding a numpy array
-                                              bitmap in field "bitmap".
-  @param idxSplits      (tuple)               Tuple of train/eval split data
-                                              indices. idxSplits[0] is `train`.
-                                              idxSplits[1] is `eval`.
-  @return                                     Return same as testing().
+  @param model          (Model)       Classification model instance.
+  @param patterns       (list)        Each item is a dict with the sample
+                                      encoding a numpy array bitmap in field
+                                      "bitmap".
+  @param idxSplits      (tuple)       Tuple of train/eval split data indices.
+  @return                             Return same as testing().
   """
   model.resetModel()
   training(model, [patterns[i] for i in idxSplits[0]])
@@ -84,10 +82,9 @@ def testing(model, evalSet):
   """
   Tests model on the bitmap patterns and corresponding labels lists.
 
-  @return trialResults    (list)            List of two lists, where the first
-                                            list is the model's predicted
-                                            classifications, and the second list
-                                            is the actual classifications.
+  @return trialResults    (list)      List of two lists, where the first list
+      is the model's predicted classifications, and the second list is the
+      actual classifications.
   """
   trialResults = ([], [])
   for x in evalSet:
@@ -127,15 +124,12 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
 def setupData(args, dataPath):
   """ Performs data preprocessing and setup given the user-specified args.
 
-  @param args       (Namespace)             User-provided arguments via the
-                                            command line
-  @param dataPath   (str)                   Path where data is located
-  @return           (tuple)                 Tuple where first entry is a list
-                                            of the samples, the second is the
-                                            list of gold labels per example,
-                                            the third is the list of all
-                                            possible labels, and the fourth is
-                                            the labels per example in the data.
+  @param args       (Namespace)     User-provided arguments via the cmd line.
+  @param dataPath   (str)           Path where data is located.
+  @return           (tuple)         Tuple where first entry is a list of the
+      samples, the second is the list of gold labels per example, the third is
+      the list of all possible labels, and the fourth is the labels per example
+      in the data.
   """
   dataDict = readCSV(dataPath, 2, args.numClasses)
 

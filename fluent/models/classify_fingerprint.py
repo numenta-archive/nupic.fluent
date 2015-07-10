@@ -106,13 +106,11 @@ class ClassificationModelFingerprint(ClassificationModel):
     We ignore the terms that are unclassified, picking the most frequent
     classification among those that are detected.
 
-    @param sample     (numpy array)     Bitmap encoding of the sample.
-    @return           (list)            The n most-frequent classifications
-                                        for the data samples; for more, see the
-                                        KNNClassifier.infer() documentation.
-                                        Values are int or None.
-    Note: to return multiple winner classifications, modify the return statement
-    accordingly.
+    @param sample         (dict)          The sample text, sparsity, and bitmap.
+    @param numLabels      (int)           Number of predicted classifications.
+    @return               (numpy array)   The numLabels most-frequent
+                                          classifications for the data samples;
+                                          values are int or empty.
     """
     (_, inferenceResult, _, _) = self.classifier.infer(
       self._densifyPattern(sample["bitmap"]))

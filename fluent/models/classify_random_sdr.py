@@ -121,13 +121,12 @@ class ClassificationModelRandomSDR(ClassificationModel):
     most frequent amongst the classifications of the sample's individual tokens.
     We ignore the terms that are unclassified, picking the most frequent
     classifications among those that are detected.
-    @param sample           (list)        List of encodings, one for each
-                                          token in the sample.
-    @param numLabels        (int)         Number of predicted classifications.
-    @return                 (list)        The n most-frequent classifications
-                                          for the data samples; for more, see
-                                          the KNNClassifier.infer()
-                                          documentation. Values are int or None.
+    @param sample           (list)          List of dict encodings, one for each
+                                            token in the sample.
+    @param numLabels        (int)           Number of predicted classifications.
+    @return                 (numpy array)   The numLabels most-frequent
+                                            classifications for the data
+                                            samples; values are int or empty.
     """
     totalInferenceResult = None
     for idx, s in enumerate(sample):

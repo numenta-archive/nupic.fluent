@@ -128,17 +128,17 @@ class ClassificationModel(object):
     """
     Calculate statistics for the predicted classifications against the actual.
 
-    @param classifications  (tuple)           Two lists: (0) predictions and
-                                              (1) actual classifications. Items
-                                              in the predictions list are numpy
-                                              arrays of ints or [None], and
-                                              items in actual classifications
-                                              list are numpy arrays of ints.
+    @param classifications  (tuple)     Two lists: (0) predictions and
+        (1) actual classifications. Items in the predictions list are numpy
+        arrays of ints or [None], and items in actual classifications list
+        are numpy arrays of ints.
+
     @param references       (list)            Classification label strings.
+
     @param idx              (list)            Indices of test samples.
+
     @return                 (tuple)           Returns a 2-item tuple w/ the
-                                              accuracy (float) and confusion
-                                              matrix (numpy array).
+        accuracy (float) and confusion matrix (numpy array).
     """
     if self.verbosity > 0:
       self.printTrialReport(classifications, references, idx)
@@ -185,12 +185,11 @@ class ClassificationModel(object):
   @staticmethod
   def calculateAccuracy(classifications):
     """
-    @param classifications    (tuple)       First element is list of predicted
-                                            labels, second is list of actuals;
-                                            items are numpy arrays.
-    @return                   (float)       Correct labels out of total labels,
-                                            where a label is correct if it is
-                                            amongst the actuals.
+    @param classifications    (tuple)     First element is list of predicted
+        labels, second is list of actuals; items are numpy arrays.
+
+    @return                   (float)     Correct labels out of total labels,
+        where a label is correct if it is amongst the actuals.
     """
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
