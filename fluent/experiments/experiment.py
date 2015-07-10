@@ -20,9 +20,10 @@
 # ----------------------------------------------------------------------
 """
 Experiment runner for classification survey question responses.
+
+TODO: after merging PlotNLP code, set the defualt plotting to 1.
 """
 
-## TODO: after merging PlotNLP code, set the defualt plotting to 1.
 
 import argparse
 import os

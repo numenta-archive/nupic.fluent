@@ -41,7 +41,6 @@ Please note the following definitions:
 - classification and label are used interchangeably
 """
 
-## TODO: update docstrings
 
 import argparse
 import collections
@@ -58,6 +57,9 @@ from fluent.utils.text_preprocess import TextPreprocess
 
 def runExperiment(model, patterns, idxSplits):
   """
+  Trains the model on patterns specified by the first entry of idxSplits, then
+  tests on the patterns of the second entry on idxSplits.
+
   @param model          (Model)       Classification model instance.
   @param patterns       (list)        Each item is a dict with the sample
                                       encoding a numpy array bitmap in field
@@ -73,26 +75,28 @@ def runExperiment(model, patterns, idxSplits):
 # training() and testing() methods send one data sample at a time to the model,
 # i.e. streaming input.
 def training(model, trainSet):
-  """Trains model on the bitmap patterns and corresponding labels lists."""
-  for x in trainSet:
-    model.trainModel(x["pattern"], x["labels"])
+  """
+  Trains model on the bitmap patterns and corresponding labels lists one at a
+  time (i.e. streaming).
+  """
+  for sample in trainSet:
+    model.trainModel(sample["pattern"], sample["labels"])
 
 
 def testing(model, evalSet):
   """
-  Tests model on the bitmap patterns and corresponding labels lists.
+  Tests model on the bitmap patterns and corresponding labels lists, one at a
+  time (i.e. streaming).
 
   @return trialResults    (list)      List of two lists, where the first list
       is the model's predicted classifications, and the second list is the
       actual classifications.
   """
   trialResults = ([], [])
-  for x in evalSet:
-    # Take sample, # of labels as params and return predicted distribution over
-    # labels
-    predicted = model.testModel(x["pattern"])
+  for sample in evalSet:
+    predicted = model.testModel(sample["pattern"])
     trialResults[0].append(predicted)
-    trialResults[1].append(x["labels"])
+    trialResults[1].append(sample["labels"])
   return trialResults
 
 
@@ -100,9 +104,11 @@ def calculateResults(model, results, refs, indices, fileName):
   """
   Evaluate the results, returning accuracy and confusion matrix, and writing
   the confusion matrix to a CSV.
+
+  TODO: csv writing broken until ClassificationModel confusion matrix is fixed
   """
   result = model.evaluateResults(results, refs, indices)
-  result[1].to_csv(fileName)
+  # result[1].to_csv(fileName)
   return result
 
 
@@ -133,12 +139,15 @@ def setupData(args, dataPath):
   """
   dataDict = readCSV(dataPath, 2, args.numClasses)
 
+  # Collect each possible label string into a list, where the indices will be
+  # their references throughout the experiment.
   labelReference = list(set(
       itertools.chain.from_iterable(dataDict.values())))
 
-  for k, v in dataDict.iteritems():
-    dataDict[k] = numpy.array([labelReference.index(label) for label in v],
-                              dtype="int8")
+  for sample, labels in dataDict.iteritems():
+    dataDict[sample] = numpy.array([labelReference.index(label)
+                                    for label in labels],
+                                    dtype="int8")
 
   texter = TextPreprocess()
   if args.textPreprocess:
@@ -191,7 +200,7 @@ def run(args):
       module = __import__(args.modelModuleName, {}, {}, args.modelName)
       modelClass = getattr(module, args.modelName)
       model = modelClass(verbosity=args.verbosity,
-                         multiclass=args.numClasses)
+                         numClasses=args.numClasses)
     except ImportError:
       raise RuntimeError("Could not find model class \'%s\' to import."
                          % args.modelName)
@@ -256,12 +265,14 @@ def run(args):
 
     print "Calculating cumulative results for {0} trials.".format(args.kFolds)
     results = model.evaluateCumulativeResults(intermResults)
-    results["total_cm"].to_csv(os.path.join(modelPath, "evaluation_totals.csv"))
+
+    # TODO: csv writing broken until ClassificationModel confusion matrix is fixed
+    # results["total_cm"].to_csv(os.path.join(modelPath, "evaluation_totals.csv"))
     if args.expectationDataPath:
       computeExpectedAccuracy(list(itertools.chain.from_iterable(predictions)),
         os.path.abspath(os.path.join(root, '../..', args.expectationDataPath)))
 
-  ## Commented out b/c broken; fix if using this runner again.
+  ## TODO:
   # print "Calculating random classifier results for comparison."
   # print model.classifyRandomly(labels)
 

@@ -143,9 +143,11 @@ class Runner(object):
       for i, s in enumerate(self.samples): print i, s
 
 
-  ## TODO: does model need to know if multiclass??
   def initModel(self):
-    """Load or instantiate the classification model."""
+    """
+    Load or instantiate the classification model.
+    TODO: does model need to know if multiclass??
+    """
     if self.load:
       with open(os.path.join(self.modelPath, "model.pkl"), "rb") as f:
         self.model = pkl.load(f)
