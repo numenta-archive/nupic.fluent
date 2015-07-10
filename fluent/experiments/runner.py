@@ -26,8 +26,10 @@ import numpy
 import os
 import random
 
+from collections import defaultdict
 from fluent.utils.csv_helper import readCSV
-# from fluent.utils.plotting import PlotNLP
+#from fluent.utils.plotting import PlotNLP
+
 from fluent.utils.text_preprocess import TextPreprocess
 
 
@@ -49,7 +51,8 @@ class Runner(object):
                plots,
                randomSplit,
                trainSize,
-               verbosity):
+               verbosity,
+               plot=False):
     """
     @param dataPath         (str)     Path to raw data file for the experiment.
     @param resultsDir       (str)     Directory where for the results metrics.
@@ -64,6 +67,7 @@ class Runner(object):
                                       samples; True is random, False is ordered.
     @param trainSize        (str)     Number of samples to use in training.
     @param verbosity        (int)     Greater value prints out more progress.
+    @param plot             (bool)    Toggles whether or not to plot accuracies
 
     """
     self.dataPath = dataPath
@@ -77,6 +81,7 @@ class Runner(object):
     self.randomlySplitSamples = randomSplit
     self.trainSize = trainSize
     self.verbosity = verbosity
+    self.plot = plot
 
     self.modelPath = os.path.join(
       self.resultsDir, self.experimentName, self.modelName)
@@ -211,7 +216,32 @@ class Runner(object):
                    for i in xrange(len(self.trainSize))]
 
     self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
-    ## TODO: plot accuracies; see Model base class
+
+    if self.plot:
+      # In case there are multiple trials of the same size
+      # trialSize -> (category -> list of accuracies)
+      trialAccuracies = defaultdict(lambda: defaultdict(lambda:
+        numpy.ndarray(0)))
+      for i, size in enumerate(self.trainSize):
+        accuracies = self.model.calculateClassificationResults(self.results[i])
+        for label, acc in accuracies:
+          category = self.labelRefs[label]
+          acc_list = trialAccuracies[size][category]
+          trialAccuracies[size][category] = numpy.append(acc_list, acc)
+
+      # Need the accuracies to be ordered for the graph
+      trials = sorted(set(self.trainSize))
+      # category -> list of list of accuracies
+      classificationAccuracies = defaultdict(list)
+      for trial in trials:
+        accuracies = trialAccuracies[trial]
+        for label, acc in accuracies.iteritems():
+          classificationAccuracies[label].append(acc)
+
+      plotter = PlotNLP()
+      plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
+      plotter.plotCumulativeAccuracies(classificationAccuracies,
+        self.trainSize)
 
 
   def save(self):

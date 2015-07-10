@@ -22,11 +22,25 @@
 This file contains plotting tools for NLP experiment results.
 """
 
+import math
+import numpy
 import os
 import pandas as pd
 import plotly.plotly as py
+import plotly.tools as tls
 
-from plotly.graph_objs import *
+from plotly.graph_objs import (
+  Data,
+  ErrorY,
+  Figure,
+  Font,
+  Heatmap,
+  Layout,
+  Margin,
+  Scatter,
+  XAxis,
+  YAxis
+)
 
 
 
@@ -117,16 +131,118 @@ class PlotNLP():
     print "Confusion matrix URL: ", plot_url
 
 
-  def plotCategoryAccuracies():
+  def plotCategoryAccuracies(self, trialAccuracies, trainSize):
     """
+    Shows the accuracy for the categories at a certain training size
+    @param trialAccuracies    (dict)    A dictionary of dictionaries. For each
+                                        train size, there is a dictionary that
+                                        maps a category to a list of accuracies
+                                        for that category
+    @param trainSize          (list)    size of training set for each trial
     """
-    ## TODO
+    sizes = sorted(set(trainSize))
+    size_sqrt = math.sqrt(len(sizes))
+    subplotDimension = int(math.ceil(size_sqrt))
+
+    rows = subplotDimension
+    cols = subplotDimension
+    if len(sizes) <= subplotDimension * (subplotDimension - 1):
+      rows -= 1
+
+    fig = tls.make_subplots(rows=rows, cols=cols,
+      shared_xaxes=True, shared_yaxes=True, print_grid=False)
+    num_categories = 0
+    for i, s in enumerate(sizes):
+      # 1-indexed
+      col = i % cols + 1
+      row = (i - col + 1) / cols + 1
+      classificationAccuracies = trialAccuracies[s]
+      num_categories = max(num_categories,len(classificationAccuracies.keys()))
+      
+      x = []
+      y = []
+      std = []
+      for label, acc in classificationAccuracies.iteritems():
+        x.append(label)
+        y.append(numpy.mean(acc))
+        std.append(numpy.std(acc))
+
+      trace = Scatter(
+        x=x,
+        y=y,
+        name=s,
+        mode='markers',
+        error_y=ErrorY(
+          type='data',
+          symmetric=False,
+          array=std,
+          arrayminus=std,
+          visible=True
+        )
+      )
+
+      fig.append_trace(trace, row, col)
+
+    fig["layout"]["title"] = "Accuracies for category by training size"
+    half_way_cols =  int(math.ceil(cols / 2.0))
+    half_way_rows =  int(math.ceil(rows / 2.0))
+    fig["layout"]["xaxis{}".format(half_way_cols)]["title"] = "Category Label"
+    fig["layout"]["yaxis{}".format(half_way_rows)]["title"] = "Accuracy"
+    for i in xrange(1, cols + 1):
+      fig["layout"]["xaxis{}".format(i)]["tickangle"] = -45
+      fig["layout"]["xaxis{}".format(i)]["nticks"] = num_categories * 2
+      if i <= rows:
+        fig["layout"]["yaxis{}".format(i)]["range"] = [-.1, 1.1]
+    fig["layout"]["margin"] = {"b" : 120}
+
+    plot_url = py.plot(fig)
+    print "Category Accuracies URL: ", plot_url
 
 
-  def plotCummulativeAccuracies():
+  def plotCumulativeAccuracies(self, classificationAccuracies, trainSize):
     """
+    Creates scatter plots that show the accuracy for each category at a
+    certain training size
+    @param classificationAccuracies (dict) maps a category label to a list of
+                                           lists of accuracies. Each item in
+                                           the key is a list of accuracies for
+                                           a specific training size, ordered by
+                                           increasing training size.
+    @param trainSize                (list) size of training set for each trial
     """
-    ## TODO
+    # Convert list of list of accuracies to list of means
+    classificationSummaries = [(label, map(numpy.mean, acc))
+        for label, acc in classificationAccuracies.iteritems()]
+    
+    data = []
+    sizes = sorted(set(trainSize))
+    for label, summary in classificationSummaries:
+      data.append(Scatter(x=sizes, y=summary, name=label))
+    data = Data(data)
+
+    layout = Layout(
+      title='Cumulative Accuracies for ' + self.experimentName,
+      xaxis=XAxis(
+        title='Training size',
+        titlefont=Font(
+          family='Courier New, monospace',
+          size=18,
+          color='#7f7f7f'
+        )
+      ),
+      yaxis=YAxis(
+        title='Accuracy',
+        titlefont=Font(
+          family='Courier New, monospace',
+          size=18,
+          color='#7f7f7f'
+        )
+      )
+    )
+
+    fig = Figure(data=data, layout=layout)
+    plot_url = py.plot(fig)
+    print "Cumulative Accuracies URL: ", plot_url
 
 
   @staticmethod

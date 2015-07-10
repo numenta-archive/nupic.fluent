@@ -120,8 +120,16 @@ class ClassificationModel(object):
 
   def calculateClassificationResults(self, classifications):  ## TODO: plot
     """Calculate the classification accuracy for each category.
+    @param classifications  (list)            Two lists: (0) predictions and (1)
+                                              actual classifications. Items in
+                                              the predictions list are lists of
+                                              ints or None, and items in actual
+                                              classifications list are ints.
+    @return                 (list)            tuples of class name and accuracy
+                                              for that class
     """
-    ## TODO
+    labels = set(classifications[1])
+    return [(l, self.calculateAccuracy(classifications, l)) for l in labels]
 
 
   def evaluateResults(self, classifications, references, idx):
