@@ -35,12 +35,15 @@ class ClassificationModelFingerprint(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, verbosity=1, multiclass=False):
-    super(ClassificationModelFingerprint, self).__init__(verbosity, multiclass)
+  def __init__(self, verbosity=1, numClasses=3):
+    super(ClassificationModelFingerprint, self).__init__(verbosity, numClasses)
 
     # Init kNN classifier and Cortical.io encoder; need valid API key (see
     # CioEncoder init for details).
-    self.classifier = KNNClassifier(k=1, exact=False, verbosity=verbosity-1)
+    self.classifier = KNNClassifier(k=numClasses,
+                                    distanceMethod='rawOverlap',
+                                    exact=False,
+                                    verbosity=verbosity-1)
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
     self.n = self.encoder.n
     self.w = int((self.encoder.targetSparsity/100)*self.n)

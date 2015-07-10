@@ -35,24 +35,16 @@ except ImportError:
 
 
 
-## TODO: update docstring
+## TODO: confusion matrices
 class ClassificationModel(object):
   """
   Base class for NLP models of classification tasks. When inheriting from this
   class please take note of which methods MUST be overridden, as documented
-  below.
-
-  The Model superclass implements:
-    - classifyRandomly() calculates accuracy of a random classifier
-    - encodeRandomly() creates a random SDR encoding
-    - evaluateTrialResults() calculates result stats
-    - evaluateResults() calculates result stats for a list of trial results
-    - printTrialReport() prints classifications of an evaluation trial
-    - printFinalReport() prints evaluation metrics and confusion matrix
-    - densifyPattern() returns a binary SDR vector for a given bitmap
+  below. The Model superclass mainly implements evaluation methods.
 
   Methods/properties that must be implemented by subclasses:
     - encodePattern(); note the specified format in the docstring below.
+    - resetModel()
     - trainModel()
     - testModel()
   """
@@ -104,7 +96,12 @@ class ClassificationModel(object):
   @staticmethod
   def getWinningLabels(labelFreq, numLabels=3):
     """
-    Returns most frequent indices.
+    Returns indices of input array, sorted for highest to lowest value. E.g.
+      >>> labelFreq = array([ 0., 4., 0., 1.])
+      >>> winners = getWinningLabels(labelFreq, numLabels=3)
+      >>> print winners
+      array([1, 3])
+    Note indices of nonzero values are not included in the returned array.
 
     @param labelFreq    (numpy.array)   Ints that (in this context) represent
                                         the frequency of inferred labels.
@@ -114,7 +111,11 @@ class ClassificationModel(object):
                                         sorted greatest to least. Length is up
                                         to numLabels.
     """
-    return labelFreq.argsort()[::-1][:numLabels]
+    # Note: numpy.argsort favors items later in the array, so for ties, later
+    # items are selected first.
+    winners = labelFreq.argsort()[::-1][:numLabels]
+
+    return numpy.array([i for i in winners if labelFreq[i] > 0])
 
 
   def calculateClassificationResults(self, classifications):  ## TODO: plot
@@ -143,7 +144,8 @@ class ClassificationModel(object):
       self.printTrialReport(classifications, references, idx)
 
     accuracy = self.calculateAccuracy(classifications)
-    cm = self.calculateConfusionMatrix(classifications, references)
+    # cm = self.calculateConfusionMatrix(classifications, references)
+    cm = numpy.array([])
 
     return (accuracy, cm)
 
@@ -235,7 +237,8 @@ class ClassificationModel(object):
     print "Evaluation results for the trial:"
     print template.format("#", "Actual", "Predicted")
     for i in xrange(len(labels[0])):
-      if labels[0][i][0] == None:
+      if not labels[0][i].any():
+        # No predicted classes for this sample.
         print template.format(idx[i],
                               [refs[label] for label in labels[1][i]],
                               "(none)")

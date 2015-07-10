@@ -42,15 +42,14 @@ class ClassificationModelRandomSDR(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, n=100, w=20, verbosity=1, multiclass=False):
+  def __init__(self, n=100, w=20, verbosity=1, numClasses=3):
     super(ClassificationModelRandomSDR, self).__init__(n, w, verbosity,
-                                                       multiclass)
+                                                       numClasses)
 
-    # Init kNN classifier:
-    #   specify 'distanceMethod'='rawOverlap' for overlap; Euclidean is std.
-    #   verbosity=1 for debugging
-    #   standard k is 1
-    self.classifier = KNNClassifier(exact=True, verbosity=verbosity-1)
+    self.classifier = KNNClassifier(exact=True,
+                                    distanceMethod='rawOverlap',
+                                    k=numClasses,
+                                    verbosity=verbosity-1)
 
 
   def encodePattern(self, sample):
@@ -109,7 +108,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
                                       of this sample.
     """
     # This experiment classifies individual tokens w/in each sample. Train the
-    # kNN classifier on each token.
+    # classifier on each token.
     for s in sample:
       if not s: continue
       for label in labels:
@@ -134,7 +133,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
     for idx, s in enumerate(sample):
       if not s: continue
 
-      (_, inferenceResult, _, _) = self.classifier.infer(
+      (w, inferenceResult, _, _) = self.classifier.infer(
         self._densifyPattern(s["bitmap"]))
 
       if totalInferenceResult is None:
