@@ -88,6 +88,10 @@ def run(args):
 
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 
+  if args.validation:
+    print "Validating experiment against expected classifications..."
+    print runner.validateExperiment(args.validation)
+
 
 if __name__ == "__main__":
 
@@ -143,6 +147,9 @@ if __name__ == "__main__":
                            "verbosity 1 will include results, and verbosity > "
                             "1 will print out preprocessed tokens and kNN "
                             "inference metrics.")
+  parser.add_argument("--validation",
+                      default="",
+                      help="Path to file of expected classifications.")
   parser.add_argument("--skipConfirmation",
                       help="If specified will skip the user confirmation step",
                       default=False,
