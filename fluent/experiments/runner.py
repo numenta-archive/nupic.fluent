@@ -227,6 +227,7 @@ class Runner(object):
       trialAccuracies = defaultdict(lambda: defaultdict(lambda:
           numpy.ndarray(0)))
       for i, size in enumerate(self.trainSize):
+        import pdb; pdb.set_trace()
         accuracies = self.model.calculateClassificationResults(self.results[i])
         for label, acc in accuracies:
           category = self.labelRefs[label]
@@ -271,3 +272,19 @@ class Runner(object):
       testIdx = [i for i in xrange(length) if i not in trainIdx]
 
     return (trainIdx, testIdx)
+
+
+  def validateExperiment(self, expectationFilePath):
+    """Returns accuracy of predicted labels against expected labels."""
+    dataDict = readCSV(expectationFilePath, 2, self.numClasses)
+
+    accuracies = numpy.zeros((len(self.results)))
+    for i, trial in enumerate(self.results):
+      for j, predictionList in enumerate(trial[0]):
+        predictions = [self.labelRefs[p] for p in predictionList if p]
+        expected = dataDict.items()[j+self.trainSize[i]][1]
+        accuracies[i] += (float(len(set(predictions) & set(expected)))
+                          / len(expected))
+      accuracies[i] = accuracies[i] / len(trial[0])
+
+    return accuracies
