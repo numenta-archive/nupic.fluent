@@ -110,6 +110,8 @@ class ClassificationModel(object):
     @return             (numpy.array)   Indicates largest elements in labelFreq,
                                         sorted greatest to least. Length is up
                                         to numLabels.
+
+    TODO: handle ties in argsort
     """
     # Note: numpy.argsort favors items later in the array, so for ties, later
     # items are selected first.
@@ -118,18 +120,21 @@ class ClassificationModel(object):
     return numpy.array([i for i in winners if labelFreq[i] > 0])
 
 
-  def calculateClassificationResults(self, classifications):  ## TODO: plot
-    """Calculate the classification accuracy for each category.
-    @param classifications  (list)            Two lists: (0) predictions and (1)
-                                              actual classifications. Items in
-                                              the predictions list are lists of
-                                              ints or None, and items in actual
-                                              classifications list are ints.
-    @return                 (list)            tuples of class name and accuracy
-                                              for that class
+  def calculateClassificationResults(self, classifications):
+    """
+    Calculate the classification accuracy for each category.
+
+    @param classifications  (list)          Two lists: (0) predictions and (1)
+        actual classifications. Items in the predictions list are lists of
+        ints or None, and items in actual classifications list are ints.
+
+    @return                 (list)          Tuples of class index and accuracy.
     """
     labels = set(classifications[1])
-    return [(l, self.calculateAccuracy(classifications, l)) for l in labels]
+    return [(l, self.calculateAccuracy(classifications, l)) for l in labelRefs]
+
+
+    return
 
 
   def evaluateResults(self, classifications, references, idx):
@@ -244,7 +249,7 @@ class ClassificationModel(object):
     print "Evaluation results for the trial:"
     print template.format("#", "Actual", "Predicted")
     for i in xrange(len(labels[0])):
-      if not labels[0][i].any():
+      if not any(labels[0][i]):
         # No predicted classes for this sample.
         print template.format(idx[i],
                               [refs[label] for label in labels[1][i]],

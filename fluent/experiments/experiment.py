@@ -63,7 +63,7 @@ def run(args):
                   modelModuleName=args.modelModuleName,
                   numClasses=args.numClasses,
                   plots=args.plots,
-                  randomSplit=args.randomSplit,
+                  orderedSplit=args.orderedSplit,
                   trainSize=args.trainSize,
                   verbosity=args.verbosity)
 
@@ -119,12 +119,13 @@ if __name__ == "__main__":
                       type=int,
                       default=3)
   parser.add_argument("--plots",
-                      default=0,
+                      default=1,
                       type=int,
                       help="0 for no evaluation plots, 1 for classification "
                            "accuracy plots, 2 includes the confusion matrix.")
-  parser.add_argument("--randomSplit",
-                      default=True,
+  parser.add_argument("--orderedSplit",
+                      default=False,
+                      action="store_true",
                       help="To split the train and test sets, True will split "
                             "the samples randomly, False will allocate the "
                             "first n samples to training with the remainder "

@@ -159,4 +159,5 @@ class ClassificationModelEndpoint(ClassificationModel):
     if metric in descendingOrder:
       sortedIdx = sortedIdx[::-1]
 
-    return [distances.keys()[catIdx] for catIdx in sortedIdx[:numLabels]]
+    return numpy.array(
+        [distances.keys()[catIdx] for catIdx in sortedIdx[:numLabels]])
