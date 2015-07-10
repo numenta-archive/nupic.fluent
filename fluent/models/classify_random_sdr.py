@@ -132,7 +132,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
     for idx, s in enumerate(sample):
       if not s: continue
 
-      (w, inferenceResult, _, _) = self.classifier.infer(
+      (_, inferenceResult, _, _) = self.classifier.infer(
         self._densifyPattern(s["bitmap"]))
 
       if totalInferenceResult is None:

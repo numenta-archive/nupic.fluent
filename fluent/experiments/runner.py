@@ -28,7 +28,7 @@ import random
 
 from collections import defaultdict
 from fluent.utils.csv_helper import readCSV
-#from fluent.utils.plotting import PlotNLP
+from fluent.utils.plotting import PlotNLP
 
 from fluent.utils.text_preprocess import TextPreprocess
 
@@ -49,10 +49,9 @@ class Runner(object):
                modelModuleName,
                numClasses,
                plots,
-               randomSplit,
+               orderedSplit,
                trainSize,
-               verbosity,
-               plot=False):
+               verbosity):
     """
     @param dataPath         (str)     Path to raw data file for the experiment.
     @param resultsDir       (str)     Directory where for the results metrics.
@@ -63,11 +62,10 @@ class Runner(object):
     @param modeModuleName   (str)     Model module -- location of the subclass.
     @param numClasses       (int)     Number of classes (labels) per sample.
     @param plots            (int)     Specifies plotting of evaluation metrics.
-    @param randomSplit      (bool)    Indicates method for splitting train/test
-                                      samples; True is random, False is ordered.
+    @param orderedSplit     (bool)    Indicates method for splitting train/test
+                                      samples; False is random, True is ordered.
     @param trainSize        (str)     Number of samples to use in training.
     @param verbosity        (int)     Greater value prints out more progress.
-    @param plot             (bool)    Toggles whether or not to plot accuracies
 
     """
     self.dataPath = dataPath
@@ -77,19 +75,18 @@ class Runner(object):
     self.modelName = modelName
     self.modelModuleName = modelModuleName
     self.numClasses = numClasses
-    # self.plots = plots
-    self.randomlySplitSamples = randomSplit
+    self.plots = plots
+    self.orderedSplit = orderedSplit
     self.trainSize = trainSize
     self.verbosity = verbosity
-    self.plot = plot
 
     self.modelPath = os.path.join(
       self.resultsDir, self.experimentName, self.modelName)
     if not os.path.exists(self.modelPath):
       os.makedirs(self.modelPath)
 
-    # if self.plots:
-    #   self.plotter = PlotNLP
+    if self.plots:
+      self.plotter = PlotNLP()
 
     self.dataDice = None
     self.labels = None
@@ -106,7 +103,7 @@ class Runner(object):
 
     for k, v in self.dataDict.iteritems():
       self.dataDict[k] = numpy.array(
-          [self.labelRefs.index(label) for label in v], dtype="int8")
+          [self.labelRefs.index(label) for label in v])
 
 
   def _preprocess(self, preprocess):
@@ -143,9 +140,11 @@ class Runner(object):
       for i, s in enumerate(self.samples): print i, s
 
 
-  ## TODO: does model need to know if multiclass??
   def initModel(self):
-    """Load or instantiate the classification model."""
+    """
+    Load or instantiate the classification model.
+    TODO: does model need to know if multiclass??
+    """
     if self.load:
       with open(os.path.join(self.modelPath, "model.pkl"), "rb") as f:
         self.model = pkl.load(f)
@@ -170,6 +169,7 @@ class Runner(object):
                      "labels": s[1]}
                      for s in self.samples]
     self.model.logEncodings(self.patterns, self.modelPath)
+
 
   def runExperiment(self):
     """Train and test the model for each trial specified by self.trainSize."""
@@ -209,7 +209,11 @@ class Runner(object):
 
 
   def calculateResults(self):
-    """Calculate evaluation metrics from the result classifications."""
+    """
+    Calculate evaluation metrics from the result classifications.
+
+    TODO: pass intended CM results to plotter.plotConfusionMatrix()
+    """
     resultCalcs = [self.model.evaluateResults(self.results[i],
                                               self.labelRefs,
                                               self.partitions[i][1])
@@ -217,11 +221,11 @@ class Runner(object):
 
     self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
 
-    if self.plot:
-      # In case there are multiple trials of the same size
+    if self.plots:
+      # To handle multiple trials of the same size:
       # trialSize -> (category -> list of accuracies)
       trialAccuracies = defaultdict(lambda: defaultdict(lambda:
-        numpy.ndarray(0)))
+          numpy.ndarray(0)))
       for i, size in enumerate(self.trainSize):
         accuracies = self.model.calculateClassificationResults(self.results[i])
         for label, acc in accuracies:
@@ -238,10 +242,13 @@ class Runner(object):
         for label, acc in accuracies.iteritems():
           classificationAccuracies[label].append(acc)
 
-      plotter = PlotNLP()
-      plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
-      plotter.plotCumulativeAccuracies(classificationAccuracies,
+      self.plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
+      self.plotter.plotCumulativeAccuracies(classificationAccuracies,
         self.trainSize)
+
+      if self.plots > 1:
+        # Plot extra evaluation figures -- confusion matrix.
+        self.plotter.plotConfusionMatrix(resultCalcs)
 
 
   def save(self):
@@ -255,12 +262,12 @@ class Runner(object):
   def partitionIndices(self, split):
     """Returns train and test indices."""
     length = len(self.samples)
-    if self.randomlySplitSamples:
+    if self.orderedSplit:
+      trainIdx = range(split)
+      testIdx = range(split, length)
+    else:
       # Randomly sampled, not repeated
       trainIdx = random.sample(xrange(length), split)
       testIdx = [i for i in xrange(length) if i not in trainIdx]
-    else:
-      trainIdx = range(split)
-      testIdx = range(split, length)
 
     return (trainIdx, testIdx)

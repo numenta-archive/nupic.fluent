@@ -30,17 +30,16 @@ import plotly.plotly as py
 import plotly.tools as tls
 
 from plotly.graph_objs import (
-  Data,
-  ErrorY,
-  Figure,
-  Font,
-  Heatmap,
-  Layout,
-  Margin,
-  Scatter,
-  XAxis,
-  YAxis
-)
+    Data,
+    ErrorY,
+    Figure,
+    Font,
+    Heatmap,
+    Layout,
+    Margin,
+    Scatter,
+    XAxis,
+    YAxis)
 
 
 
@@ -73,7 +72,8 @@ class PlotNLP():
     self.experimentName = experimentName
 
 
-  def getDataFrame(self, dataPath):
+  @staticmethod
+  def getDataFrame(dataPath):
     """Get pandas dataframe of the results CSV."""
     try:
       return pd.read_csv(dataPath)
@@ -81,18 +81,37 @@ class PlotNLP():
       return
 
 
-  def confusionMatrix(self, data, normalize=True):
-    """Plots the confusion matrix of the CSV specified by dataPath."""
+  @staticmethod
+  def interpretConfusionMatrixData(dataFrame, normalize):
+    """Parse pandas dataframe into confusion matrix format."""
+    labels = dataFrame.columns.values.tolist()[:-1]
+    values = map(list, dataFrame.values)
+
+    for i, row in enumerate(values):
+      values[i] = [v/row[-1] for v in row[:-1]] if normalize else row[:-1]
+    cm = {"x":labels,
+          "y":labels[:-1],
+          "z":values[:-1]
+          }
+    return cm
+
+
+  def plotConfusionMatrix(self, data, normalize=True):
+    """
+    Plots the confusion matrix of the input dataframe.
+    
+    @param data         (pandas DF)     The confusion matrix.
+
+    @param normalize    (bool)          True will normalize the confusion matrix
+        values for the total number of actual classifications per label. Thus
+        the cm values are 0.0 to 1.0.
+    """
     xyzData = self.interpretConfusionMatrixData(data, normalize)
 
-    data = Data([
-      Heatmap(
-        z=xyzData["z"],
-        x=xyzData["x"],
-        y=xyzData["y"],
-        colorscale='YIGnBu'
-      )
-    ])
+    data = Data([Heatmap(z=xyzData["z"],
+                         x=xyzData["x"],
+                         y=xyzData["y"],
+                         colorscale='YIGnBu')])
 
     layout = Layout(
       title='Confusion matrix for ' + self.experimentName,
@@ -134,11 +153,12 @@ class PlotNLP():
   def plotCategoryAccuracies(self, trialAccuracies, trainSize):
     """
     Shows the accuracy for the categories at a certain training size
+    
     @param trialAccuracies    (dict)    A dictionary of dictionaries. For each
-                                        train size, there is a dictionary that
-                                        maps a category to a list of accuracies
-                                        for that category
-    @param trainSize          (list)    size of training set for each trial
+        train size, there is a dictionary that maps a category to a list of 
+        accuracies for that category.
+    
+    @param trainSize          (list)    Size of training set for each trial.
     """
     sizes = sorted(set(trainSize))
     size_sqrt = math.sqrt(len(sizes))
@@ -203,12 +223,12 @@ class PlotNLP():
     """
     Creates scatter plots that show the accuracy for each category at a
     certain training size
-    @param classificationAccuracies (dict) maps a category label to a list of
-                                           lists of accuracies. Each item in
-                                           the key is a list of accuracies for
-                                           a specific training size, ordered by
-                                           increasing training size.
-    @param trainSize                (list) size of training set for each trial
+    
+    @param classificationAccuracies (dict)    Maps a category label to a list of
+        lists of accuracies. Each item in the key is a list of accuracies for
+        a specific training size, ordered by increasing training size.
+        
+    @param trainSize                (list)    Sizes of training sets for trials.
     """
     # Convert list of list of accuracies to list of means
     classificationSummaries = [(label, map(numpy.mean, acc))
@@ -243,18 +263,3 @@ class PlotNLP():
     fig = Figure(data=data, layout=layout)
     plot_url = py.plot(fig)
     print "Cumulative Accuracies URL: ", plot_url
-
-
-  @staticmethod
-  def interpretConfusionMatrixData(dataFrame, normalize):
-    """Parse pandas dataframe into confusion matrix format."""
-    labels = dataFrame.columns.values.tolist()[:-1]
-    values = map(list, dataFrame.values)
-
-    for i, row in enumerate(values):
-      values[i] = [v/row[-1] for v in row[:-1]] if normalize else row[:-1]
-    cm = {"x":labels,
-          "y":labels[:-1],
-          "z":values[:-1]
-          }
-    return cm
