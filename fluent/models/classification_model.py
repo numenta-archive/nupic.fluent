@@ -130,12 +130,26 @@ class ClassificationModel(object):
 
     @return                 (list)          Tuples of class index and accuracy.
     """
-    labels = set(classifications[1])
-    return [(l, self.calculateAccuracy(classifications, l)) for l in labelRefs]
+    if len(classifications[0]) != len(classifications[1]):
+      raise ValueError("Classification lists must have same length.")
 
+    if len(classifications[1]) == 0:
+      return []
 
-    return
+    # Get all possible labels
+    labels = list(set([l for actual in classifications[1] for l in actual]))
 
+    labels_to_idx = {l: i for i,l in enumerate(labels)}
+    correct = numpy.zeros(len(labels))
+    total = numpy.zeros(len(labels))
+    for actual, predicted in zip(classifications[1], classifications[0]):
+      for a in actual:
+        idx = labels_to_idx[a]
+        total[idx] += 1
+        if a in predicted:
+          correct[idx] += 1
+
+    return zip(labels, correct / total)
 
   def evaluateResults(self, classifications, references, idx):
     """
@@ -206,6 +220,9 @@ class ClassificationModel(object):
     """
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
+
+    if len(classifications[1]) == 0:
+      return None
 
     accuracy = 0.0
     for actual, predicted in zip(classifications[1], classifications[0]):
