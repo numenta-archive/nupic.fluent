@@ -43,13 +43,13 @@ class ClassificationModelRandomSDR(ClassificationModel):
   TODO: use nupic.bindings.math import Random
   """
 
-  def __init__(self, n=100, w=20, verbosity=1, numClasses=3):
+  def __init__(self, n=100, w=20, verbosity=1, numLabels=3):
     super(ClassificationModelRandomSDR, self).__init__(n, w, verbosity,
-                                                       numClasses)
+                                                       numLabels)
 
     self.classifier = KNNClassifier(exact=True,
                                     distanceMethod='rawOverlap',
-                                    k=numClasses,
+                                    k=numLabels,
                                     verbosity=verbosity-1)
 
 

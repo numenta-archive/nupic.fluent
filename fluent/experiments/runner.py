@@ -222,33 +222,50 @@ class Runner(object):
     self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
 
     if self.plots:
-      # To handle multiple trials of the same size:
-      # trialSize -> (category -> list of accuracies)
-      trialAccuracies = defaultdict(lambda: defaultdict(lambda:
-          numpy.ndarray(0)))
-      for i, size in enumerate(self.trainSize):
-        accuracies = self.model.calculateClassificationResults(self.results[i])
-        for label, acc in accuracies:
-          category = self.labelRefs[label]
-          acc_list = trialAccuracies[size][category]
-          trialAccuracies[size][category] = numpy.append(acc_list, acc)
-
-      # Need the accuracies to be ordered for the graph
-      trials = sorted(set(self.trainSize))
-      # category -> list of list of accuracies
-      classificationAccuracies = defaultdict(list)
-      for trial in trials:
-        accuracies = trialAccuracies[trial]
-        for label, acc in accuracies.iteritems():
-          classificationAccuracies[label].append(acc)
+      trialAccuracies = self._calculateTrialAccuracies()
+      classificationAccuracies = self._calculateClassificationAccuracies(
+          trialAccuracies)
 
       self.plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
       self.plotter.plotCumulativeAccuracies(classificationAccuracies,
-        self.trainSize)
+          self.trainSize)
 
       if self.plots > 1:
         # Plot extra evaluation figures -- confusion matrix.
-        self.plotter.plotConfusionMatrix(resultCalcs)
+        self.plotter.plotConfusionMatrix(
+            model.calculateConfusionMatrix(trialAccuracies))
+
+
+  def _calculateTrialAccuracies(self):
+    """
+    """
+    # To handle multiple trials of the same size:
+    # trialSize -> (category -> list of accuracies)
+    trialAccuracies = defaultdict(lambda: defaultdict(lambda:
+        numpy.ndarray(0)))
+    for i, size in enumerate(self.trainSize):
+      accuracies = self.model.calculateClassificationResults(self.results[i])
+      for label, acc in accuracies:
+        category = self.labelRefs[label]
+        acc_list = trialAccuracies[size][category]
+        trialAccuracies[size][category] = numpy.append(acc_list, acc)
+
+    return trialAccuracies
+
+
+  def _calculateClassificationAccuracies(self, trialAccuracies):
+    """
+    """
+    # Need the accuracies to be ordered for the plot
+    trials = sorted(set(self.trainSize))
+    # category -> list of list of accuracies
+    classificationAccuracies = defaultdict(list)
+    for trial in trials:
+      accuracies = trialAccuracies[trial]
+      for label, acc in accuracies.iteritems():
+        classificationAccuracies[label].append(acc)
+
+    return classificationAccuracies
 
 
   def save(self):

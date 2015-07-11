@@ -54,7 +54,7 @@ class ClassificationModel(object):
     """The SDR dimensions are standard for Cortical.io fingerprints."""
     self.n = n
     self.w = w
-    self.multiclass = multiclass
+    self.numLabels = numLabels
     self.verbosity = verbosity
 
 
