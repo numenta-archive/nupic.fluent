@@ -227,7 +227,6 @@ class Runner(object):
       trialAccuracies = defaultdict(lambda: defaultdict(lambda:
           numpy.ndarray(0)))
       for i, size in enumerate(self.trainSize):
-        import pdb; pdb.set_trace()
         accuracies = self.model.calculateClassificationResults(self.results[i])
         for label, acc in accuracies:
           category = self.labelRefs[label]
@@ -259,9 +258,12 @@ class Runner(object):
       pkl.dump(self.model, f)
 
 
-  ## TODO: use StandardSplit in data_split.py
   def partitionIndices(self, split):
-    """Returns train and test indices."""
+    """
+    Returns train and test indices.
+
+    TODO: use StandardSplit in data_split.py
+    """
     length = len(self.samples)
     if self.orderedSplit:
       trainIdx = range(split)

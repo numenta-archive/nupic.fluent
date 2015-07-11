@@ -26,7 +26,6 @@ import pandas
 import random
 
 from collections import Counter
-from fluent.utils.plotting import PlotNLP
 
 try:
   import simplejson as json
@@ -35,7 +34,6 @@ except ImportError:
 
 
 
-## TODO: confusion matrices
 class ClassificationModel(object):
   """
   Base class for NLP models of classification tasks. When inheriting from this
@@ -47,15 +45,17 @@ class ClassificationModel(object):
     - resetModel()
     - trainModel()
     - testModel()
+
+  TODO: confusion matrices
+  TODO: use nupic.bindings.math import Random
   """
 
-  def __init__(self, n=16384, w=328, verbosity=1, plot=True, multiclass=False):
+  def __init__(self, n=16384, w=328, verbosity=1, numLabels=3):
     """The SDR dimensions are standard for Cortical.io fingerprints."""
     self.n = n
     self.w = w
     self.multiclass = multiclass
     self.verbosity = verbosity
-    self.plot = plot
 
 
   def encodeRandomly(self, sample):
@@ -140,16 +140,17 @@ class ClassificationModel(object):
     labels = list(set([l for actual in classifications[1] for l in actual]))
 
     labels_to_idx = {l: i for i,l in enumerate(labels)}
-    correct = numpy.zeros(len(labels))
-    total = numpy.zeros(len(labels))
+    correctClassifications = numpy.zeros(len(labels))
+    totalClassifications = numpy.zeros(len(labels))
     for actual, predicted in zip(classifications[1], classifications[0]):
       for a in actual:
         idx = labels_to_idx[a]
-        total[idx] += 1
+        totalClassifications[idx] += 1
         if a in predicted:
-          correct[idx] += 1
+          correctClassifications[idx] += 1
 
-    return zip(labels, correct / total)
+    return zip(labels, correctClassifications / totalClassifications)
+
 
   def evaluateResults(self, classifications, references, idx):
     """
@@ -203,9 +204,6 @@ class ClassificationModel(object):
     if self.verbosity > 0:
       self.printCumulativeReport(results)
 
-    if self.plot and self.multiclass:
-      self.plotConfusionMatrix(cm)
-
     return results
 
 
@@ -232,11 +230,14 @@ class ClassificationModel(object):
     return accuracy/len(classifications[1])
 
 
-  # TODO: Figure out better way to report multilabel outputs--only handles
-  # single label now
   @staticmethod
   def calculateConfusionMatrix(classifications, references):
-    """Returns confusion matrix as a pandas dataframe."""
+    """
+    Returns confusion matrix as a pandas dataframe.
+
+    TODO: Figure out better way to report multilabel outputs--only handles
+    single label now
+    """
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
 
@@ -277,11 +278,12 @@ class ClassificationModel(object):
                               [refs[label] for label in labels[0][i]])
 
 
-  ## TODO: pprint
   @staticmethod
   def printCumulativeReport(results):
     """
     Prints results as returned by evaluateFinalResults() after several trials.
+
+    TODO: pprint
     """
     print "---------- RESULTS ----------"
     print "max, mean, min accuracies = "
@@ -298,12 +300,6 @@ class ClassificationModel(object):
     print template.format("Size of training set", "Accuracy")
     for i, a in enumerate(accuracies):
       print template.format(trainSize[i], a)
-
-
-  @staticmethod
-  def plotConfusionMatrix(cm):
-    """Output plotly confusion matrix."""
-    PlotNLP().confusionMatrix(cm)
 
 
   def encodePattern(self, pattern):

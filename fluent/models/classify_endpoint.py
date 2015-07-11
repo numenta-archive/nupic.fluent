@@ -37,11 +37,11 @@ class ClassificationModelEndpoint(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, verbosity=1, multiclass=False):
+  def __init__(self, verbosity=1, numLabels=3):
     """
     Initialize the CorticalClient and CioEncoder. Requires a valid API key
     """
-    super(ClassificationModelEndpoint, self).__init__(verbosity, multiclass)
+    super(ClassificationModelEndpoint, self).__init__(verbosity, numLabels)
 
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
     self.client = CorticalClient(self.encoder.apiKey)
@@ -91,7 +91,6 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.categoryBitmaps.clear()
 
 
-  ## TODO: move Cortical.io client logic to CioEncoder.
   def trainModel(self, sample, labels, negatives=None):
     """
     Train the classifier on the input sample and label. Use Cortical.io's
@@ -103,6 +102,8 @@ class ClassificationModelEndpoint(ClassificationModel):
     @param negatives  (list)            Each item is the dictionary containing
                                         text, sparsity and bitmap for the
                                         negative samples.
+
+    TODO: move Cortical.io client logic to CioEncoder.
     """
     for label in labels:
       if label not in self.positives:
