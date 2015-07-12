@@ -96,6 +96,49 @@ class Runner(object):
     self.results = []
 
 
+  def _calculateTrialAccuracies(self):
+    """
+    @return trialAccuracies     (defaultdict)   Items are defaultdicts, one for
+        each size of the training set. Inner defaultdicts keys are classification
+        categories, with numpy array values that contain one accuracy value for
+        each trial.
+    """
+    # To handle multiple trials of the same size:
+    # trialSize -> (category -> list of accuracies)
+    trialAccuracies = defaultdict(lambda: defaultdict(lambda:
+        numpy.ndarray(0)))
+    for i, size in enumerate(self.trainSize):
+      accuracies = self.model.calculateClassificationResults(self.results[i])
+      for label, acc in accuracies:
+        category = self.labelRefs[label]
+        acc_list = trialAccuracies[size][category]
+        trialAccuracies[size][category] = numpy.append(acc_list, acc)
+
+    return trialAccuracies
+
+
+  def _calculateClassificationAccuracies(self, trialAccuracies):
+    """
+    @param trialAccuracies            (defaultdict)   Please see the description
+        in self._calculateClassificationAccuracies().
+
+    @return classificationAccuracies  (defaultdict)   Keys are classification
+        categories, with multiple numpy arrays as values -- one for each size of
+        training sets, with one accuracy value for each run of that training set
+        size.
+    """
+    # Need the accuracies to be ordered for the plot
+    trials = sorted(set(self.trainSize))
+    # category -> list of list of accuracies
+    classificationAccuracies = defaultdict(list)
+    for trial in trials:
+      accuracies = trialAccuracies[trial]
+      for label, acc in accuracies.iteritems():
+        classificationAccuracies[label].append(acc)
+
+    return classificationAccuracies
+
+
   def _mapLabelRefs(self):
     """Replace the label strings in self.dataDict with corresponding ints."""
     self.labelRefs = list(set(
@@ -141,10 +184,7 @@ class Runner(object):
 
 
   def initModel(self):
-    """
-    Load or instantiate the classification model.
-    TODO: does model need to know if multiclass??
-    """
+    """Load or instantiate the classification model."""
     if self.load:
       with open(os.path.join(self.modelPath, "model.pkl"), "rb") as f:
         self.model = pkl.load(f)
@@ -222,34 +262,18 @@ class Runner(object):
     self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
 
     if self.plots:
-      # To handle multiple trials of the same size:
-      # trialSize -> (category -> list of accuracies)
-      trialAccuracies = defaultdict(lambda: defaultdict(lambda:
-          numpy.ndarray(0)))
-      for i, size in enumerate(self.trainSize):
-        import pdb; pdb.set_trace()
-        accuracies = self.model.calculateClassificationResults(self.results[i])
-        for label, acc in accuracies:
-          category = self.labelRefs[label]
-          acc_list = trialAccuracies[size][category]
-          trialAccuracies[size][category] = numpy.append(acc_list, acc)
-
-      # Need the accuracies to be ordered for the graph
-      trials = sorted(set(self.trainSize))
-      # category -> list of list of accuracies
-      classificationAccuracies = defaultdict(list)
-      for trial in trials:
-        accuracies = trialAccuracies[trial]
-        for label, acc in accuracies.iteritems():
-          classificationAccuracies[label].append(acc)
+      trialAccuracies = self._calculateTrialAccuracies()
+      classificationAccuracies = self._calculateClassificationAccuracies(
+          trialAccuracies)
 
       self.plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
       self.plotter.plotCumulativeAccuracies(classificationAccuracies,
-        self.trainSize)
+          self.trainSize)
 
       if self.plots > 1:
         # Plot extra evaluation figures -- confusion matrix.
-        self.plotter.plotConfusionMatrix(resultCalcs)
+        self.plotter.plotConfusionMatrix(
+            self.setupConfusionMatrices(resultCalcs))
 
 
   def save(self):
@@ -259,9 +283,12 @@ class Runner(object):
       pkl.dump(self.model, f)
 
 
-  ## TODO: use StandardSplit in data_split.py
   def partitionIndices(self, split):
-    """Returns train and test indices."""
+    """
+    Returns train and test indices.
+
+    TODO: use StandardSplit in data_split.py
+    """
     length = len(self.samples)
     if self.orderedSplit:
       trainIdx = range(split)

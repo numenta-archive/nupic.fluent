@@ -26,7 +26,6 @@ import random
 
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
-# from nupic.bindings.math import Random
 
 try:
   import simplejson as json
@@ -40,15 +39,17 @@ class ClassificationModelRandomSDR(ClassificationModel):
   Class to run the survey response classification task with random SDRs.
 
   From the experiment runner, the methods expect to be fed one sample at a time.
+
+  TODO: use nupic.bindings.math import Random
   """
 
-  def __init__(self, n=100, w=20, verbosity=1, numClasses=3):
+  def __init__(self, n=100, w=20, verbosity=1, numLabels=3):
     super(ClassificationModelRandomSDR, self).__init__(n, w, verbosity,
-                                                       numClasses)
+                                                       numLabels)
 
     self.classifier = KNNClassifier(exact=True,
                                     distanceMethod='rawOverlap',
-                                    k=numClasses,
+                                    k=numLabels,
                                     verbosity=verbosity-1)
 
 
