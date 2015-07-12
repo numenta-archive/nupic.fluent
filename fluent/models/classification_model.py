@@ -172,8 +172,7 @@ class ClassificationModel(object):
       self.printTrialReport(classifications, references, idx)
 
     accuracy = self.calculateAccuracy(classifications)
-    # cm = self.calculateConfusionMatrix(classifications, references)
-    cm = numpy.array([])
+    cm = self.calculateConfusionMatrix(classifications, references)
 
     return (accuracy, cm)
 
@@ -236,8 +235,10 @@ class ClassificationModel(object):
     Returns confusion matrix as a pandas dataframe.
 
     TODO: Figure out better way to report multilabel outputs--only handles
-    single label now
+    single label now. So for now return empty array.
     """
+    return numpy.array([])
+
     if len(classifications[0]) != len(classifications[1]):
       raise ValueError("Classification lists must have same length.")
 
@@ -262,7 +263,11 @@ class ClassificationModel(object):
 
   @staticmethod
   def printTrialReport(labels, refs, idx):
-    """Print columns for sample #, actual label, and predicted label."""
+    """
+    Print columns for sample #, actual label, and predicted label.
+
+    TODO: move to Runner
+    """
     template = "{0:<10}|{1:<55}|{2:<55}"
     print "Evaluation results for the trial:"
     print template.format("#", "Actual", "Predicted")
@@ -283,7 +288,7 @@ class ClassificationModel(object):
     """
     Prints results as returned by evaluateFinalResults() after several trials.
 
-    TODO: pprint
+    TODO: pprint, move to Runner
     """
     print "---------- RESULTS ----------"
     print "max, mean, min accuracies = "
@@ -294,7 +299,11 @@ class ClassificationModel(object):
 
   @staticmethod
   def printFinalReport(trainSize, accuracies):
-    """Prints result accuracies."""
+    """
+    Prints result accuracies.
+
+    TODO: move to Runner
+    """
     template = "{0:<20}|{1:<10}"
     print "Evaluation results for this experiment:"
     print template.format("Size of training set", "Accuracy")
