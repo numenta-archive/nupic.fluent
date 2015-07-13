@@ -127,17 +127,16 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
   print "Accuracy against expected classifications = ", accuracy
 
 
-def setupData(args, dataPath):
+def setupData(args):
   """ Performs data preprocessing and setup given the user-specified args.
 
   @param args       (Namespace)     User-provided arguments via the cmd line.
-  @param dataPath   (str)           Path where data is located.
   @return           (tuple)         Tuple where first entry is a list of the
       samples, the second is the list of gold labels per example, the third is
       the list of all possible labels, and the fourth is the labels per example
       in the data.
   """
-  dataDict = readCSV(dataPath, 2, args.numClasses)
+  dataDict = readCSV(args.dataPath, 2, args.numLabels)
 
   # Collect each possible label string into a list, where the indices will be
   # their references throughout the experiment.
@@ -174,14 +173,13 @@ def run(args):
 
   # Setup directories.
   root = os.path.dirname(__file__)
-  dataPath = os.path.abspath(os.path.join(root, '../..', args.dataFile))
   modelPath = os.path.abspath(
     os.path.join(root, args.resultsDir, args.expName, args.modelName))
   if not os.path.exists(modelPath):
     os.makedirs(modelPath)
 
   # Verify input params.
-  if not os.path.isfile(dataPath):
+  if not os.path.isfile(args.dataPath):
     raise ValueError("Invalid data path.")
   if (not isinstance(args.kFolds, int)) or (args.kFolds < 1):
     raise ValueError("Invalid value for number of cross-validation folds.")
@@ -200,7 +198,7 @@ def run(args):
       module = __import__(args.modelModuleName, {}, {}, args.modelName)
       modelClass = getattr(module, args.modelName)
       model = modelClass(verbosity=args.verbosity,
-                         numClasses=args.numClasses)
+                         numLabels=args.numLabels)
     except ImportError:
       raise RuntimeError("Could not find model class \'%s\' to import."
                          % args.modelName)
@@ -208,7 +206,7 @@ def run(args):
   print "Reading in data and preprocessing."
   preprocessTime = time.time()
 
-  samples, labelReference = setupData(args, dataPath)
+  samples, labelReference = setupData(args)
 
   print("Preprocessing complete; elapsed time is {0:.2f} seconds.".
         format(time.time() - preprocessTime))
@@ -286,7 +284,8 @@ def run(args):
 if __name__ == "__main__":
 
   parser = argparse.ArgumentParser()
-  parser.add_argument("dataFile")
+  parser.add_argument("dataPath",
+                      help="Absolute path to data CSV.")
   parser.add_argument("--expectationDataPath",
                       default="",
                       type=str,
@@ -310,7 +309,7 @@ if __name__ == "__main__":
                       default="fluent.models.classify_random_sdr",
                       type=str,
                       help="model module (location of model class).")
-  parser.add_argument("--numClasses",
+  parser.add_argument("--numLabels",
                       help="Specifies the number of classes per sample.",
                       type=int,
                       default=3)
