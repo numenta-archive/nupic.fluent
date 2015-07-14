@@ -105,7 +105,6 @@ class ClassificationModelContext(ClassificationModel):
       bitmaps = [sample["bitmap"].tolist()]
       context = self.client.getContextFromText(bitmaps, maxResults=5,
                                                getFingerprint=True)
-      print sample["text"], [c["context_label"] for c in context]
 
       if len(context) != 0:
         union = numpy.zeros(0)
@@ -120,7 +119,6 @@ class ClassificationModelContext(ClassificationModel):
 
           intersection = numpy.intersect1d(union, self.categoryBitmaps[label])
           if intersection.size == 0:
-            print "Empty Intersection", label
             # Don't want to lose all the old information
             union = numpy.union1d(union, self.categoryBitmaps[label]).astype(int)
             # Need to sample to stay sparse

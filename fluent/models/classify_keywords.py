@@ -110,8 +110,6 @@ class ClassificationModelKeywords(ClassificationModel):
         # Get each token in the sample so the union is not empty
         keywords = sample["text"].split(" ")
 
-      print sample["text"], keywords
-
       union = numpy.zeros(0)
       for word in keywords:
         bitmap = self._encodeText(word)
@@ -123,7 +121,6 @@ class ClassificationModelKeywords(ClassificationModel):
 
         intersection = numpy.intersect1d(union, self.categoryBitmaps[label])
         if intersection.size == 0:
-          print "Empty Intersection", label
           # Don't want to lose all the old information
           union = numpy.union1d(union, self.categoryBitmaps[label]).astype(int)
           # Need to sample to stay sparse
