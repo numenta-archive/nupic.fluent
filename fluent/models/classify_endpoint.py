@@ -96,7 +96,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     Train the classifier on the input sample and label. Use Cortical.io's
     createClassification to make a bitmap that represents the class
 
-    @param samples     (list)            List of dictionaries containing the
+    @param samples    (list)            List of dictionaries containing the
                                         sample text, sparsity, and bitmap.
     @param labels     (list)            List of numpy arrays containing the
                                         reference indices for the
