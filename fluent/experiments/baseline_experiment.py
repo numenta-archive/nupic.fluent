@@ -158,11 +158,15 @@ def setupData(args):
                                     dtype="int8")
 
   texter = TextPreprocess(abbrCSV=args.abbrCSV, contrCSV=args.contrCSV)
+  expandAbbr = (args.abbrCSV != "")
+  expandContr = (args.contrCSV != "")
   if args.textPreprocess:
     samples = [(texter.tokenize(sample,
                                 ignoreCommon=100,
                                 removeStrings=["[identifier deleted]"],
-                                correctSpell=True),
+                                correctSpell=True,
+                                expandAbbr=expandAbbr,
+                                expandContr=expandContr),
                labels) for sample, labels in dataDict.iteritems()]
   else:
     samples = [(texter.tokenize(sample), labels)
