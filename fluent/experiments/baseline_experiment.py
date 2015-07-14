@@ -235,7 +235,7 @@ def run(args):
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:
-    training(model, patterns)
+    training(model, patterns, args.batch)
 
   if args.test:
     results = testing(model, patterns)
