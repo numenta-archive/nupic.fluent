@@ -55,7 +55,7 @@ from fluent.utils.data_split import KFolds
 from fluent.utils.text_preprocess import TextPreprocess
 
 
-def runExperiment(model, patterns, idxSplits):
+def runExperiment(model, patterns, idxSplits, batch):
   """
   Trains the model on patterns specified by the first entry of idxSplits, then
   tests on the patterns of the second entry on idxSplits.
@@ -65,22 +65,31 @@ def runExperiment(model, patterns, idxSplits):
                                       encoding a numpy array bitmap in field
                                       "bitmap".
   @param idxSplits      (tuple)       Tuple of train/eval split data indices.
+  @param batch          (bool)        Whether or not to train on all the data
+                                      in a batch
   @return                             Return same as testing().
   """
   model.resetModel()
-  training(model, [patterns[i] for i in idxSplits[0]])
+  training(model, [patterns[i] for i in idxSplits[0]], batch)
   return testing(model, [patterns[i] for i in idxSplits[1]])
 
 
 # training() and testing() methods send one data sample at a time to the model,
 # i.e. streaming input.
-def training(model, trainSet):
+def training(model, trainSet, batch):
   """
   Trains model on the bitmap patterns and corresponding labels lists one at a
   time (i.e. streaming).
+  @param batch          (bool)        Whether or not to train on all the data
+                                      in a batch
   """
-  for sample in trainSet:
-    model.trainModel(sample["pattern"], sample["labels"])
+  if batch:
+    samples = [s["pattern"] for s in trainSet]
+    labels = [s["labels"] for s in trainSet]
+    model.trainModel(samples, labels)
+  else:
+    for sample in trainSet:
+      model.trainModel([sample["pattern"]], [sample["labels"]])
 
 
 def testing(model, evalSet):
@@ -246,7 +255,7 @@ def run(args):
     for k in xrange(args.kFolds):
       print "Training and testing for CV fold {0}.".format(k)
       kTime = time.time()
-      trialResults = runExperiment(model, patterns, partitions[k])
+      trialResults = runExperiment(model, patterns, partitions[k], args.batch)
       print("Fold complete; elapsed time is {0:.2f} seconds.".format(
             time.time() - kTime))
 
@@ -317,6 +326,9 @@ if __name__ == "__main__":
                       type=bool,
                       help="Whether to preprocess text",
                       default=False)
+  parser.add_argument("--batch",
+                      help="Train the model with all the data at one time",
+                      action="store_true")
   parser.add_argument("--load",
                       help="Load the serialized model.",
                       default=False)
