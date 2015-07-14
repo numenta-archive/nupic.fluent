@@ -115,6 +115,9 @@ class ClassificationModel(object):
     """
     # The use of numpy.lexsort() here is to first sort by labelFreq, then sort
     # by random values; this breaks ties in a random manner.
+    if labelFreq is None:
+      return numpy.array([])
+
     randomValues = numpy.random.random(labelFreq.size)
     winners = numpy.lexsort((randomValues, labelFreq))[::-1][:numLabels]
 
