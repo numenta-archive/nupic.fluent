@@ -308,10 +308,14 @@ class Runner(object):
     accuracies = numpy.zeros((len(self.results)))
     for i, trial in enumerate(self.results):
       for j, predictionList in enumerate(trial[0]):
-        predictions = [self.labelRefs[p] for p in predictionList if p]
+        predictions = [self.labelRefs[p] for p in predictionList]
+        if predictions == []:
+          predictions = ["(none)"]
         expected = dataDict.items()[j+self.trainSize[i]][1]
+
         accuracies[i] += (float(len(set(predictions) & set(expected)))
                           / len(expected))
+
       accuracies[i] = accuracies[i] / len(trial[0])
 
     return accuracies
