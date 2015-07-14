@@ -110,16 +110,17 @@ class ClassificationModelEndpoint(ClassificationModel):
     labels_to_update_bitmaps = set()
     for sample,sample_labels in zip(samples, labels):
       for label in sample_labels:
-        if sample["text"]:
+        fpInfo = self.encoder.encode(sample["text"])
+        if sample["text"] and fpInfo:
           self.positives[label].append(sample["text"])
 
-        # Only add negatives when training on one sample so we know which
-        # labels to use
-        if negatives and len(samples) == 1:
-          for neg in negatives:
-            if neg["text"]:
-              self.negatives[label].append(neg["text"])
-        labels_to_update_bitmaps.add(label)
+          # Only add negatives when training on one sample so we know which
+          # labels to use
+          if negatives and len(samples) == 1:
+            for neg in negatives:
+              if neg["text"]:
+                self.negatives[label].append(neg["text"])
+          labels_to_update_bitmaps.add(label)
 
     for label in labels_to_update_bitmaps:
       self.categoryBitmaps[label] = self.client.createClassification(
