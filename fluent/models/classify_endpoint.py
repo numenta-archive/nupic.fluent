@@ -50,8 +50,8 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.w = int((self.encoder.targetSparsity/100) * self.n)
 
     self.categoryBitmaps = {}
-    self.negatives = {}
-    self.positives = {}
+    self.negatives = defaultdict(list)
+    self.positives = defaultdict(list)
 
 
   def encodePattern(self, sample):
@@ -91,35 +91,37 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.categoryBitmaps.clear()
 
 
-  def trainModel(self, sample, labels, negatives=None):
+  def trainModel(self, samples, labels, negatives=None):
     """
     Train the classifier on the input sample and label. Use Cortical.io's
     createClassification to make a bitmap that represents the class
 
-    @param sample     (dict)            The sample text, sparsity, and bitmap.
-    @param labels     (numpy array)     Reference indices for the
-                                        classifications of this sample.
+    @param samples    (list)            List of dictionaries containing the
+                                        sample text, sparsity, and bitmap.
+    @param labels     (list)            List of numpy arrays containing the
+                                        reference indices for the
+                                        classifications of each sample.
     @param negatives  (list)            Each item is the dictionary containing
                                         text, sparsity and bitmap for the
                                         negative samples.
 
     TODO: move Cortical.io client logic to CioEncoder.
     """
-    for label in labels:
-      if label not in self.positives:
-        self.positives[label] = []
+    labels_to_update_bitmaps = set()
+    for sample,sample_labels in zip(samples, labels):
+      for label in sample_labels:
+        if sample["text"]:
+          self.positives[label].append(sample["text"])
 
-      if sample["text"]:
-        self.positives[label].append(sample["text"])
+        # Only add negatives when training on one sample so we know which
+        # labels to use
+        if negatives and len(samples) == 1:
+          for neg in negatives:
+            if neg["text"]:
+              self.negatives[label].append(neg["text"])
+        labels_to_update_bitmaps.add(label)
 
-      if label not in self.negatives:
-        self.negatives[label] = []
-
-      if negatives:
-        for neg in negatives:
-          if neg["text"]:
-            self.negatives[label].append(neg["text"])
-
+    for label in labels_to_update_bitmaps:
       self.categoryBitmaps[label] = self.client.createClassification(
           str(label),
           self.positives[label],
