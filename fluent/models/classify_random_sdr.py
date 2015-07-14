@@ -111,10 +111,10 @@ class ClassificationModelRandomSDR(ClassificationModel):
     """
     # This experiment classifies individual tokens w/in each sample. Train the
     # classifier on each token.
-    for sample,l in zip(samples, labels):
+    for sample,sample_labels in zip(samples, labels):
       for token in sample:
         if not token: continue
-        for label in l:
+        for label in sample_labels:
           self.classifier.learn(token["bitmap"], label, isSparse=self.n)
 
 

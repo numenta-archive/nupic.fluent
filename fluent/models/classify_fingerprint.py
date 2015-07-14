@@ -97,9 +97,9 @@ class ClassificationModelFingerprint(ClassificationModel):
                                       reference indices for the classifications
                                       of each sample.
     """
-    for sample,l in zip(samples, labels):
+    for sample,sample_labels in zip(samples, labels):
       if sample["bitmap"].any():
-        for label in l:
+        for label in sample_labels:
           self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
 
 
