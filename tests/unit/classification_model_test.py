@@ -48,15 +48,11 @@ class ClassificationModelTest(unittest.TestCase):
     self.assertTrue(numpy.allclose(topLabels, numpy.array([2, 0])),
                     "Output should be labels 2 and 0.")
 
-    # Test tie is broken by the later index; label 4 beats out label 1.
-    topLabels = model.getWinningLabels(inferenceResult, numLabels=3)
-    self.assertTrue(numpy.allclose(topLabels, numpy.array([2, 0, 4])),
-                    "Output should be labels 2, 0, and 1.")
-
     # Test only nonzero labels are returned.
+    inferenceResult = numpy.array([3, 0, 4, 0, 0, 0])
     topLabels = model.getWinningLabels(inferenceResult, numLabels=5)
-    self.assertTrue(numpy.allclose(topLabels, numpy.array([2, 0, 4, 1])),
-                    "Output should be labels 2, 0, 1, and 4.")
+    self.assertTrue(numpy.allclose(topLabels, numpy.array([2, 0])),
+                    "Output should be labels 2 and 0.")
 
 
   def testNoWinningLabels(self):
@@ -112,11 +108,11 @@ class ClassificationModelTest(unittest.TestCase):
     """Tests simple classification with multiple labels for randomSDR model."""
     model = ClassificationModelRandomSDR()
 
-    samples =[(["Pickachu"], numpy.array([0, 2])),
+    samples =[(["Pickachu"], numpy.array([0, 2, 2])),
               (["Eevee"], numpy.array([2])),
-              (["Charmander"], numpy.array([0, 1])),
+              (["Charmander"], numpy.array([0, 1, 1])),
               (["Abra"], numpy.array([1])),
-              (["Squirtle"], numpy.array([1, 0]))]
+              (["Squirtle"], numpy.array([1, 0, 1]))]
 
     patterns = [{"pattern": model.encodePattern(s[0]),
                  "labels": s[1]}

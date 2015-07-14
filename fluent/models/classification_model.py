@@ -101,7 +101,9 @@ class ClassificationModel(object):
       >>> winners = getWinningLabels(labelFreq, numLabels=3)
       >>> print winners
       array([1, 3])
-    Note indices of nonzero values are not included in the returned array.
+    Note:
+      - indices of nonzero values are not included in the returned array
+      - ties are handled randomly
 
     @param labelFreq    (numpy.array)   Ints that (in this context) represent
                                         the frequency of inferred labels.
@@ -110,12 +112,11 @@ class ClassificationModel(object):
     @return             (numpy.array)   Indicates largest elements in labelFreq,
                                         sorted greatest to least. Length is up
                                         to numLabels.
-
-    TODO: handle ties in argsort
     """
-    # Note: numpy.argsort favors items later in the array, so for ties, later
-    # items are selected first.
-    winners = labelFreq.argsort()[::-1][:numLabels]
+    # The use of numpy.lexsort() here is to first sort by labelFreq, then sort
+    # by random values; this breaks ties in a random manner.
+    randomValues = numpy.random.random(labelFreq.size)
+    winners = numpy.lexsort((randomValues, labelFreq))[::-1][:numLabels]
 
     return numpy.array([i for i in winners if labelFreq[i] > 0])
 
