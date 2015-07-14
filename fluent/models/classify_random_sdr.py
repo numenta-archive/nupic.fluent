@@ -98,22 +98,24 @@ class ClassificationModelRandomSDR(ClassificationModel):
     self.classifier.clear()
 
 
-  def trainModel(self, sample, labels):
+  def trainModel(self, samples, labels):
     """
     Train the classifier on the input sample and label. This model is unique in
     that a single sample contains multiple encoded patterns.
 
-    @param sample      (list)         List of dicts, each representing the
-                                      encoding of one token in the sample.
-    @param labels      (numpy array)  Reference indices for the classifications
-                                      of this sample.
+    @param samples    (list)          List of list of dicts, each representing
+                                      the encoding of one token in a sample.
+    @param labels     (list)          List of numpy arrays containing the
+                                      reference indices for the classifications
+                                      of each sample.
     """
     # This experiment classifies individual tokens w/in each sample. Train the
     # classifier on each token.
-    for s in sample:
-      if not s: continue
-      for label in labels:
-        self.classifier.learn(s["bitmap"], label, isSparse=self.n)
+    for sample,sample_labels in zip(samples, labels):
+      for token in sample:
+        if not token: continue
+        for label in sample_labels:
+          self.classifier.learn(token["bitmap"], label, isSparse=self.n)
 
 
   def testModel(self, sample, numLabels=3):

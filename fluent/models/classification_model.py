@@ -330,7 +330,7 @@ class ClassificationModel(object):
     raise NotImplementedError
 
 
-  def trainModel(self, sample, labels):
+  def trainModel(self, samples, labels):
     raise NotImplementedError
 
 

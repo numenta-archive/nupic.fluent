@@ -87,17 +87,20 @@ class ClassificationModelFingerprint(ClassificationModel):
     self.classifier.clear()
 
 
-  def trainModel(self, sample, labels):
+  def trainModel(self, samples, labels):
     """
     Train the classifier on the input sample and labels.
 
-    @param sample     (dict)          The sample text, sparsity, and bitmap.
-    @param labels     (numpy array)   Reference indices for the classifications
-                                      of this sample.
+    @param samples    (list)          List of dictionaries containing the
+                                      sample text, sparsity, and bitmap.
+    @param labels     (list)          List of numpy arrays containing the
+                                      reference indices for the classifications
+                                      of each sample.
     """
-    if sample["bitmap"].any():
-      for label in labels:
-        self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
+    for sample,sample_labels in zip(samples, labels):
+      if sample["bitmap"].any():
+        for label in sample_labels:
+          self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
 
 
   def testModel(self, sample, numLabels=3):
