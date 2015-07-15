@@ -231,11 +231,12 @@ class Runner(object):
   def training(self, trial):
     """
     Train the model one-by-one on each pattern specified in this trials
-    partition of indices.
+    partition of indices. Models' training methods require the sample and label
+    to be in a list.
     """
     for i in self.partitions[trial][0]:
-      self.model.trainModel(self.patterns[i]["pattern"],
-                            self.patterns[i]["labels"])
+      self.model.trainModel([self.patterns[i]["pattern"]],
+                            [self.patterns[i]["labels"]])
 
 
   def testing(self, trial):
