@@ -49,7 +49,7 @@ def readCSV(csvFile, sampleIdx, numLabels):
       labelIdx = range(sampleIdx + 1, sampleIdx + 1 + numLabels)
 
       for line in reader:
-        dataDict[line[sampleIdx]] = [line[i] for i in labelIdx if line[i]]
+        dataDict[line[0]] = (line[sampleIdx], [line[i] for i in labelIdx if line[i]])
     
       return dataDict
 

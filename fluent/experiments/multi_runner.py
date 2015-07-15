@@ -88,41 +88,43 @@ class MultiRunner(Runner):
     self.labelRefs = self.dataDict.keys()
 
     for category, samples in self.dataDict.iteritems():
-      for comment, labels in samples.iteritems():
-        self.dataDict[category][comment] = numpy.array(
-            [self.labelRefs.index(label) for label in labels])
+      for id, data in samples.iteritems():
+        comment, labels = data
+        self.dataDict[category][id] = (comment, numpy.array(
+            [self.labelRefs.index(label) for label in labels]))
 
     if self.testDict:
-      for comment, labels in self.testDict.iteritems():
-        self.testDict[comment] = numpy.array(
-            [self.labelRefs.index(label) for label in labels])
+      for id, data in self.testDict.iteritems():
+        comment, labels = data
+        self.testDict[comment] = (comment, numpy.array(
+            [self.labelRefs.index(label) for label in labels]))
 
 
   def _preprocess(self, preprocess):
     """Tokenize the samples, with or without preprocessing."""
     texter = TextPreprocess()
     if preprocess:
-      self.samples = {category: [(texter.tokenize(sample,
+      self.samples = {category: [(texter.tokenize(data[0],
                                                   ignoreCommon=100,
                                                   removeStrings=["identifier deleted]"],
-                                                  correctSpell=True), labels)
-                      for sample, labels in samples.iteritems()]
+                                                  correctSpell=True), data[1], id)
+                      for id, data in samples.iteritems()]
                       for category, samples in self.dataDict.iteritems()}
 
       if self.testDict:
-        self.testSamples = [(texter.tokenize(sample,
+        self.testSamples = [(texter.tokenize(data[0],
                                             ignoreCommon=100,
                                             removeStrings=["identifier deleted]"],
-                                            correctSpell=True), labels)
-                            for sample, labels in self.testDict.iteritems()]
+                                            correctSpell=True), data[1], id)
+                            for id, data in self.testDict.iteritems()]
     else:
-      self.samples = {category: [(texter.tokenize(sample), labels)
-                      for sample, labels in samples.iteritems()]
+      self.samples = {category: [(texter.tokenize(data[0]), data[1], id)
+                      for id, data in samples.iteritems()]
                       for category, samples in self.dataDict.iteritems()}
 
       if self.testDict:
-        self.testSamples = [(texter.tokenize(sample), labels)
-                            for sample, labels in self.testDict.iteritems()]
+        self.testSamples = [(texter.tokenize(data[0]), data[1], id)
+                            for id, data in self.testDict.iteritems()]
 
 
   def setupData(self, preprocess=False, sampleIdx=2):
@@ -156,11 +158,13 @@ class MultiRunner(Runner):
     labels.
     """
     self.patterns = {category: [{"pattern": self.model.encodePattern(sample),
-                                "labels": labels} for sample, labels in samples]
-                    for category, samples in self.dataDict.iteritems()}
+                                "labels": labels,
+                                "id": id} for sample, labels, id in samples]
+                    for category, samples in self.samples.iteritems()}
 
     self.testPatterns = [{"pattern": self.model.encodePattern(sample),
-                          "labels": labels} for sample, labels in samples]
+                          "labels": labels,
+                          "id": id} for sample, labels, id in self.testSamples]
 
     self.model.logEncodings(self.patterns, self.modelPath)
 
@@ -182,13 +186,11 @@ class MultiRunner(Runner):
     results = ([], [])
     if test:
       # Test the file that was provided
-      for testInstance in self.testPatterns:
-        # TODO: Ignore ones that are used for training
-        predicted = self.model.testModel(testInstance["pattern"])
-        results[0].append(predicted)
-        results[1].append(testInstance["labels"])
-    else:
       for i in self.partitions[trial][1]:
+        predicted = self.model.testModel(self.testPatterns[i]["pattern"])
+        results[0].append(predicted)
+        results[1].append(self.testPatterns[i]["labels"])
+    else:
         predicted = self.model.testModel(self.patterns[i]["pattern"])
         results[0].append(predicted)
         results[1].append(self.patterns[i]["labels"])
@@ -216,7 +218,8 @@ class MultiRunner(Runner):
       trainIdxs.append(trainIdx)
 
       if self.test:
-        testsIdx = range(len(self.testSamples))
+        trainIdSet = set([self.patterns[category][i]["id"] for i in trainIdx])
+        testIdx = [i for i, testInstance in enumerate(self.testPatterns) if testInstance["id"] not in trainIdSet]
 
       testIdxs.append(testIdx)
 
