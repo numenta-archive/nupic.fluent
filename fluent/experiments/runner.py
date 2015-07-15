@@ -234,8 +234,8 @@ class Runner(object):
     partition of indices.
     """
     for i in self.partitions[trial][0]:
-      self.model.trainModel(self.patterns[i]["pattern"],
-                            self.patterns[i]["labels"])
+      self.model.trainModel([self.patterns[i]["pattern"]],
+                            [self.patterns[i]["labels"]])
 
 
   def testing(self, trial):
