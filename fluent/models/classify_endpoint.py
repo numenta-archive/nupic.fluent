@@ -107,21 +107,22 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     TODO: move Cortical.io client logic to CioEncoder.
     """
-    labels_to_update_bitmaps = set()
-    for sample, sample_labels in zip(samples, labels):
-      for label in sample_labels:
-        if sample["text"]:
+    labelsToUpdateBitmaps = set()
+    for sample, sampleLabels in zip(samples, labels):
+      for label in sampleLabels:
+        fpInfo = self.encoder.encode(sample["text"])
+        if sample["text"] and fpInfo:
           self.positives[label].append(sample["text"])
 
-        # Only add negatives when training on one sample so we know which
-        # labels to use
-        if negatives and len(samples) == 1:
-          for neg in negatives:
-            if neg["text"]:
-              self.negatives[label].append(neg["text"])
-        labels_to_update_bitmaps.add(label)
+          # Only add negatives when training on one sample so we know which
+          # labels to use
+          if negatives and len(samples) == 1:
+            for neg in negatives:
+              if neg["text"]:
+                self.negatives[label].append(neg["text"])
+          labelsToUpdateBitmaps.add(label)
 
-    for label in labels_to_update_bitmaps:
+    for label in labelsToUpdateBitmaps:
       self.categoryBitmaps[label] = self.client.createClassification(
           str(label),
           self.positives[label],
