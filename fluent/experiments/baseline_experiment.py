@@ -157,12 +157,16 @@ def setupData(args):
                                     for label in labels],
                                     dtype="int8")
 
-  texter = TextPreprocess()
+  texter = TextPreprocess(abbrCSV=args.abbrCSV, contrCSV=args.contrCSV)
+  expandAbbr = (args.abbrCSV != "")
+  expandContr = (args.contrCSV != "")
   if args.textPreprocess:
     samples = [(texter.tokenize(sample,
                                 ignoreCommon=100,
                                 removeStrings=["[identifier deleted]"],
-                                correctSpell=True),
+                                correctSpell=True,
+                                expandAbbr=expandAbbr,
+                                expandContr=expandContr),
                labels) for sample, labels in dataDict.iteritems()]
   else:
     samples = [(texter.tokenize(sample), labels)
@@ -326,6 +330,12 @@ if __name__ == "__main__":
                       type=bool,
                       help="Whether to preprocess text",
                       default=False)
+  parser.add_argument("--contrCSV",
+                      default="",
+                      help="Path to contraction csv")
+  parser.add_argument("--abbrCSV",
+                      default="",
+                      help="Path to abbreviation csv")
   parser.add_argument("--batch",
                       help="Train the model with all the data at one time",
                       action="store_true")
