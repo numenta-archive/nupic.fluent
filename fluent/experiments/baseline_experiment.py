@@ -270,9 +270,12 @@ def run(args):
           [labelReference[idx[0]] if idx[0] != None else '(none)' for idx in p])
 
       print "Calculating intermediate results for this fold. Writing to CSV."
-      intermResults.append(calculateResults(
+      (accuracy, cm) = calculateResults(
         model, trialResults, labelReference, partitions[k][1],
-        os.path.join(modelPath, "evaluation_fold_" + str(k) + ".csv")))
+        os.path.join(modelPath, "evaluation_fold_" + str(k) + ".csv"))
+      print "Accuracy after fold %d is %f" %(k, accuracy)
+
+      intermResults.append((accuracy, cm))
 
     print "Calculating cumulative results for {0} trials.".format(args.kFolds)
     results = model.evaluateCumulativeResults(intermResults)

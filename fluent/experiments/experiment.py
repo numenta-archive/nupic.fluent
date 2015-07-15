@@ -130,8 +130,8 @@ if __name__ == "__main__":
   parser.add_argument("--orderedSplit",
                       default=False,
                       action="store_true",
-                      help="To split the train and test sets, True will split "
-                            "the samples randomly, False will allocate the "
+                      help="To split the train and test sets, False will split "
+                            "the samples randomly, True will allocate the "
                             "first n samples to training with the remainder "
                             "for testing.")
   parser.add_argument("--trainSize",
