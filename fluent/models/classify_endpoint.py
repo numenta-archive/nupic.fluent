@@ -108,7 +108,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     TODO: move Cortical.io client logic to CioEncoder.
     """
     labels_to_update_bitmaps = set()
-    for sample,sample_labels in zip(samples, labels):
+    for sample, sample_labels in zip(samples, labels):
       for label in sample_labels:
         if sample["text"]:
           self.positives[label].append(sample["text"])

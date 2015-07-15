@@ -111,7 +111,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
     """
     # This experiment classifies individual tokens w/in each sample. Train the
     # classifier on each token.
-    for sample,sample_labels in zip(samples, labels):
+    for sample, sample_labels in zip(samples, labels):
       for token in sample:
         if not token: continue
         for label in sample_labels:
