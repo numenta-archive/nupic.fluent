@@ -51,6 +51,7 @@ class ClassificationModelContext(ClassificationModel):
     self.w = int((self.encoder.targetSparsity / 100) * self.n)
 
     self.categoryBitmaps = {}
+    self.numLabels = numLabels
 
 
   def encodePattern(self, pattern):
@@ -160,7 +161,8 @@ class ClassificationModelContext(ClassificationModel):
     for cat, catBitmap in self.categoryBitmaps.iteritems():
       distances[cat] = self.client.compare(sampleBitmap, catBitmap.tolist())
 
-    return self.winningLabels(distances, numberCats=1, metric="overlappingAll")  ## TODO: how do we handle return values of []? or len(winners)<numberCats?
+    return self.winningLabels(distances, numberCats=self.numLabels,
+      metric="overlappingAll") 
 
 
   @staticmethod
