@@ -31,6 +31,7 @@ import pprint
 import time
 
 from fluent.experiments.runner import Runner
+from fluent.experiments.multi_runner import MultiRunner
 from fluent.utils.plotting import PlotNLP
 
 
@@ -55,18 +56,31 @@ def run(args):
   root = os.path.dirname(os.path.realpath(__file__))
   resultsDir = os.path.join(root, args.resultsDir)
 
-  runner = Runner(dataPath=args.dataPath,
-                  test=args.test,
-                  resultsDir=resultsDir,
-                  experimentName=args.experimentName,
-                  load=args.load,
-                  modelName=args.modelName,
-                  modelModuleName=args.modelModuleName,
-                  numClasses=args.numClasses,
-                  plots=args.plots,
-                  orderedSplit=args.orderedSplit,
-                  trainSize=args.trainSize,
-                  verbosity=args.verbosity)
+  if os.path.isdir(args.dataPath):
+    runner = MultiRunner(dataPath=args.dataPath,
+                         resultsDir=resultsDir,
+                         experimentName=args.experimentName,
+                         load=args.load,
+                         modelName=args.modelName,
+                         modelModuleName=args.modelModuleName,
+                         numClasses=args.numClasses,
+                         plots=args.plots,
+                         orderedSplit=args.orderedSplit,
+                         trainSize=args.trainSize,
+                         verbosity=args.verbosity,
+                         test=args.test)
+  else:
+    runner = Runner(dataPath=args.dataPath,
+                    resultsDir=resultsDir,
+                    experimentName=args.experimentName,
+                    load=args.load,
+                    modelName=args.modelName,
+                    modelModuleName=args.modelModuleName,
+                    numClasses=args.numClasses,
+                    plots=args.plots,
+                    orderedSplit=args.orderedSplit,
+                    trainSize=args.trainSize,
+                    verbosity=args.verbosity)
 
   runner.initModel()
 
