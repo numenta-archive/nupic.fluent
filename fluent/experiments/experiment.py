@@ -56,6 +56,7 @@ def run(args):
   resultsDir = os.path.join(root, args.resultsDir)
 
   runner = Runner(dataPath=args.dataPath,
+                  test=args.test,
                   resultsDir=resultsDir,
                   experimentName=args.experimentName,
                   load=args.load,
@@ -98,7 +99,10 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
   parser.add_argument("dataPath",
-                      help="absolute path to data CSV.")
+                      help="absolute path to data CSV or folder of CSVs.")
+  parser.add_argument("--test", default=None,
+                      help="path to data CSV to use for testing if provided.\
+                      Otherwise will test on \'dataPath\'")
   parser.add_argument("-e", "--experimentName",
                       default="survey_baseline_example",
                       type=str,
