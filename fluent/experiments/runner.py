@@ -42,7 +42,6 @@ class Runner(object):
 
   def __init__(self,
                dataPath,
-               test,
                resultsDir,
                experimentName,
                load,
@@ -54,8 +53,7 @@ class Runner(object):
                trainSize,
                verbosity):
     """
-    @param dataPath         (str)     Path to raw data file(s) for the experiment.
-    @param test             (str)     Path to raw data file for testing or None
+    @param dataPath         (str)     Path to raw data file for the experiment.
     @param resultsDir       (str)     Directory where for the results metrics.
     @param experimentName   (str)     Experiment name, used for saving results.
     @param load             (bool)    True if a serialized model is to be
@@ -72,7 +70,6 @@ class Runner(object):
     """
     self.dataPath = dataPath
     self.resultsDir = resultsDir
-    self.test = test
     self.experimentName = experimentName
     self.load = load
     self.modelName = modelName
