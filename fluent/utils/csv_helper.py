@@ -23,8 +23,9 @@ This file contains CSV utility functions to use with nupic.fluent experiments.
 """
 
 import csv
+import os
 
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 
 
 def readCSV(csvFile, sampleIdx, numLabels):
@@ -55,6 +56,36 @@ def readCSV(csvFile, sampleIdx, numLabels):
 
   except IOError as e:
     print e
+
+def readDir(dirPath, sampleIdx, numLabels, modify=False):
+  """
+  Reads in data from a directory of CSV files; assumes the directory only
+  contains CSV files.
+  
+  @param dirPath            (str)          Path to the directory.
+  @param sampleIdx          (int)          Column number of the text samples.
+  @param numLabels          (int)          Number of columns of category labels.
+  @param modify             (bool)         Map the unix friendly category names
+                                           to the actual names. 0 -> /, _ -> " "
+  
+  @return samplesDict       (defaultdict)  Keys are CSV names, values are
+      OrderedDicts, where the keys/values are as specified in readCSV().
+  
+  @return randoSamplesDict  (defaultdict)  Copy of samplesDict, but the order of
+      samples in each OrderedDict item is randomized.
+  """
+  samplesDict = defaultdict(list)
+  for _, _, files in os.walk(dirPath):
+    for f in files:
+      basename = os.path.splitext(os.path.basename(f))[0]
+      if "." in basename:
+        category = basename.split(".")[-1]
+        if modify:
+          category = category.replace("0", "/")
+          category = category.replace("_", " ")
+        samplesDict[category] = readCSV(os.path.join(dirPath, f), sampleIdx, numLabels)
+
+  return samplesDict
 
 
 def writeCSV(data, headers, csvFile):
