@@ -126,7 +126,9 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
   Compute the accuracy of the models predictions against what we expect it to
   predict; considers only single classification.
   """
-  _, expectedLabels = readCSV(dataPath, 2, [3])
+  dataDict = readCSV(dataPath, 2, [3])
+  expectedLabels = [data[1] for id, data in dataDict.iteritems()]
+
   if len(expectedLabels) != len(predictedLabels):
     raise ValueError("Lists of labels must have the same length.")
 
