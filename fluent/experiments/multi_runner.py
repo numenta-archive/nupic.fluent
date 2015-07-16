@@ -39,7 +39,7 @@ from fluent.utils.text_preprocess import TextPreprocess
 class MultiRunner(Runner):
   """
   Class to run the baseline NLP experiments with the specified data, models,
-  text processing, and evaluation metrics.
+  text processing, and evaluation metrics. This requires dataPath to be a directory
   """
 
   def __init__(self,
