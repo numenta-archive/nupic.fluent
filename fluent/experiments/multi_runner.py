@@ -184,17 +184,20 @@ class MultiRunner(Runner):
     results = ([], [])
     if self.test:
       # Test the file that was provided
-      for i in self.partitions[trial][1][0]:
+      for i in self.partitions[trial][1]:
         predicted = self.model.testModel(self.testPatterns[i]["pattern"])
         results[0].append(predicted)
         results[1].append(self.testPatterns[i]["labels"])
     else:
+      flattenedPartition = []
       for labelRef, categoryIndices in enumerate(self.partitions[trial][1]):
         category = self.labelRefs[labelRef]
         for i in categoryIndices:
           predicted = self.model.testModel(self.patterns[i]["pattern"])
           results[0].append(predicted)
           results[1].append(self.patterns[i]["labels"])
+        flattenedPartition += categoryIndices
+      self.partitions[trial][1] = flattenedPartition
 
     self.results.append(results)
 
@@ -223,6 +226,6 @@ class MultiRunner(Runner):
       trainIdSet.update([self.patterns[label][i]["id"] for i in trainIdx])
 
     if self.test:
-      testIdxs = [[i for i, testInstance in enumerate(self.testPatterns) if testInstance["id"] not in trainIdSet]]
+      testIdxs = [i for i, testInstance in enumerate(self.testPatterns) if testInstance["id"] not in trainIdSet]
 
     return (trainIdxs, testIdxs)
