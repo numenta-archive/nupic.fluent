@@ -29,7 +29,7 @@ import random
 from collections import defaultdict
 
 from fluent.experiments.runner import Runner
-from fluent.utils.csv_helper import readCSV
+from fluent.utils.csv_helper import readCSV, readDir
 from fluent.utils.plotting import PlotNLP
 
 from fluent.utils.text_preprocess import TextPreprocess
@@ -96,7 +96,7 @@ class MultiRunner(Runner):
     if self.testDict:
       for id, data in self.testDict.iteritems():
         comment, labels = data
-        self.testDict[comment] = (comment, numpy.array(
+        self.testDict[id] = (comment, numpy.array(
             [self.labelRefs.index(label) for label in labels]))
 
 
@@ -133,7 +133,7 @@ class MultiRunner(Runner):
     One index in labelIdx implies the model will train on a single
     classification per sample.
     """
-    self.dataDict = readDir(self.dataPath, sampleIdx, self.numClasses)
+    self.dataDict = readDir(self.dataPath, sampleIdx, self.numClasses, True)
 
     if self.test:
       self.testDict = readCSV(self.test, sampleIdx, self.numClasses)
@@ -153,7 +153,7 @@ class MultiRunner(Runner):
 
   def encodeSamples(self):
     """
-    Encode the text samples into bitmap patterns, and log to txt file. The
+    Encode the text samples into bitmap patterns. The
     encoded patterns are stored in a dict along with their corresponding class
     labels.
     """
@@ -165,8 +165,6 @@ class MultiRunner(Runner):
     self.testPatterns = [{"pattern": self.model.encodePattern(sample),
                           "labels": labels,
                           "id": id} for sample, labels, id in self.testSamples]
-
-    self.model.logEncodings(self.patterns, self.modelPath)
 
 
   def training(self, trial):
@@ -184,16 +182,19 @@ class MultiRunner(Runner):
 
   def testing(self, trial):
     results = ([], [])
-    if test:
+    if self.test:
       # Test the file that was provided
-      for i in self.partitions[trial][1]:
+      for i in self.partitions[trial][1][0]:
         predicted = self.model.testModel(self.testPatterns[i]["pattern"])
         results[0].append(predicted)
         results[1].append(self.testPatterns[i]["labels"])
     else:
-        predicted = self.model.testModel(self.patterns[i]["pattern"])
-        results[0].append(predicted)
-        results[1].append(self.patterns[i]["labels"])
+      for labelRef, categoryIndices in enumerate(self.partitions[trial][1]):
+        category = self.labelRefs[labelRef]
+        for i in categoryIndices:
+          predicted = self.model.testModel(self.patterns[i]["pattern"])
+          results[0].append(predicted)
+          results[1].append(self.patterns[i]["labels"])
 
     self.results.append(results)
 
@@ -206,6 +207,7 @@ class MultiRunner(Runner):
     """
     trainIdxs = []
     testIdxs = []
+    trainIdSet = set()
     for i, label in enumerate(self.labelRefs):
       length = len(self.samples[label])
       if self.orderedSplit:
@@ -216,11 +218,11 @@ class MultiRunner(Runner):
         trainIdx = random.sample(xrange(length), split)
         testIdx = [i for i in xrange(length) if i not in trainIdx]
       trainIdxs.append(trainIdx)
-
-      if self.test:
-        trainIdSet = set([self.patterns[category][i]["id"] for i in trainIdx])
-        testIdx = [i for i, testInstance in enumerate(self.testPatterns) if testInstance["id"] not in trainIdSet]
-
       testIdxs.append(testIdx)
+
+      trainIdSet.update([self.patterns[label][i]["id"] for i in trainIdx])
+
+    if self.test:
+      testIdxs = [[i for i, testInstance in enumerate(self.testPatterns) if testInstance["id"] not in trainIdSet]]
 
     return (trainIdxs, testIdxs)
