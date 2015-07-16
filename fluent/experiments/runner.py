@@ -93,6 +93,7 @@ class Runner(object):
     self.labelRefs = None
     self.partitions = []
     self.samples = None
+    self.patterns = None
     self.results = []
 
 
