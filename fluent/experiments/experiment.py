@@ -86,7 +86,7 @@ def run(args):
 
   print "Reading in data and preprocessing."
   dataTime = time.time()
-  runner.setupData()
+  runner.setupData(args.textPreprocess)
   print ("Data setup complete; elapsed time is {0:.2f} seconds.\nNow encoding "
         "the data".format(time.time() - dataTime))
 
@@ -133,6 +133,9 @@ if __name__ == "__main__":
   parser.add_argument("--resultsDir",
                       default="results",
                       help="This will hold the experiment results.")
+  parser.add_argument("--textPreprocess",
+                      action="store_true",
+                      help="Whether or not to use text preprocessing.")
   parser.add_argument("--load",
                       help="Load the serialized model.",
                       default=False)
