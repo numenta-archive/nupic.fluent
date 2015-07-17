@@ -19,18 +19,12 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import collections
-import cPickle as pkl
-import itertools
 import numpy
 import os
 import random
 
-from collections import defaultdict
-
 from fluent.experiments.runner import Runner
 from fluent.utils.csv_helper import readCSV, readDir
-from fluent.utils.plotting import PlotNLP
 
 from fluent.utils.text_preprocess import TextPreprocess
 
@@ -162,9 +156,10 @@ class MultiRunner(Runner):
                                 "id": id} for sample, labels, id in samples]
                     for category, samples in self.samples.iteritems()}
 
-    self.testPatterns = [{"pattern": self.model.encodePattern(sample),
-                          "labels": labels,
-                          "id": id} for sample, labels, id in self.testSamples]
+    if self.testSamples:
+      self.testPatterns = [{"pattern": self.model.encodePattern(sample),
+                            "labels": labels,
+                            "id": id} for sample, labels, id in self.testSamples]
 
 
   def training(self, trial):
@@ -182,7 +177,7 @@ class MultiRunner(Runner):
 
   def testing(self, trial):
     results = ([], [])
-    if self.test:
+    if self.testPatterns:
       # Test the file that was provided
       for i in self.partitions[trial][1]:
         predicted = self.model.testModel(self.testPatterns[i]["pattern"])
@@ -193,11 +188,12 @@ class MultiRunner(Runner):
       for labelRef, categoryIndices in enumerate(self.partitions[trial][1]):
         category = self.labelRefs[labelRef]
         for i in categoryIndices:
-          predicted = self.model.testModel(self.patterns[i]["pattern"])
+          predicted = self.model.testModel(self.patterns[category][i]["pattern"])
           results[0].append(predicted)
-          results[1].append(self.patterns[i]["labels"])
+          results[1].append(self.patterns[category][i]["labels"])
         flattenedPartition += categoryIndices
-      self.partitions[trial][1] = flattenedPartition
+      # The indices need to be flattened so classification_model can print them
+      self.partitions[trial] = (self.partitions[trial][0], flattenedPartition)
 
     self.results.append(results)
 

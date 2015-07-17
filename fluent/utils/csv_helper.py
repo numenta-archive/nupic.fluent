@@ -77,8 +77,8 @@ def readDir(dirPath, sampleIdx, numLabels, modify=False):
   samplesDict = defaultdict(list)
   for _, _, files in os.walk(dirPath):
     for f in files:
-      basename = os.path.splitext(os.path.basename(f))[0]
-      if "." in basename:
+      basename, extension = os.path.splitext(os.path.basename(f))
+      if "." in basename and extension == ".csv":
         category = basename.split(".")[-1]
         if modify:
           category = category.replace("0", "/")
