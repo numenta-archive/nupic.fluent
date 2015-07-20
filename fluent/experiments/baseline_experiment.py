@@ -127,7 +127,7 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
   predict; considers only single classification.
   """
   dataDict = readCSV(dataPath, 2, [3])
-  expectedLabels = [data[1] for id, data in dataDict.iteritems()]
+  expectedLabels = [data[1] for _, data in dataDict.iteritems()]
 
   if len(expectedLabels) != len(predictedLabels):
     raise ValueError("Lists of labels must have the same length.")
@@ -154,9 +154,9 @@ def setupData(args):
   labelReference = list(set(
     itertools.chain.from_iterable(map(lambda x: x[1], dataDict.values()))))
 
-  for id, data in dataDict.iteritems():
+  for idx, data in dataDict.iteritems():
     comment, labels = data
-    dataDict[id] = (comment, numpy.array([labelReference.index(label)
+    dataDict[idx] = (comment, numpy.array([labelReference.index(label)
                                     for label in labels],
                                     dtype="int8"))
 
@@ -170,10 +170,10 @@ def setupData(args):
                                 correctSpell=True,
                                 expandAbbr=expandAbbr,
                                 expandContr=expandContr),
-               data[1]) for id, data in dataDict.iteritems()]
+               data[1]) for _, data in dataDict.iteritems()]
   else:
     samples = [(texter.tokenize(data[0]), data[1])
-               for id, data in dataDict.iteritems()]
+               for _, data in dataDict.iteritems()]
 
   return samples, labelReference
 

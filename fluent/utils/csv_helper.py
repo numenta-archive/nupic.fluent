@@ -70,9 +70,6 @@ def readDir(dirPath, sampleIdx, numLabels, modify=False):
   
   @return samplesDict       (defaultdict)  Keys are CSV names, values are
       OrderedDicts, where the keys/values are as specified in readCSV().
-  
-  @return randoSamplesDict  (defaultdict)  Copy of samplesDict, but the order of
-      samples in each OrderedDict item is randomized.
   """
   samplesDict = defaultdict(list)
   for _, _, files in os.walk(dirPath):

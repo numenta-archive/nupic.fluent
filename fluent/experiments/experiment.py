@@ -135,6 +135,7 @@ if __name__ == "__main__":
                       help="This will hold the experiment results.")
   parser.add_argument("--textPreprocess",
                       action="store_true",
+                      default=False,
                       help="Whether or not to use text preprocessing.")
   parser.add_argument("--load",
                       help="Load the serialized model.",

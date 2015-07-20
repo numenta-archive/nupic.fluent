@@ -25,7 +25,6 @@ import random
 
 from fluent.experiments.runner import Runner
 from fluent.utils.csv_helper import readCSV, readDir
-
 from fluent.utils.text_preprocess import TextPreprocess
 
 
@@ -82,15 +81,15 @@ class MultiRunner(Runner):
     self.labelRefs = self.dataDict.keys()
 
     for category, samples in self.dataDict.iteritems():
-      for id, data in samples.iteritems():
+      for idx, data in samples.iteritems():
         comment, labels = data
-        self.dataDict[category][id] = (comment, numpy.array(
+        self.dataDict[category][idx] = (comment, numpy.array(
             [self.labelRefs.index(label) for label in labels]))
 
     if self.testDict:
-      for id, data in self.testDict.iteritems():
+      for idx, data in self.testDict.iteritems():
         comment, labels = data
-        self.testDict[id] = (comment, numpy.array(
+        self.testDict[idx] = (comment, numpy.array(
             [self.labelRefs.index(label) for label in labels]))
 
 
@@ -101,29 +100,29 @@ class MultiRunner(Runner):
       self.samples = {category: [(texter.tokenize(data[0],
                                                   ignoreCommon=100,
                                                   removeStrings=["identifier deleted]"],
-                                                  correctSpell=True), data[1], id)
-                      for id, data in samples.iteritems()]
+                                                  correctSpell=True), data[1], idx)
+                      for idx, data in samples.iteritems()]
                       for category, samples in self.dataDict.iteritems()}
 
       if self.testDict:
         self.testSamples = [(texter.tokenize(data[0],
                                             ignoreCommon=100,
                                             removeStrings=["identifier deleted]"],
-                                            correctSpell=True), data[1], id)
-                            for id, data in self.testDict.iteritems()]
+                                            correctSpell=True), data[1], idx)
+                            for idx, data in self.testDict.iteritems()]
     else:
-      self.samples = {category: [(texter.tokenize(data[0]), data[1], id)
-                      for id, data in samples.iteritems()]
+      self.samples = {category: [(texter.tokenize(data[0]), data[1], idx)
+                      for idx, data in samples.iteritems()]
                       for category, samples in self.dataDict.iteritems()}
 
       if self.testDict:
-        self.testSamples = [(texter.tokenize(data[0]), data[1], id)
-                            for id, data in self.testDict.iteritems()]
+        self.testSamples = [(texter.tokenize(data[0]), data[1], idx)
+                            for idx, data in self.testDict.iteritems()]
 
 
   def setupData(self, preprocess=False, sampleIdx=2):
     """
-    Get the data from CSV and preprocess if specified.
+    Get the data from a directory and preprocess if specified.
     One index in labelIdx implies the model will train on a single
     classification per sample.
     """
@@ -153,13 +152,13 @@ class MultiRunner(Runner):
     """
     self.patterns = {category: [{"pattern": self.model.encodePattern(sample),
                                 "labels": labels,
-                                "id": id} for sample, labels, id in samples]
+                                "id": idx} for sample, labels, idx in samples]
                     for category, samples in self.samples.iteritems()}
 
     if self.testSamples:
       self.testPatterns = [{"pattern": self.model.encodePattern(sample),
                             "labels": labels,
-                            "id": id} for sample, labels, id in self.testSamples]
+                            "id": idx} for sample, labels, idx in self.testSamples]
 
 
   def training(self, trial):
@@ -222,6 +221,7 @@ class MultiRunner(Runner):
       trainIdSet.update([self.patterns[label][i]["id"] for i in trainIdx])
 
     if self.test:
-      testIdxs = [i for i, testInstance in enumerate(self.testPatterns) if testInstance["id"] not in trainIdSet]
+      testIdxs = [i for i, testInstance in enumerate(self.testPatterns)
+          if testInstance["id"] not in trainIdSet]
 
     return (trainIdxs, testIdxs)
