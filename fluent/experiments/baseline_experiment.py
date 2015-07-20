@@ -126,7 +126,9 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
   Compute the accuracy of the models predictions against what we expect it to
   predict; considers only single classification.
   """
-  _, expectedLabels = readCSV(dataPath, 2, [3])
+  dataDict = readCSV(dataPath, 2, [3])
+  expectedLabels = [data[1] for _, data in dataDict.iteritems()]
+
   if len(expectedLabels) != len(predictedLabels):
     raise ValueError("Lists of labels must have the same length.")
 
@@ -150,27 +152,28 @@ def setupData(args):
   # Collect each possible label string into a list, where the indices will be
   # their references throughout the experiment.
   labelReference = list(set(
-      itertools.chain.from_iterable(dataDict.values())))
+    itertools.chain.from_iterable(map(lambda x: x[1], dataDict.values()))))
 
-  for sample, labels in dataDict.iteritems():
-    dataDict[sample] = numpy.array([labelReference.index(label)
+  for idx, data in dataDict.iteritems():
+    comment, labels = data
+    dataDict[idx] = (comment, numpy.array([labelReference.index(label)
                                     for label in labels],
-                                    dtype="int8")
+                                    dtype="int8"))
 
   texter = TextPreprocess(abbrCSV=args.abbrCSV, contrCSV=args.contrCSV)
   expandAbbr = (args.abbrCSV != "")
   expandContr = (args.contrCSV != "")
   if args.textPreprocess:
-    samples = [(texter.tokenize(sample,
+    samples = [(texter.tokenize(data[0],
                                 ignoreCommon=100,
                                 removeStrings=["[identifier deleted]"],
                                 correctSpell=True,
                                 expandAbbr=expandAbbr,
                                 expandContr=expandContr),
-               labels) for sample, labels in dataDict.iteritems()]
+               data[1]) for _, data in dataDict.iteritems()]
   else:
-    samples = [(texter.tokenize(sample), labels)
-               for sample, labels in dataDict.iteritems()]
+    samples = [(texter.tokenize(data[0]), data[1])
+               for _, data in dataDict.iteritems()]
 
   return samples, labelReference
 

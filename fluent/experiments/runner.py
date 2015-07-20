@@ -88,11 +88,12 @@ class Runner(object):
     if self.plots:
       self.plotter = PlotNLP()
 
-    self.dataDice = None
+    self.dataDict = None
     self.labels = None
     self.labelRefs = None
     self.partitions = []
     self.samples = None
+    self.patterns = None
     self.results = []
 
 
@@ -142,25 +143,25 @@ class Runner(object):
   def _mapLabelRefs(self):
     """Replace the label strings in self.dataDict with corresponding ints."""
     self.labelRefs = list(set(
-        itertools.chain.from_iterable(self.dataDict.values())))
+      itertools.chain.from_iterable(map(lambda x:x[1], self.dataDict.values()))))
 
-    for k, v in self.dataDict.iteritems():
-      self.dataDict[k] = numpy.array(
-          [self.labelRefs.index(label) for label in v])
+    for id, data in self.dataDict.iteritems():
+      self.dataDict[id] = (data[0], numpy.array(
+          [self.labelRefs.index(label) for label in data[1]]))
 
 
   def _preprocess(self, preprocess):
     """Tokenize the samples, with or without preprocessing."""
     texter = TextPreprocess()
     if preprocess:
-      self.samples = [(texter.tokenize(sample,
+      self.samples = [(texter.tokenize(data[0],
                                        ignoreCommon=100,
                                        removeStrings=["[identifier deleted]"],
                                        correctSpell=True),
-                      labels) for sample, labels in self.dataDict.iteritems()]
+                      data[1]) for id, data in self.dataDict.iteritems()]
     else:
-      self.samples = [(texter.tokenize(sample), labels)
-                      for sample, labels in self.dataDict.iteritems()]
+      self.samples = [(texter.tokenize(data[0]), data[1])
+                      for id, data in self.dataDict.iteritems()]
 
 
   def setupData(self, preprocess=False, sampleIdx=2):
