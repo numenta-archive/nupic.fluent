@@ -31,6 +31,7 @@ import pprint
 import time
 
 from fluent.experiments.runner import Runner
+from fluent.experiments.multi_runner import MultiRunner
 from fluent.utils.plotting import PlotNLP
 
 
@@ -55,23 +56,37 @@ def run(args):
   root = os.path.dirname(os.path.realpath(__file__))
   resultsDir = os.path.join(root, args.resultsDir)
 
-  runner = Runner(dataPath=args.dataPath,
-                  resultsDir=resultsDir,
-                  experimentName=args.experimentName,
-                  load=args.load,
-                  modelName=args.modelName,
-                  modelModuleName=args.modelModuleName,
-                  numClasses=args.numClasses,
-                  plots=args.plots,
-                  orderedSplit=args.orderedSplit,
-                  trainSize=args.trainSize,
-                  verbosity=args.verbosity)
+  if os.path.isdir(args.dataPath):
+    runner = MultiRunner(dataPath=args.dataPath,
+                         resultsDir=resultsDir,
+                         experimentName=args.experimentName,
+                         load=args.load,
+                         modelName=args.modelName,
+                         modelModuleName=args.modelModuleName,
+                         numClasses=args.numClasses,
+                         plots=args.plots,
+                         orderedSplit=args.orderedSplit,
+                         trainSize=args.trainSize,
+                         verbosity=args.verbosity,
+                         test=args.test)
+  else:
+    runner = Runner(dataPath=args.dataPath,
+                    resultsDir=resultsDir,
+                    experimentName=args.experimentName,
+                    load=args.load,
+                    modelName=args.modelName,
+                    modelModuleName=args.modelModuleName,
+                    numClasses=args.numClasses,
+                    plots=args.plots,
+                    orderedSplit=args.orderedSplit,
+                    trainSize=args.trainSize,
+                    verbosity=args.verbosity)
 
   runner.initModel()
 
   print "Reading in data and preprocessing."
   dataTime = time.time()
-  runner.setupData()
+  runner.setupData(args.textPreprocess)
   print ("Data setup complete; elapsed time is {0:.2f} seconds.\nNow encoding "
         "the data".format(time.time() - dataTime))
 
@@ -98,7 +113,10 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
   parser.add_argument("dataPath",
-                      help="absolute path to data CSV.")
+                      help="absolute path to data CSV or folder of CSVs.")
+  parser.add_argument("--test", default=None,
+                      help="path to data CSV to use for testing if provided.\
+                      Otherwise will test on \'dataPath\'")
   parser.add_argument("-e", "--experimentName",
                       default="survey_baseline_example",
                       type=str,
@@ -115,6 +133,10 @@ if __name__ == "__main__":
   parser.add_argument("--resultsDir",
                       default="results",
                       help="This will hold the experiment results.")
+  parser.add_argument("--textPreprocess",
+                      action="store_true",
+                      default=False,
+                      help="Whether or not to use text preprocessing.")
   parser.add_argument("--load",
                       help="Load the serialized model.",
                       default=False)

@@ -126,7 +126,9 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
   Compute the accuracy of the models predictions against what we expect it to
   predict; considers only single classification.
   """
-  _, expectedLabels = readCSV(dataPath, 2, [3])
+  dataDict = readCSV(dataPath, 2, [3])
+  expectedLabels = [data[1] for _, data in dataDict.iteritems()]
+
   if len(expectedLabels) != len(predictedLabels):
     raise ValueError("Lists of labels must have the same length.")
 
@@ -150,23 +152,28 @@ def setupData(args):
   # Collect each possible label string into a list, where the indices will be
   # their references throughout the experiment.
   labelReference = list(set(
-      itertools.chain.from_iterable(dataDict.values())))
+    itertools.chain.from_iterable(map(lambda x: x[1], dataDict.values()))))
 
-  for sample, labels in dataDict.iteritems():
-    dataDict[sample] = numpy.array([labelReference.index(label)
+  for idx, data in dataDict.iteritems():
+    comment, labels = data
+    dataDict[idx] = (comment, numpy.array([labelReference.index(label)
                                     for label in labels],
-                                    dtype="int8")
+                                    dtype="int8"))
 
-  texter = TextPreprocess()
+  texter = TextPreprocess(abbrCSV=args.abbrCSV, contrCSV=args.contrCSV)
+  expandAbbr = (args.abbrCSV != "")
+  expandContr = (args.contrCSV != "")
   if args.textPreprocess:
-    samples = [(texter.tokenize(sample,
+    samples = [(texter.tokenize(data[0],
                                 ignoreCommon=100,
                                 removeStrings=["[identifier deleted]"],
-                                correctSpell=True),
-               labels) for sample, labels in dataDict.iteritems()]
+                                correctSpell=True,
+                                expandAbbr=expandAbbr,
+                                expandContr=expandContr),
+               data[1]) for _, data in dataDict.iteritems()]
   else:
-    samples = [(texter.tokenize(sample), labels)
-               for sample, labels in dataDict.iteritems()]
+    samples = [(texter.tokenize(data[0]), data[1])
+               for _, data in dataDict.iteritems()]
 
   return samples, labelReference
 
@@ -235,7 +242,7 @@ def run(args):
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:
-    training(model, patterns)
+    training(model, patterns, args.batch)
 
   if args.test:
     results = testing(model, patterns)
@@ -329,6 +336,12 @@ if __name__ == "__main__":
                       type=bool,
                       help="Whether to preprocess text",
                       default=False)
+  parser.add_argument("--contrCSV",
+                      default="",
+                      help="Path to contraction csv")
+  parser.add_argument("--abbrCSV",
+                      default="",
+                      help="Path to abbreviation csv")
   parser.add_argument("--batch",
                       help="Train the model with all the data at one time",
                       action="store_true")
