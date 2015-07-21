@@ -143,6 +143,11 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     distances = defaultdict(list)
     for cat, catBitmap in self.categoryBitmaps.iteritems():
+      print "Cat: ", cat
+      print "catBitMap: ", catBitmap
+      print "sampleBitMap: ", sampleBitmap
+      print "sample: ", sample
+      print "-" * 100
       distances[cat] = self.client.compare(sampleBitmap, catBitmap)
 
     return self.getWinningLabels(distances, numLabels=numLabels, metric=metric)
