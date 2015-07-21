@@ -48,13 +48,14 @@ class CioEncoder(LanguageEncoder):
         "http://www.cortical.io/resources_apikey.html")
       raise OSError("Missing API key.")
 
-    self.apiKey         = os.environ['CORTICAL_API_KEY']
-    self.client         = CorticalClient(self.apiKey, cacheDir=cacheDir)
+    self.apiKey = os.environ['CORTICAL_API_KEY']
+    self.client = CorticalClient(self.apiKey, cacheDir=cacheDir)
     self.targetSparsity = 5.0
-    self.w              = w
-    self.h              = h
-    self.n              = w*h
-    self.verbosity      = verbosity
+    self.w = w
+    self.h = h
+    self.n = w*h
+    self.verbosity = verbosity
+    self.description = ("Cio Encoder", 0)
 
 
   def encode(self, text):
@@ -79,6 +80,16 @@ class CioEncoder(LanguageEncoder):
       encoding = self._subEncoding(text)
 
     return encoding
+
+
+  def encodeIntoArray(self, inputText, output):
+    """See method description in language_encoder.py."""
+    if inputText is not None and not isinstance(inputText, string):
+      raise TypeError("Expected a string input but got input of type {}."
+                      .format(type(inputText)))
+
+    import pdb; pdb.set_trace()  ## how to populate output??
+    output = self.encode(inputText)["fingerprint"]["positions"]
 
 
   def decode(self, encoding, numTerms=10):

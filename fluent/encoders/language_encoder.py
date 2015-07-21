@@ -58,6 +58,19 @@ class LanguageEncoder(object):
     raise NotImplementedError
 
 
+  def encodeIntoArray(self, inputText, output):
+    """
+    Encodes inputData and puts the encoded value into the numpy output array,
+    which is a 1-D array of length returned by getWidth().
+
+    Note: The numpy output array is reused, so clear it before updating it.
+
+    @param inputData Data to encode. This should be validated by the encoder.
+    @param output numpy 1-D array of same length returned by getWidth()
+    """
+    raise NotImplementedError
+
+
   def decode(self, encoded):
     """
     Decodes the SDR encoded. See subclass implementation for details; the
@@ -80,8 +93,9 @@ class LanguageEncoder(object):
 
   def getDescription(self):
     """
-    Get a dictionary describing the encoding. See subclass implementation for
-    details.
+    Returns a tuple, each containing (name, offset).
+    The name is a string description of each sub-field, and offset is the bit
+    offset of the sub-field for that encoder; should be 0.
     """
     raise NotImplementedError()
 
