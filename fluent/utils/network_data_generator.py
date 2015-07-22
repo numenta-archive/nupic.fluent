@@ -82,7 +82,8 @@ class NetworkDataGenerator(object):
 
     for i in xrange(numInstances):
       # Get the category and convert it to an id
-      categories = [self.categoryToId[dataTable[ch][i]] for ch in categoryHeaders]
+      categories = [self.categoryToId[dataTable[ch][i]]
+                    for ch in categoryHeaders]
       comment = dataTable[keys[sampleIdx]][i]
 
       tokens = textPreprocess.tokenize(comment, ignoreCommon, removeStrings,
@@ -153,7 +154,7 @@ class NetworkDataGenerator(object):
 
 
 def parse_args():
-  parser = argparse.ArgumentParser(description="Create data file for network API")
+  parser = argparse.ArgumentParser(description="Create data for network API")
   parser.add_argument("--filename", type=str, required=True,
     help="path to input file. REQUIRED")
   parser.add_argument("--sampleIdx", type=int, required=True,
