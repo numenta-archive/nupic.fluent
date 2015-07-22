@@ -30,6 +30,7 @@ import json
 import pandas
 import random
 
+from collections import defaultdict
 from fluent.utils.text_preprocess import TextPreprocess
 
 
@@ -38,7 +39,7 @@ class NetworkDataGenerator(object):
 
 
   def  __init__(self):
-    self.preprocessedData = None
+    self.preprocessedData = []
     self.fieldNames = ["token", "_sequenceID", "_reset"]
     self.types = {"token": "str",
                   "_sequenceID": "int",
@@ -55,7 +56,7 @@ class NetworkDataGenerator(object):
       contrCSV="", ignoreCommon=None, removeStrings=None, correctSpell=False,
       **kwargs):
     """
-    Process all the comments in a file. Assumes the first column is the id
+    Process all the comments in a file.
     @param filename        (str)    Path to csv file
     @param sampleIdx       (int)    Column number of the text sample
     @param categoryIndices (list)   List of numbers indicating the categories
@@ -81,21 +82,21 @@ class NetworkDataGenerator(object):
       # Get the category and convert it to an id
       categories = [self.categoryToId[dataTable[ch][i]] for ch in categoryHeaders]
       comment = dataTable[keys[sampleIdx]][i]
-      sequenceID = dataTable[keys[0]][i]
 
       tokens = textPreprocess.tokenize(comment, ignoreCommon, removeStrings,
         correctSpell, expandAbbr, expandContr)
 
-      record = {"_category{}".format(i): c for i,c in categories}
-      record["_sequenceID"] = sequenceID
+      record = {"_category{}".format(i): c for i,c in enumerate(categories)}
+      record["_sequenceID"] = i
 
       data = []
       reset = 1
       for t in tokens:
-        record["token"] = t
-        record["_reset"] = reset
+        tokenRecord = record.copy()
+        tokenRecord["token"] = t
+        tokenRecord["_reset"] = reset
         reset = 0
-        data.append(record)
+        data.append(tokenRecord)
 
       self.preprocessedData.append(data)
 
@@ -115,7 +116,7 @@ class NetworkDataGenerator(object):
 
     with open(dataOutputFile, 'w') as f:
       # Header
-      writer = csv.DictWriter(f, fieldnames=self.fieldnames)
+      writer = csv.DictWriter(f, fieldnames=self.fieldNames)
       writer.writeheader()
 
       # Types
@@ -136,7 +137,7 @@ class NetworkDataGenerator(object):
 
 
   def reset(self):
-    self.preprocessedData = None
+    self.preprocessedData = []
     self.fieldNames = ["token", "_sequenceID", "_reset"]
     self.types = {"token": "str",
                   "_sequenceID": "int",
@@ -155,8 +156,8 @@ def parse_args():
     help="path to input file. REQUIRED")
   parser.add_argument("--sampleIdx", type=int, required=True,
     help="Column number of the text sample. REQUIRED")
-  parser.add_argument("--categoryIndices", type=int, required=True,
-    action='append', help="Column number(s) of the category label. REQUIRED")
+  parser.add_argument("--categoryIndices", type=int, required=True, nargs="+",
+    default=[], help="Column number(s) of the category label. REQUIRED")
   parser.add_argument("--dataOutputFile", default=None, type=str,
       required=True, help="File to write processed data to. REQUIRED")
   parser.add_argument("--categoriesOutputFile", default=None, type=str,
@@ -166,7 +167,7 @@ def parse_args():
   parser.add_argument("--contrCSV", default="", help="Path to contraction csv")
   parser.add_argument("--ignoreCommon", default=None, type=int,
     help="Number of common words to ignore")
-  parser.add_argument("--removeStrings", type=str, action="append",
+  parser.add_argument("--removeStrings", type=str, default=None, nargs="+",
     help="Strings to remove before tokenizing")
   parser.add_argument("--correctSpell", default=False, action="store_true",
     help="Whether or not to use spelling correction")
