@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
 # Copyright (C) 2015, Numenta, Inc.  Unless you have purchased from
@@ -23,6 +24,7 @@ This file contains a class that tokenizes, randomizes, and writes the data to a
 file in the format of the network API
 """
 
+import argparse
 import csv
 import json
 import pandas
@@ -50,7 +52,8 @@ class NetworkDataGenerator(object):
 
 
   def preprocess(self, filename, sampleIdx, categoryIndices, abbrCSV="",
-      contrCSV="", ignoreCommon=None, removeStrings=None, correctSpell=False):
+      contrCSV="", ignoreCommon=None, removeStrings=None, correctSpell=False,
+      **kwargs):
     """
     Process all the comments in a file. Assumes the first column is the id
     @param filename        (str)    Path to csv file
@@ -101,9 +104,11 @@ class NetworkDataGenerator(object):
     self.preprocesseData = random.shuffle(self.preprocessedData)
 
 
-  def saveData(self, dataOutputFile, categoriesOutputFile):
+  def saveData(self, dataOutputFile, categoriesOutputFile, **kwargs):
     """
     Save the processed data and the associated category mapping
+    @param dataOutputFile       (str)   Location to save data
+    @param categoriesOutputFile (str)   Location to save category map
     """
     if self.preprocessedData is None:
       return False
@@ -141,3 +146,44 @@ class NetworkDataGenerator(object):
                      "_reset": "R"}
 
     self.categoryToId.clear()
+
+
+
+def parse_args():
+  parser = argparse.ArgumentParser(description="Create data file for network API")
+  parser.add_argument("--filename", type=str, required=True,
+    help="path to input file. REQUIRED")
+  parser.add_argument("--sampleIdx", type=int, required=True,
+    help="Column number of the text sample. REQUIRED")
+  parser.add_argument("--categoryIndices", type=int, required=True,
+    action='append', help="Column number(s) of the category label. REQUIRED")
+  parser.add_argument("--dataOutputFile", default=None, type=str,
+      required=True, help="File to write processed data to. REQUIRED")
+  parser.add_argument("--categoriesOutputFile", default=None, type=str,
+    required=True, help="File to write the categories to ID mapping. REQUIRED")
+
+  parser.add_argument("--abbrCSV", default="", help="Path to abbreviation csv")
+  parser.add_argument("--contrCSV", default="", help="Path to contraction csv")
+  parser.add_argument("--ignoreCommon", default=None, type=int,
+    help="Number of common words to ignore")
+  parser.add_argument("--removeStrings", type=str, action="append",
+    help="Strings to remove before tokenizing")
+  parser.add_argument("--correctSpell", default=False, action="store_true",
+    help="Whether or not to use spelling correction")
+
+  parser.add_argument("--randomize", default=False, action="store_true",
+    help="Whether or not to randomize the data before saving")
+
+  return parser.parse_args()
+
+
+
+if __name__ == "__main__":
+  options = vars(parse_args())
+  dataGenerator = NetworkDataGenerator()
+  dataGenerator.preprocess(**options)
+
+  if options["randomize"]:
+    dataGenerator.randomizeData()
+
+  dataGenerator.saveData(**options)
