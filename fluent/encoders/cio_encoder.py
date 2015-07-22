@@ -48,19 +48,22 @@ class CioEncoder(LanguageEncoder):
         "http://www.cortical.io/resources_apikey.html")
       raise OSError("Missing API key.")
 
-    self.apiKey         = os.environ['CORTICAL_API_KEY']
-    self.client         = CorticalClient(self.apiKey, cacheDir=cacheDir)
+    self.apiKey = os.environ['CORTICAL_API_KEY']
+    self.client = CorticalClient(self.apiKey, cacheDir=cacheDir)
     self.targetSparsity = 5.0
-    self.w              = w
-    self.h              = h
-    self.n              = w*h
-    self.verbosity      = verbosity
+    self.w = w
+    self.h = h
+    self.n = w*h
+    self.verbosity = verbosity
+    self.description = ("Cio Encoder", 0)
 
 
   def encode(self, text):
     """
     Encodes the input text w/ a cortipy client. The client returns a
     dictionary of "fingerprint" info, including the SDR bitmap.
+
+    NOTE: returning this fingerprint dict differs from the base class spec.
 
     @param  text    (str)             A non-tokenized sample of text.
     @return         (dict)            Result from the cortipy client. The bitmap
@@ -78,6 +81,32 @@ class CioEncoder(LanguageEncoder):
                "the corpus.".format(text))
       encoding = self._subEncoding(text)
 
+    return encoding
+
+
+  def encodeIntoArray(self, inputText, output):
+    """
+    See method description in language_encoder.py. It is expected the inputText
+    is a single word/token (str).
+
+    NOTE: nupic Encoder class method encodes output in place as sparse array
+    (commented out below), but this method returns a bitmap.
+    """
+    if not isinstance(inputText, str):
+      raise TypeError("Expected a string input but got input of type {}."
+                      .format(type(inputText)))
+
+    # Encode with term endpoint of Cio API
+    try:
+      encoding = self.client.getBitmap(inputText)
+    except UnsuccessfulEncodingError:
+      if self.verbosity > 0:
+        print ("\tThe client returned no encoding for the text \'{0}\', so "
+               "we'll use the encoding of the token that is least frequent in "
+               "the corpus.".format(inputText))
+      encoding = self._subEncoding(inputText)
+
+    # output = sparsify(encoding["fingerprint"]["positions"])
     return encoding
 
 
@@ -174,11 +203,7 @@ class CioEncoder(LanguageEncoder):
 
 
   def getWidth(self):
-    return self.w
-
-
-  def getHeight(self):
-    return self.h
+    return self.n
 
 
   def getDescription(self):
