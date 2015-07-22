@@ -91,7 +91,7 @@ class LSAEncoder(LanguageEncoder):
 
   def encodeIntoArray(self, inputText, output):
     """See method description in language_encoder.py."""
-    if inputText is not None and not isinstance(inputText, string):
+    if not isinstance(inputText, str):
       raise TypeError("Expected a string input but got input of type {}."
                       .format(type(inputText)))
 
@@ -127,7 +127,7 @@ class LSAEncoder(LanguageEncoder):
 
 
   def getWidth(self):
-    return self.w
+    return self.n
 
 
   def getDescription(self):

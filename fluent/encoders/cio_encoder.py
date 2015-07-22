@@ -83,13 +83,18 @@ class CioEncoder(LanguageEncoder):
 
 
   def encodeIntoArray(self, inputText, output):
-    """See method description in language_encoder.py."""
-    if inputText is not None and not isinstance(inputText, string):
+    """
+    See method description in language_encoder.py.
+
+    NOTE: nupic Encoder class method encodes output in place as sparse array
+    (commented out below), but this method returns a bitmap.
+    """
+    if not isinstance(inputText, str):
       raise TypeError("Expected a string input but got input of type {}."
                       .format(type(inputText)))
 
-    import pdb; pdb.set_trace()  ## how to populate output??
-    output = self.encode(inputText)["fingerprint"]["positions"]
+    # output = self.encode(inputText)["fingerprint"]["positions"]
+    return self.encode(inputText)
 
 
   def decode(self, encoding, numTerms=10):
@@ -185,11 +190,7 @@ class CioEncoder(LanguageEncoder):
 
 
   def getWidth(self):
-    return self.w
-
-
-  def getHeight(self):
-    return self.h
+    return self.n
 
 
   def getDescription(self):
