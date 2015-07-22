@@ -63,6 +63,8 @@ class CioEncoder(LanguageEncoder):
     Encodes the input text w/ a cortipy client. The client returns a
     dictionary of "fingerprint" info, including the SDR bitmap.
 
+    NOTE: returning this fingerprint dict differs from the base class spec.
+
     @param  text    (str)             A non-tokenized sample of text.
     @return         (dict)            Result from the cortipy client. The bitmap
                                       encoding is at
@@ -84,7 +86,8 @@ class CioEncoder(LanguageEncoder):
 
   def encodeIntoArray(self, inputText, output):
     """
-    See method description in language_encoder.py.
+    See method description in language_encoder.py. It is expected the inputText
+    is a single word/token (str).
 
     NOTE: nupic Encoder class method encodes output in place as sparse array
     (commented out below), but this method returns a bitmap.
@@ -93,8 +96,18 @@ class CioEncoder(LanguageEncoder):
       raise TypeError("Expected a string input but got input of type {}."
                       .format(type(inputText)))
 
-    # output = self.encode(inputText)["fingerprint"]["positions"]
-    return self.encode(inputText)
+    # Encode with term endpoint of Cio API
+    try:
+      encoding = self.client.getBitmap(inputText)
+    except UnsuccessfulEncodingError:
+      if self.verbosity > 0:
+        print ("\tThe client returned no encoding for the text \'{0}\', so "
+               "we'll use the encoding of the token that is least frequent in "
+               "the corpus.".format(inputText))
+      encoding = self._subEncoding(inputText)
+
+    # output = sparsify(encoding["fingerprint"]["positions"])
+    return encoding
 
 
   def decode(self, encoding, numTerms=10):
