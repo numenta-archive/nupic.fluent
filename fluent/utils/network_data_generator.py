@@ -28,6 +28,7 @@ import argparse
 import csv
 import json
 import pandas
+import pprint
 import random
 
 from collections import defaultdict
@@ -48,7 +49,8 @@ class NetworkDataGenerator(object):
                      "_sequenceID": "S",
                      "_reset": "R"}
 
-    # len(self.categoryToId) gives each category a unique id
+    # len(self.categoryToId) gives each category a unique id without having
+    # duplicates
     self.categoryToId = defaultdict(lambda: len(self.categoryToId))
 
 
@@ -181,6 +183,8 @@ def parse_args():
 
 if __name__ == "__main__":
   options = vars(parse_args())
+  pprint.pprint(options)
+
   dataGenerator = NetworkDataGenerator()
   dataGenerator.preprocess(**options)
 
