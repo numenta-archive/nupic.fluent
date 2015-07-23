@@ -26,13 +26,18 @@ file in the format of the network API
 
 import argparse
 import csv
-import json
-import pandas
 import pprint
 import random
 
 from collections import defaultdict
 from fluent.utils.text_preprocess import TextPreprocess
+from fluent.utils.csv_helper import readCSV
+
+try:
+  import simplejson as json
+except ImportError:
+  import json
+
 
 
 class NetworkDataGenerator(object):
@@ -40,72 +45,68 @@ class NetworkDataGenerator(object):
 
 
   def  __init__(self):
-    self.preprocessedData = []
+    self.records = []
     self.fieldNames = ["token", "_sequenceID", "_reset"]
-    self.types = {"token": "str",
+    self.types = {"token": "string",
                   "_sequenceID": "int",
-                  "_reset": "bool"}
+                  "_reset": "int"}
     self.specials = {"token": "",
                      "_sequenceID": "S",
                      "_reset": "R"}
 
-    # len(self.categoryToId) gives each category a unique id without having
+    # len(self.categoryToId) gives each category a unique id w/o having
     # duplicates
     self.categoryToId = defaultdict(lambda: len(self.categoryToId))
 
 
-  def preprocess(self, filename, sampleIdx, categoryIndices, abbrCSV="",
+  def split(self, filename, sampleIdx, numLabels, abbrCSV="",
       contrCSV="", ignoreCommon=None, removeStrings=None, correctSpell=False,
       **kwargs):
     """
-    Process all the comments in a file.
+    Split all the comments in a file into tokens. Preprocess if necessary
     @param filename        (str)    Path to csv file
     @param sampleIdx       (int)    Column number of the text sample
-    @param categoryIndices (list)   List of numbers indicating the categories
+    @param numLabels       (int)    Number of columns of category labels.
     Please see TextPreprocess tokenize() for the other parameters
     """
     # Update header details
-    for i in xrange(len(categoryIndices)):
+    for i in xrange(numLabels):
       categoryKey = "_category{}".format(i)
       self.fieldNames.append(categoryKey)
       self.types[categoryKey] = "int"
       self.specials[categoryKey] = "C"
     
-    dataTable = pandas.read_csv(filename).fillna('')
-    numInstances, _ = dataTable.shape
-    keys = dataTable.keys()
-    categoryHeaders = [keys[i] for i in categoryIndices]
+    dataDict = readCSV(filename, sampleIdx, numLabels)
 
     textPreprocess = TextPreprocess(abbrCSV=abbrCSV, contrCSV=contrCSV)
     expandAbbr = (abbrCSV != "")
     expandContr = (contrCSV != "")
 
-    for i in xrange(numInstances):
-      # Get the category and convert it to an id
-      categories = [self.categoryToId[dataTable[ch][i]]
-                    for ch in categoryHeaders]
-      comment = dataTable[keys[sampleIdx]][i]
+    for i, idx in enumerate(dataDict.keys()):
+      comment, categories = dataDict[idx]
+      # Convert the category to its id
+      categories = [str(self.categoryToId[c]) for c in categories]
 
       tokens = textPreprocess.tokenize(comment, ignoreCommon, removeStrings,
         correctSpell, expandAbbr, expandContr)
 
       record = {"_category{}".format(i): c for i,c in enumerate(categories)}
-      record["_sequenceID"] = i
+      record["_sequenceID"] = str(i)
 
       data = []
-      reset = 1
+      reset = "1"
       for t in tokens:
         tokenRecord = record.copy()
         tokenRecord["token"] = t
         tokenRecord["_reset"] = reset
-        reset = 0
+        reset = "0"
         data.append(tokenRecord)
 
-      self.preprocessedData.append(data)
+      self.records.append(data)
 
 
   def randomizeData(self):
-    self.preprocesseData = random.shuffle(self.preprocessedData)
+    random.shuffle(self.records)
 
 
   def saveData(self, dataOutputFile, categoriesOutputFile, **kwargs):
@@ -114,8 +115,14 @@ class NetworkDataGenerator(object):
     @param dataOutputFile       (str)   Location to save data
     @param categoriesOutputFile (str)   Location to save category map
     """
-    if self.preprocessedData is None:
+
+    if self.records is None:
       return False
+
+    if not dataOutputFile.endswith("csv"):
+      raise TypeError("data output file must be csv.")
+    if not categoriesOutputFile.endswith("json"):
+      raise TypeError("category output file must be json")
 
     with open(dataOutputFile, 'w') as f:
       # Header
@@ -128,7 +135,7 @@ class NetworkDataGenerator(object):
       # Special characters
       writer.writerow(self.specials)
 
-      for data in self.preprocessedData:
+      for data in self.records:
         for record in data:
           writer.writerow(record)
 
@@ -140,11 +147,11 @@ class NetworkDataGenerator(object):
 
 
   def reset(self):
-    self.preprocessedData = []
+    self.records = []
     self.fieldNames = ["token", "_sequenceID", "_reset"]
-    self.types = {"token": "str",
+    self.types = {"token": "string",
                   "_sequenceID": "int",
-                  "_reset": "bool"}
+                  "_reset": "int"}
     self.specials = {"token": "",
                      "_sequenceID": "S",
                      "_reset": "R"}
@@ -155,26 +162,27 @@ class NetworkDataGenerator(object):
 
 def parse_args():
   parser = argparse.ArgumentParser(description="Create data for network API")
-  parser.add_argument("--filename", type=str, required=True,
+  parser.add_argument("--f", type=str, required=True,
     help="path to input file. REQUIRED")
-  parser.add_argument("--sampleIdx", type=int, required=True,
-    help="Column number of the text sample. REQUIRED")
-  parser.add_argument("--categoryIndices", type=int, required=True, nargs="+",
-    default=[], help="Column number(s) of the category label. REQUIRED")
-  parser.add_argument("--dataOutputFile", default=None, type=str,
-      required=True, help="File to write processed data to. REQUIRED")
-  parser.add_argument("--categoriesOutputFile", default=None, type=str,
-    required=True, help="File to write the categories to ID mapping. REQUIRED")
-
-  parser.add_argument("--abbrCSV", default="", help="Path to abbreviation csv")
-  parser.add_argument("--contrCSV", default="", help="Path to contraction csv")
+  parser.add_argument("--o", default="network_experiment/data.csv", type=str,
+    required=True, help="File to write processed data to. REQUIRED")
+  parser.add_argument("--c", default="network_experiment/categories.json",
+    help="File to write the categories to ID mapping. REQUIRED", type=str,
+    required=True)
+  parser.add_argument("--sampleIdx", type=int, default=2,
+    help="Column number of the text sample.")
+  parser.add_argument("--numLabels", type=int, default=3,
+    help="Column number(s) of the category label.")
+  parser.add_argument("--textPreprocess", action="store_true", default=False,
+    help="Basic preprocessing.  Use specific tags for custom preprocessing")
   parser.add_argument("--ignoreCommon", default=None, type=int,
     help="Number of common words to ignore")
   parser.add_argument("--removeStrings", type=str, default=None, nargs="+",
     help="Strings to remove before tokenizing")
   parser.add_argument("--correctSpell", default=False, action="store_true",
     help="Whether or not to use spelling correction")
-
+  parser.add_argument("--abbrCSV", default="", help="Path to abbreviation csv")
+  parser.add_argument("--contrCSV", default="", help="Path to contraction csv")
   parser.add_argument("--randomize", default=False, action="store_true",
     help="Whether or not to randomize the data before saving")
 
@@ -184,10 +192,25 @@ def parse_args():
 
 if __name__ == "__main__":
   options = vars(parse_args())
+  
+  # Convert simplified option names to full names
+  options["filename"] = options["f"]
+  options["dataOutputFile"] = options["o"]
+  options["categoriesOutputFile"] = options["c"]
+  del options["f"], options["o"], options["c"]
+
+  # Set up basic text preprocessing
+  if options["textPreprocess"]:
+    options["ignoreCommon"] = 100
+    options["removeStrings"] = ["[identifier deleted]"]
+    options["correctSpell"] = True
+    options["abbrCSV"] = ""
+    options["contrCSV"] = ""
+
   pprint.pprint(options)
 
   dataGenerator = NetworkDataGenerator()
-  dataGenerator.preprocess(**options)
+  dataGenerator.split(**options)
 
   if options["randomize"]:
     dataGenerator.randomizeData()
