@@ -226,20 +226,6 @@ class NetworkDataGeneratorTest(unittest.TestCase):
 
     # If no error is raised, then the data is in the correct format
     frs = FileRecordStream(dataOutputFile)
-    record = frs.getNextRecordDict()
-    expectedRecords = [record for data in self.expected for record in data]
-    idx = 0
-    categoryKeys = ["_category0", "_category1", "_category2"]
-    while record is not None:
-      # TODO: make sure it has everything it should
-      #categories = record["_category"]
-      #expected_categories = [int(expectedRecords[idx][c])
-      # if c in expectedRecords[idx] else None for c in categoryKeys]
-
-      #idx += 1
-      #record = frs.getNextRecordDict()
-      #self.assertSequenceEqual(categories, expected_categories)
-      break
 
 
 
