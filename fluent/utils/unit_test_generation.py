@@ -25,10 +25,10 @@ This file contains CSV utility functions to use with nupic.fluent experiments.
 import argparse
 import os
 import random
+import string
 
 from fluent.utils.csv_helper import readCSV, writeCSV
 
-dataDir = "/Users/numenta/Documents/nupic.fluent/data/sample_reviews_unit"
 
 def cleanTokens(tokens):
     """ Traverses list of tokens and generates new list of tokens
@@ -57,11 +57,8 @@ def generateDataFile(inputData, type):
     @param  (TextPreprocess)    Processor to perform some text cleanup.
 
     """
-    if type == "scrambled":
-      fileName = "sample_reviews_data_training_scramble.csv"
-    elif type == "reversed":
-      fileName = "sample_reviews_data_training_reverse.csv"
-
+    outputDataDir = os.path.dirname(inputData)
+    fileName = string.join(inputData.split(".")[:-1], ".") + "_" + type + ".csv"
     dataDict = readCSV(inputData, 2, 3)
     headers = ["QID", "QuestionText", "Response", "Classification1", "Classification2",
                "Classification3"]
@@ -82,7 +79,7 @@ def generateDataFile(inputData, type):
       dataToWrite.extend(sample[1][1])
       data.append(dataToWrite)
 
-    writeCSV(data, headers, os.path.join(dataDir, fileName))
+    writeCSV(data, headers, os.path.join(outputDataDir, fileName))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
