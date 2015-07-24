@@ -26,6 +26,7 @@ file in the format of the network API
 
 import argparse
 import csv
+import os
 import pprint
 import random
 
@@ -115,7 +116,6 @@ class NetworkDataGenerator(object):
     @param dataOutputFile       (str)   Location to save data
     @param categoriesOutputFile (str)   Location to save category map
     """
-
     if self.records is None:
       return False
 
@@ -123,6 +123,15 @@ class NetworkDataGenerator(object):
       raise TypeError("data output file must be csv.")
     if not categoriesOutputFile.endswith("json"):
       raise TypeError("category output file must be json")
+
+    # Ensure directory exists
+    dataOutputDirectory = os.path.dirname(dataOutputFile)
+    if not os.path.exists(dataOutputDirectory):
+      os.makedirs(dataOutputDirectory)
+
+    categoriesOutputDirectory = os.path.dirname(categoriesOutputFile)
+    if not os.path.exists(categoriesOutputDirectory):
+      os.makedirs(categoriesOutputDirectory)
 
     with open(dataOutputFile, 'w') as f:
       # Header
@@ -162,13 +171,14 @@ class NetworkDataGenerator(object):
 
 def parse_args():
   parser = argparse.ArgumentParser(description="Create data for network API")
-  parser.add_argument("--f", type=str, required=True,
-    help="path to input file. REQUIRED")
-  parser.add_argument("--o", default="network_experiment/data.csv", type=str,
-    required=True, help="File to write processed data to. REQUIRED")
-  parser.add_argument("--c", default="network_experiment/categories.json",
-    help="File to write the categories to ID mapping. REQUIRED", type=str,
-    required=True)
+  parser.add_argument("--f", "--filename", type=str, required=True,
+    dest="filename", help="path to input file. REQUIRED")
+  parser.add_argument("--o", "--dataOutputFile",
+    default="network_experiment/data.csv", type=str, dest="dataOutputFile",
+    help="File to write processed data to.")
+  parser.add_argument("--c", "--categoriesOutputFile", type=str,
+    dest="categoriesOutputFile", default="network_experiment/categories.json",
+    help="File to write the categories to ID mapping.")
   parser.add_argument("--sampleIdx", type=int, default=2,
     help="Column number of the text sample.")
   parser.add_argument("--numLabels", type=int, default=3,
@@ -192,12 +202,6 @@ def parse_args():
 
 if __name__ == "__main__":
   options = vars(parse_args())
-  
-  # Convert simplified option names to full names
-  options["filename"] = options["f"]
-  options["dataOutputFile"] = options["o"]
-  options["categoriesOutputFile"] = options["c"]
-  del options["f"], options["o"], options["c"]
 
   # Set up basic text preprocessing
   if options["textPreprocess"]:
