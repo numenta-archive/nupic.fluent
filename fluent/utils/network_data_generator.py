@@ -60,14 +60,15 @@ class NetworkDataGenerator(object):
     self.categoryToId = defaultdict(lambda: len(self.categoryToId))
 
 
-  def split(self, filename, sampleIdx, numLabels, abbrCSV="",
+  def split(self, filename, sampleIdx, numLabels, textPreprocess, abbrCSV="",
       contrCSV="", ignoreCommon=None, removeStrings=None, correctSpell=False,
       **kwargs):
     """
-    Split all the comments in a file into tokens. Preprocess if necessary
+    Split all the comments in a file into tokens. Preprocess if necessary.
     @param filename        (str)    Path to csv file
     @param sampleIdx       (int)    Column number of the text sample
     @param numLabels       (int)    Number of columns of category labels.
+    @param textPreprocess  (bool)   True will preprocess text while tokenizing.
     Please see TextPreprocess tokenize() for the other parameters
     """
     dataDict = readCSV(filename, sampleIdx, numLabels)
@@ -83,7 +84,7 @@ class NetworkDataGenerator(object):
       self.types[categoryKey] = "int"
       self.specials[categoryKey] = "C"
 
-    textPreprocess = TextPreprocess(abbrCSV=abbrCSV, contrCSV=contrCSV)
+    preprocessor = TextPreprocess(abbrCSV=abbrCSV, contrCSV=contrCSV)
     expandAbbr = (abbrCSV != "")
     expandContr = (contrCSV != "")
 
@@ -92,10 +93,13 @@ class NetworkDataGenerator(object):
       # Convert the category to its id
       categories = [str(self.categoryToId[c]) for c in categories]
 
-      tokens = textPreprocess.tokenize(comment, ignoreCommon, removeStrings,
-        correctSpell, expandAbbr, expandContr)
+      if textPreprocess:
+        tokens = preprocessor.tokenize(comment, ignoreCommon, removeStrings,
+            correctSpell, expandAbbr, expandContr)
+      else:
+        tokens = preprocessor.tokenize(comment)
 
-      record = {"_category{}".format(i): c for i,c in enumerate(categories)}
+      record = {"_category{}".format(i): c for i, c in enumerate(categories)}
       record["_sequenceID"] = str(i)
 
       data = []
@@ -116,7 +120,7 @@ class NetworkDataGenerator(object):
 
   def saveData(self, dataOutputFile, categoriesOutputFile, **kwargs):
     """
-    Save the processed data and the associated category mapping
+    Save the processed data and the associated category mapping.
     @param dataOutputFile       (str)   Location to save data
     @param categoriesOutputFile (str)   Location to save category map
     """
@@ -153,8 +157,10 @@ class NetworkDataGenerator(object):
           writer.writerow(record)
 
     with open(categoriesOutputFile, 'w') as f:
-      stringOfMap = json.dumps(self.categoryToId)
-      f.write(stringOfMap)
+      f.write(json.dumps(self.categoryToId,
+                         sort_keys=True,
+                         indent=4,
+                         separators=(',', ': ')))
 
     return True
 
@@ -172,50 +178,65 @@ class NetworkDataGenerator(object):
     self.categoryToId.clear()
 
 
-
-def parse_args():
-  parser = argparse.ArgumentParser(description="Create data for network API")
-  parser.add_argument("--f", "--filename", type=str, required=True,
-    dest="filename", help="path to input file. REQUIRED")
-  parser.add_argument("--o", "--dataOutputFile",
-    default="network_experiment/data.csv", type=str, dest="dataOutputFile",
-    help="File to write processed data to.")
-  parser.add_argument("--c", "--categoriesOutputFile", type=str,
-    dest="categoriesOutputFile", default="network_experiment/categories.json",
-    help="File to write the categories to ID mapping.")
-  parser.add_argument("--sampleIdx", type=int, default=2,
-    help="Column number of the text sample.")
-  parser.add_argument("--numLabels", type=int, default=3,
-    help="Column number(s) of the category label.")
-  parser.add_argument("--textPreprocess", action="store_true", default=False,
-    help="Basic preprocessing.  Use specific tags for custom preprocessing")
-  parser.add_argument("--ignoreCommon", default=None, type=int,
-    help="Number of common words to ignore")
-  parser.add_argument("--removeStrings", type=str, default=None, nargs="+",
-    help="Strings to remove before tokenizing")
-  parser.add_argument("--correctSpell", default=False, action="store_true",
-    help="Whether or not to use spelling correction")
-  parser.add_argument("--abbrCSV", default="", help="Path to abbreviation csv")
-  parser.add_argument("--contrCSV", default="", help="Path to contraction csv")
-  parser.add_argument("--randomize", default=False, action="store_true",
-    help="Whether or not to randomize the data before saving")
-
-  return parser.parse_args()
-
-
-
 if __name__ == "__main__":
-  options = vars(parse_args())
 
-  # Set up basic text preprocessing
-  if options["textPreprocess"]:
-    options["ignoreCommon"] = 100
-    options["removeStrings"] = ["[identifier deleted]"]
-    options["correctSpell"] = True
-    options["abbrCSV"] = ""
-    options["contrCSV"] = ""
+  parser = argparse.ArgumentParser(description="Create data for network API")
+  
+  parser.add_argument("-f", "--filename",
+                      type=str,
+                      required=True,
+                      help="path to input file. REQUIRED")
+  parser.add_argument("-o", "--dataOutputFile",
+                      default="network_experiment/data.csv",
+                      type=str,
+                      help="File to write processed data to.")
+  parser.add_argument("-c", "--categoriesOutputFile",
+                      type=str,
+                      default="network_experiment/categories.json",
+                      help="File to write the categories to ID mapping.")
+  parser.add_argument("--sampleIdx",
+                      type=int,
+                      default=2,
+                      help="Column number of the text sample.")
+  parser.add_argument("--numLabels",
+                      type=int,
+                      default=3,
+                      help="Column number(s) of the category label.")
+  parser.add_argument("--textPreprocess",
+                      action="store_true",
+                      default=False,
+                      help="Basic preprocessing. Use specific tags for custom "
+                      "preprocessing")
+  parser.add_argument("--ignoreCommon",
+                      default=100,
+                      type=int,
+                      help="Number of common words to ignore")
+  parser.add_argument("--removeStrings",
+                      type=str,
+                      default=["[identifier deleted]"],
+                      nargs="+",
+                      help="Strings to remove in preprocessing")
+  parser.add_argument("--correctSpell",
+                      default=True,
+                      action="store_false",
+                      help="Whether or not to use spelling correction")
+  parser.add_argument("--abbrCSV",
+                      default="",
+                      help="Path to CSV of abbreviations data")
+  parser.add_argument("--contrCSV",
+                      default="",
+                      help="Path to CSV of contractions data")
+  parser.add_argument("--randomize",
+                      default=False,
+                      action="store_true",
+                      help="Whether or not to randomize the order of the data "
+                      "samples before saving")
+
+  options = vars(parser.parse_args())
 
   pprint.pprint(options)
+  print ("Note: preprocessing params only take affect if textPreprocess "
+        "argument is set.")
 
   dataGenerator = NetworkDataGenerator()
   dataGenerator.split(**options)

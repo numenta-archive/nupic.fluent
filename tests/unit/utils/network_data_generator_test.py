@@ -107,15 +107,17 @@ class NetworkDataGeneratorTest(unittest.TestCase):
 
   def testSplitNoPreprocess(self):
     ndg = NetworkDataGenerator()
-    filename = self.dirName + "/../../../data/network_data_generator/multi_sample.csv"
+    filename = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample.csv")
 
-    ndg.split(filename, 2, 3)
+    ndg.split(filename, 2, 3, False)
     self.assertRecordsEqual(ndg.records, self.expected)
 
   
   def testSplitPreprocess(self):
     ndg = NetworkDataGenerator()
-    filename = self.dirName + "/../../../data/network_data_generator/multi_sample.csv"
+    filename = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample.csv")
 
     expected = [[{"_category0": "0",
                   "_category1": "1",
@@ -151,20 +153,23 @@ class NetworkDataGeneratorTest(unittest.TestCase):
                   "token": "care",
                   "_reset": "0"}]]
 
-    ndg.split(filename, 2, 3, ignoreCommon=100, correctSpell=True)
+    ndg.split(filename, 2, 3, True, ignoreCommon=100, correctSpell=True)
     self.assertRecordsEqual(ndg.records, expected)
 
 
   def testRandomize(self):
     ndg = NetworkDataGenerator()
-    filename = self.dirName + "/../../../data/sample_reviews_multi/sample_reviews_data_training.csv"
-    ndg.split(filename, 2, 3)
+    filename = (self.dirName +
+        "/../../../data/sample_reviews_multi/sample_reviews_data_training.csv")
+    ndg.split(filename, 2, 3, False)
 
     random.seed(1)
     ndg.randomizeData()
 
-    dataOutputFile = self.dirName + "/../../../data/network_data_generator/multi_sample_split.csv"
-    categoriesOutputFile = self.dirName + "/../../../data/network_data_generator/multi_sample_categories.json"
+    dataOutputFile = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample_split.csv")
+    categoriesOutputFile = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample_categories.json")
     success = ndg.saveData(dataOutputFile, categoriesOutputFile)
 
     randomizedIDs = []
@@ -180,10 +185,13 @@ class NetworkDataGeneratorTest(unittest.TestCase):
 
   def testSaveData(self):
     ndg = NetworkDataGenerator()
-    filename = self.dirName + "/../../../data/network_data_generator/multi_sample.csv"
-    ndg.split(filename, 2, 3)
-    dataOutputFile = self.dirName + "/../../../data/network_data_generator/multi_sample_split.csv"
-    categoriesOutputFile = self.dirName + "/../../../data/network_data_generator/multi_sample_categories.json"
+    filename = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample.csv")
+    ndg.split(filename, 2, 3, False)
+    dataOutputFile = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample_split.csv")
+    categoriesOutputFile = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample_categories.json")
     success = ndg.saveData(dataOutputFile, categoriesOutputFile)
     self.assertTrue(success)
 
@@ -201,6 +209,7 @@ class NetworkDataGeneratorTest(unittest.TestCase):
                 "token": "",
                 "_sequenceID": "S",
                 "_reset": "R"}
+    
     expected_records = [record for data in self.expected for record in data]
     expected_records.insert(0, specials)
     expected_records.insert(0, types)
@@ -224,10 +233,13 @@ class NetworkDataGeneratorTest(unittest.TestCase):
 
   def testSaveDataIncorrectType(self):
     ndg = NetworkDataGenerator()
-    filename = self.dirName + "/../../../data/network_data_generator/multi_sample.csv"
-    dataOutputFile = self.dirName + "/../../../data/network_data_generator/multi_sample_split.csv"
-    categoriesOutputFile = self.dirName + "/../../../data/network_data_generator/multi_sample_categories.csv"
-    ndg.split(filename, 2, 3)
+    filename = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample.csv")
+    dataOutputFile = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample_split.csv")
+    categoriesOutputFile = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample_categories.csv")
+    ndg.split(filename, 2, 3, False)
 
     with self.assertRaises(TypeError):
       ndg.saveData(dataOutputFile, categoriesOutputFile)
@@ -235,15 +247,17 @@ class NetworkDataGeneratorTest(unittest.TestCase):
 
   def testFileRecordStreamReadData(self):
     ndg = NetworkDataGenerator()
-    filename = self.dirName + "/../../../data/network_data_generator/multi_sample.csv"
-    ndg.split(filename, 2, 3)
-    dataOutputFile = self.dirName + "/../../../data/network_data_generator/multi_sample_split.csv"
-    categoriesOutputFile = self.dirName + "/../../../data/network_data_generator/multi_sample_categories.json"
+    filename = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample.csv")
+    ndg.split(filename, 2, 3, False)
+    dataOutputFile = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample_split.csv")
+    categoriesOutputFile = (self.dirName +
+        "/../../../data/network_data_generator/multi_sample_categories.json")
     ndg.saveData(dataOutputFile, categoriesOutputFile)
 
     # If no error is raised, then the data is in the correct format
     frs = FileRecordStream(dataOutputFile)
-
 
 
 if __name__ == "__main__":

@@ -57,6 +57,7 @@ def readCSV(csvFile, sampleIdx, numLabels):
   except IOError as e:
     print e
 
+
 def readDir(dirPath, sampleIdx, numLabels, modify=False):
   """
   Reads in data from a directory of CSV files; assumes the directory only
