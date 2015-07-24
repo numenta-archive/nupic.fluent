@@ -155,10 +155,25 @@ class NetworkDataGeneratorTest(unittest.TestCase):
 
   def testRandomize(self):
     ndg = NetworkDataGenerator()
-    filename = "../../../data/network_data_generator/multi_sample.csv"
+    filename = "../../../data/sample_reviews_multi/sample_reviews_data_training.csv"
     ndg.split(filename, 2, 3)
+
+    random.seed(1)
     ndg.randomizeData()
-    # TODO: check it was randomized
+
+    dataOutputFile = "../../../data/network_data_generator/multi_sample_split.csv"
+    categoriesOutputFile = "../../../data/network_data_generator/multi_sample_categories.json"
+    success = ndg.saveData(dataOutputFile, categoriesOutputFile)
+
+    randomizedIDs = []
+    dataTable = pandas.read_csv(dataOutputFile)
+    for _, values in dataTable.iterrows():
+      record = values.to_dict()
+      idx = record["_sequenceID"]
+      if idx.isdigit() and (not randomizedIDs or randomizedIDs[-1] != idx):
+        randomizedIDs.append(idx)
+
+    self.assertNotEqual(randomizedIDs, range(len(randomizedIDs)))
 
 
   def testSaveData(self):
