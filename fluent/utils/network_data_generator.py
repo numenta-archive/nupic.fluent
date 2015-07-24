@@ -70,14 +70,18 @@ class NetworkDataGenerator(object):
     @param numLabels       (int)    Number of columns of category labels.
     Please see TextPreprocess tokenize() for the other parameters
     """
+    dataDict = readCSV(filename, sampleIdx, numLabels)
+    
+    # There was a problem reading the CSV
+    if dataDict is None:
+      return
+
     # Update header details
     for i in xrange(numLabels):
       categoryKey = "_category{}".format(i)
       self.fieldNames.append(categoryKey)
       self.types[categoryKey] = "int"
       self.specials[categoryKey] = "C"
-    
-    dataDict = readCSV(filename, sampleIdx, numLabels)
 
     textPreprocess = TextPreprocess(abbrCSV=abbrCSV, contrCSV=contrCSV)
     expandAbbr = (abbrCSV != "")
