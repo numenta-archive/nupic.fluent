@@ -21,7 +21,7 @@
 # ----------------------------------------------------------------------
 """
 This file contains a class that tokenizes, randomizes, and writes the data to a
-file in the format of the network API
+file in the format of the network API.
 """
 
 import argparse
@@ -29,10 +29,11 @@ import csv
 import os
 import pprint
 import random
+import string
 
 from collections import defaultdict
-from fluent.utils.text_preprocess import TextPreprocess
 from fluent.utils.csv_helper import readCSV
+from fluent.utils.text_preprocess import TextPreprocess
 
 try:
   import simplejson as json
@@ -42,16 +43,22 @@ except ImportError:
 
 
 class NetworkDataGenerator(object):
-  """Class for generating data for the network"""
+  """Class for generating data in the format for a record stream."""
 
 
   def  __init__(self):
+    """
+    Column headers are marked "private" with a leading underscore in order to
+    distingush them from dictinonary keys used in the Network API.
+    """
     self.records = []
-    self.fieldNames = ["token", "_sequenceID", "_reset"]
-    self.types = {"token": "string",
+    self.fieldNames = ["_token", "_categories", "_sequenceID", "_reset"]
+    self.types = {"_token": "string",
+                  "_categories": "string",
                   "_sequenceID": "int",
                   "_reset": "int"}
-    self.specials = {"token": "",
+    self.specials = {"_token": "",
+                     "_categories": "C",
                      "_sequenceID": "S",
                      "_reset": "R"}
 
@@ -72,17 +79,8 @@ class NetworkDataGenerator(object):
     Please see TextPreprocess tokenize() for the other parameters
     """
     dataDict = readCSV(filename, sampleIdx, numLabels)
-    
-    # There was a problem reading the CSV
     if dataDict is None:
-      return
-
-    # Update header details
-    for i in xrange(numLabels):
-      categoryKey = "_category{}".format(i)
-      self.fieldNames.append(categoryKey)
-      self.types[categoryKey] = "int"
-      self.specials[categoryKey] = "C"
+      raise Exception("Could not read CSV.")
 
     preprocessor = TextPreprocess(abbrCSV=abbrCSV, contrCSV=contrCSV)
     expandAbbr = (abbrCSV != "")
@@ -90,8 +88,8 @@ class NetworkDataGenerator(object):
 
     for i, idx in enumerate(dataDict.keys()):
       comment, categories = dataDict[idx]
-      # Convert the category to its id
-      categories = [str(self.categoryToId[c]) for c in categories]
+      # Convert the categories to a string of their IDs
+      categories = string.join([str(self.categoryToId[c]) for c in categories])
 
       if textPreprocess:
         tokens = preprocessor.tokenize(comment, ignoreCommon, removeStrings,
@@ -99,16 +97,16 @@ class NetworkDataGenerator(object):
       else:
         tokens = preprocessor.tokenize(comment)
 
-      record = {"_category{}".format(i): c for i, c in enumerate(categories)}
-      record["_sequenceID"] = str(i)
-
+      # Write the sequence of data records for this sample.
+      record = {"_categories":categories,
+                "_sequenceID":i}
       data = []
-      reset = "1"
+      reset = 1
       for t in tokens:
         tokenRecord = record.copy()
-        tokenRecord["token"] = t
+        tokenRecord["_token"] = t
         tokenRecord["_reset"] = reset
-        reset = "0"
+        reset = 0
         data.append(tokenRecord)
 
       self.records.append(data)
@@ -181,12 +179,12 @@ class NetworkDataGenerator(object):
 if __name__ == "__main__":
 
   parser = argparse.ArgumentParser(description="Create data for network API")
-  
-  parser.add_argument("-f", "--filename",
+
+  parser.add_argument("-fin", "--filename",
                       type=str,
                       required=True,
                       help="path to input file. REQUIRED")
-  parser.add_argument("-o", "--dataOutputFile",
+  parser.add_argument("-fo", "--dataOutputFile",
                       default="network_experiment/data.csv",
                       type=str,
                       help="File to write processed data to.")
