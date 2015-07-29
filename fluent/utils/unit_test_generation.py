@@ -30,6 +30,7 @@ import string
 from fluent.utils.csv_helper import readCSV, writeCSV
 
 
+
 def cleanTokens(tokens):
     """ Traverses list of tokens and generates new list of tokens
     with [identifier deleted] as one token
@@ -48,7 +49,8 @@ def cleanTokens(tokens):
         cleanTokens.append(token)
     return cleanTokens
 
-def generateDataFile(inputData, type):
+
+def generateDataFile(inputData, outputDataDir, type):
     """
     Generates a samples data file with all of the words in the sample
     reversed.
@@ -57,7 +59,9 @@ def generateDataFile(inputData, type):
     @param  (TextPreprocess)    Processor to perform some text cleanup.
 
     """
-    outputDataDir = os.path.dirname(inputData)
+    if not os.path.exists(outputDataDir):
+        os.makedirs(outputDataDir)
+
     fileName = string.join(inputData.split(".")[:-1], ".") + "_" + type + ".csv"
     dataDict = readCSV(inputData, 2, 3)
     headers = ["QID", "QuestionText", "Response", "Classification1", "Classification2",
@@ -81,12 +85,18 @@ def generateDataFile(inputData, type):
 
     writeCSV(data, headers, os.path.join(outputDataDir, fileName))
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("inputData",
+    parser.add_argument("--inputData",
                         type=str,
+                        required=True,
                         help="Path to input data file")
+    parser.add_argument("--outputDataDir",
+                        type=str,
+                        default='data/sample_reviews_unit',
+                        help="Desired directory for output data file")
     args = parser.parse_args()
 
-    generateDataFile(args.inputData, "scrambled")
-    generateDataFile(args.inputData, "reversed")
+    generateDataFile(args.inputData, args.outputDataDir, "scrambled")
+    generateDataFile(args.inputData, args.outputDataDir, "reversed")
