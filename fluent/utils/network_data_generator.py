@@ -50,6 +50,8 @@ class NetworkDataGenerator(object):
     """
     Column headers are marked "private" with a leading underscore in order to
     distingush them from dictinonary keys used in the Network API.
+
+    Note: a reset marks the first item of a new sequence.
     """
     self.records = []
     self.fieldNames = ["_token", "_categories", "_sequenceID", "_reset"]
@@ -121,6 +123,8 @@ class NetworkDataGenerator(object):
     Save the processed data and the associated category mapping.
     @param dataOutputFile       (str)   Location to save data
     @param categoriesOutputFile (str)   Location to save category map
+    @return                     (str)   Path to the saved data file iff
+                                        saveData() is successful.
     """
     if self.records is None:
       return False
@@ -160,7 +164,7 @@ class NetworkDataGenerator(object):
                          indent=4,
                          separators=(',', ': ')))
 
-    return True
+    return dataOutputFile
 
 
   def reset(self):
@@ -174,6 +178,27 @@ class NetworkDataGenerator(object):
                      "_reset": "R"}
 
     self.categoryToId.clear()
+
+
+  @staticmethod
+  def getResetsIndices(networkDataFile):
+    """Returns the indices at which the data sequences reset."""
+    try:
+      with open(networkDataFile) as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        next(reader, None)
+        resetIdx = next(reader).index("R")
+
+        resets = []
+        for i, line in enumerate(reader):
+          print line
+          if int(line[resetIdx]) == 1:
+            resets.append(i)
+        return resets
+
+    except IOError as e:
+      raise e
 
 
 if __name__ == "__main__":
@@ -234,7 +259,7 @@ if __name__ == "__main__":
 
   pprint.pprint(options)
   print ("Note: preprocessing params only take affect if textPreprocess "
-        "argument is set.")
+         "argument is set.")
 
   dataGenerator = NetworkDataGenerator()
   dataGenerator.split(**options)
@@ -242,4 +267,4 @@ if __name__ == "__main__":
   if options["randomize"]:
     dataGenerator.randomizeData()
 
-  dataGenerator.saveData(**options)
+  outFile = dataGenerator.saveData(**options)
