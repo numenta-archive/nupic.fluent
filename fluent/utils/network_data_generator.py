@@ -56,7 +56,7 @@ class NetworkDataGenerator(object):
     self.records = []
     self.fieldNames = ["_token", "_categories", "_sequenceID", "_reset"]
     self.types = {"_token": "string",
-                  "_categories": "string",
+                  "_categories": "list",
                   "_sequenceID": "int",
                   "_reset": "int"}
     self.specials = {"_token": "",
@@ -198,6 +198,7 @@ class NetworkDataGenerator(object):
         return resets
 
     except IOError as e:
+      print "Could not open the file {}.".format(networkDataFile)
       raise e
 
 
