@@ -174,7 +174,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     return categoryComparisons
 
 
-  def getCategoryDistances(self, sort=True, save=None):
+  def getCategoryDistances(self, sort=True, save=None, labelRefs=None):
     """
     Return a dict where keys are categories and values are dicts of distances.
 
@@ -206,8 +206,8 @@ class ClassificationModelEndpoint(ClassificationModel):
       # least similar.
       catDistances = self.compareCategories(catDistances)
 
-    # if save is not None:
-    #   self.logEncodings(save, comparisons=catDistances)
+    if save is not None:
+      self.logCategories(save, comparisons=catDistances, labelRefs=labelRefs)
 
     return catDistances
 

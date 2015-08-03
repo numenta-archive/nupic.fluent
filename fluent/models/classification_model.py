@@ -79,6 +79,34 @@ class ClassificationModel(object):
       f.write(json.dumps(jsonPatterns, indent=1))
 
 
+  def logCategories(self, path, comparisons=None, labelRefs=None):
+    """
+    For models which define categories with bitmaps, log the categories (and
+    their relative distances) to a JSON specified by path (must be absolute).
+    """
+    if not hasattr(self, "categoryBitmaps"):
+      raise TypeError("This model does not have category encodings compatible "
+                      "for logging.")
+
+    if not os.path.isdir(path):
+      raise ValueError("Invalid path to write file.")
+
+    with open(os.path.join(path, "category_distances.json"), "w") as f:
+      if labelRefs:
+        f.write(json.dumps({i: label for i, label in enumerate(labelRefs)},
+                          sort_keys=False,
+                          indent=4,
+                          separators=(',', ': ')))
+      if comparisons:
+        f.write(json.dumps(comparisons,
+                          sort_keys=False,
+                          indent=4,
+                          separators=(',', ': ')))
+      f.write(json.dumps(self.categoryBitmaps,
+                        sort_keys=True,
+                        indent=4,
+                        separators=(',', ': ')))
+
   def classifyRandomly(self, labels):
     """Return accuracy of random classifications for the labels."""
     randomLabels = numpy.random.randint(0, labels.max(), labels.shape)
