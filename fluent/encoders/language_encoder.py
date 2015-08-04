@@ -19,6 +19,7 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import math
 import numpy
 import random
 
@@ -119,8 +120,7 @@ class LanguageEncoder(object):
     return numpy.sort(random.sample(xrange(self.n), self.w))
 
 
-  @staticmethod
-  def compare(bitmap1, bitmap2):
+  def compare(self, bitmap1, bitmap2):
     """
     Compare bitmaps, returning a dict of similarity measures.
 
