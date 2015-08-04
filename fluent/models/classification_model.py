@@ -100,20 +100,20 @@ class ClassificationModel(object):
             f,
             sort_keys=False,
             indent=2,
-            separators=(',', ': '))
+            separators=(",", ": "))
       if comparisons:
         json.dump(
           comparisons,
           f,
           sort_keys=False,
           indent=2,
-          separators=(',', ': '))
+          separators=(",", ": "))
       json.dump(
         self.categoryBitmaps,
         f,
         sort_keys=True,
         indent=2,
-        separators=(',', ': '))
+        separators=(",", ": "))
 
 
   def classifyRandomly(self, labels):

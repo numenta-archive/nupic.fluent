@@ -138,7 +138,7 @@ class ClassificationModelTest(unittest.TestCase):
 
 
   def testCompareCategories(self):
-    model =ClassificationModelEndpoint()
+    model = ClassificationModelEndpoint()
 
     # Fake distances between three categories (each of size three):
     catDistances = {
