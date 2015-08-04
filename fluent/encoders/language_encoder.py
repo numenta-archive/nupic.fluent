@@ -113,6 +113,18 @@ class LanguageEncoder(object):
     return numpy.array([i for i in range(len(sdr)) if sdr[i]==1])
 
 
+  @staticmethod
+  def compare(bitmap1, bitmap2):
+    """
+    Return dict of distances between the input bitmaps.
+
+    TODO: implement a distance method similar to CioEncoder, but without
+    querying an external API.
+    """
+
+    return
+
+
   def pprintHeader(self, prefix=""):
     """
     Pretty-print a header that labels the sub-fields of the encoded output.

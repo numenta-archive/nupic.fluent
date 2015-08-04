@@ -20,7 +20,6 @@
 # ----------------------------------------------------------------------
 
 import numpy
-import os
 
 from collections import defaultdict, OrderedDict
 from fluent.encoders.cio_encoder import CioEncoder

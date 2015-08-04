@@ -20,9 +20,7 @@
 # ----------------------------------------------------------------------
 
 import itertools
-import numpy
 import os
-import random
 
 from collections import Counter
 from cortipy.cortical_client import CorticalClient
@@ -125,7 +123,7 @@ class CioEncoder(LanguageEncoder):
     @return                 (list)            List of dictionaries, where keys
                                               are terms and likelihood scores.
     """
-    terms = client.bitmapToTerms(encoding, numTerms=numTerms)
+    terms = self.client.bitmapToTerms(encoding, numTerms=numTerms)
     # Convert cortipy response to list of tuples (term, weight)
     return [((term["term"], term["score"])) for term in terms]
 
@@ -138,11 +136,11 @@ class CioEncoder(LanguageEncoder):
                                               could not be encoded.
     """
     tokens = list(itertools.chain.from_iterable(
-      [t.split(',') for t in self.client.tokenize(text)]))
+        [t.split(',') for t in self.client.tokenize(text)]))
     try:
       if method == "df":
         encoding = min([self.client.getBitmap(t) for t in tokens],
-                        key=lambda x: x["df"])
+                       key=lambda x: x["df"])
       elif method == "keyword":
         # Take a union of the bitmaps
         counts = Counter()
@@ -181,7 +179,7 @@ class CioEncoder(LanguageEncoder):
 
   def compare(self, bitmap1, bitmap2):
     """
-    Compare encodings, returning the distances between the SDRs. Input bitmaps\
+    Compare encodings, returning the distances between the SDRs. Input bitmaps
     must be list objects (need to be serializable).
 
     Example return dict:

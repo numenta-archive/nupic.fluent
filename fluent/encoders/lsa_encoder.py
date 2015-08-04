@@ -63,18 +63,6 @@ class LSAEncoder(LanguageEncoder):
     return text.split(" ")
 
 
-  @staticmethod
-  def compare(bitmap1, bitmap2):
-    """
-    Return dict of distances between the input bitmaps.
-
-    TODO: implement a distance method similar to CioEncoder, but without
-    querying an external API.
-    """
-
-    return
-
-
   def encode(self, text):
     """
     Encodes the input text into an SDR.
@@ -84,13 +72,12 @@ class LSAEncoder(LanguageEncoder):
                                       list input will skip the tokenization
                                       step.
     @return         (list)            SDR.
+
+    TODO: test tokenization logic for str and list inputs
     """
+    if isinstance(text, str):
+      text = self._tokenize(text)
 
-    """Converts a string into an SDR."""
-   if isinstance(text, str):
-     text = self._tokenize(text)
-
-    ## TODO: test tokenization logic for str and list inputs
     bow = self.dictionary.doc2bow(text.lower().split())
     tfidf = self.tfidf[bow]
     weights = self.lsa[tfidf]
