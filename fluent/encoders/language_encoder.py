@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 import numpy
+import random
 
 from nupic.encoders.utils import bitsToString
 
@@ -111,6 +112,12 @@ class LanguageEncoder(object):
   def bitmapFromSDR(self, sdr):
     """Convert SDR encoding from binary numpy array to bitmap."""
     return numpy.array([i for i in range(len(sdr)) if sdr[i]==1])
+
+
+  def encodeRandomly(self, text):
+    """Return a random bitmap representation of the sample."""
+    random.seed(sample)
+    return numpy.sort(random.sample(xrange(self.n), self.w))
 
 
   @staticmethod
