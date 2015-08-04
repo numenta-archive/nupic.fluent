@@ -23,7 +23,6 @@ import numpy
 import os
 
 from collections import defaultdict, OrderedDict
-from cortipy.cortical_client import CorticalClient
 from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
 
@@ -35,18 +34,15 @@ class ClassificationModelEndpoint(ClassificationModel):
   text endpoint encodings and classification system.
 
   From the experiment runner, the methods expect to be fed one sample at a time.
-
-  TODO: move Cortical.io client logic to CioEncoder.
   """
 
   def __init__(self, verbosity=1, numLabels=3):
     """
-    Initialize the CorticalClient and CioEncoder. Requires a valid API key
+    Initialize the encoder as CioEncoder; requires a valid API key.
     """
     super(ClassificationModelEndpoint, self).__init__(verbosity, numLabels)
 
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
-    self.client = CorticalClient(self.encoder.apiKey)  # TODO: move client to encoder
 
     self.n = self.encoder.n
     self.w = int((self.encoder.targetSparsity/100) * self.n)
@@ -123,7 +119,7 @@ class ClassificationModelEndpoint(ClassificationModel):
           labelsToUpdateBitmaps.add(label)
 
     for label in labelsToUpdateBitmaps:
-      self.categoryBitmaps[label] = self.client.createClassification(
+      self.categoryBitmaps[label] = self.encoder.createCategory(
           str(label),
           self.positives[label],
           self.negatives[label])["positions"]

@@ -203,6 +203,25 @@ class CioEncoder(LanguageEncoder):
     return self.client.compare(bitmap1, bitmap2)
 
 
+  def createCategory(self, label, positives, negatives=None):
+    """
+    Create a classification category (bitmap) via the Cio claassify endpoint.
+
+    @param label      (str)     Name of category.
+    @param positives  (list)    Bitmap(s) of samples to define.
+    @param negatives  (list)    Not required to make category.
+
+    @return           (dict)    Key-values for "positions" (list bitmap encoding
+                                of the category and "categoryName" (str).
+    """
+    if negatives is None:
+      negatives = []
+    if not isinstance(positives and negatives, list):
+      raise TypeError("Input bitmaps must be lists.")
+
+    return self.client.createClassification(label, positives, negatives)
+
+
   def getWidth(self):
     return self.n
 
