@@ -156,7 +156,8 @@ class ClassificationModelEndpoint(ClassificationModel):
     (according to the input metric) are listed first.
     """
     descendingOrder = ("overlappingAll", "overlappingLeftRight",
-        "overlappingRightLeft", "cosineSimilarity", "weightedScoring")
+                       "overlappingRightLeft", "cosineSimilarity",
+                       "weightedScoring")
 
     categoryComparisons = defaultdict(list)
     for k, v in catDistances.iteritems():
@@ -164,12 +165,9 @@ class ClassificationModelEndpoint(ClassificationModel):
       metricDict = {compareCat: distances[metric]
                     for compareCat, distances in v.iteritems()}
       # Sort the dict by the metric
-      if metric in descendingOrder:
-        categoryComparisons[k] = OrderedDict(
-            sorted(metricDict.items(), key=lambda k: k[1])[::-1])
-      else:
-        categoryComparisons[k] = OrderedDict(
-            sorted(metricDict.items(), key=lambda k: k[1]))
+      reverse = True if metric in descendingOrder else False
+      categoryComparisons[k] = OrderedDict(
+          sorted(metricDict.items(), key=lambda k: k[1], reverse=reverse))
 
     return categoryComparisons
 
@@ -207,7 +205,7 @@ class ClassificationModelEndpoint(ClassificationModel):
       catDistances = self.compareCategories(catDistances)
 
     if save is not None:
-      self.logCategories(save, comparisons=catDistances, labelRefs=labelRefs)
+      self.writeOutCategories(save, comparisons=catDistances, labelRefs=labelRefs)
 
     return catDistances
 
@@ -223,7 +221,8 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     # euclideanDistance and jaccardDistance are ascending
     descendingOrder = ("overlappingAll", "overlappingLeftRight",
-      "overlappingRightLeft", "cosineSimilarity", "weightedScoring")
+                       "overlappingRightLeft", "cosineSimilarity",
+                       "weightedScoring")
     if metric in descendingOrder:
       sortedIdx = sortedIdx[::-1]
 

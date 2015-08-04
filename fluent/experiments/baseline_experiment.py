@@ -238,7 +238,7 @@ def run(args):
 
   print("Done encoding; elapsed time is {0:.2f} seconds.".
         format(time.time() - encodeTime))
-  model.logEncodings(patterns, modelPath)
+  model.writeOutEncodings(patterns, modelPath)
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:

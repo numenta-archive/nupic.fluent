@@ -167,7 +167,7 @@ class ClassificationModelTest(unittest.TestCase):
         }
     catComparisons = model.compareCategories(
         catDistances, metric="overlappingAll")
-    self.assertEqual(expected, catComparisons,
+    self.assertDictEqual(expected, catComparisons,
         "Unexpected category comparison values for overlap metric.")
 
     expected = {
@@ -177,7 +177,7 @@ class ClassificationModelTest(unittest.TestCase):
         }
     catComparisons = model.compareCategories(
         catDistances, metric="euclideanDistance")
-    self.assertEqual(expected, catComparisons,
+    self.assertDictEqual(expected, catComparisons,
         "Unexpected category comparison values for Euclidean metric.")
 
 

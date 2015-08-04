@@ -209,7 +209,7 @@ class Runner(object):
     self.patterns = [{"pattern": self.model.encodePattern(s[0]),
                      "labels": s[1]}
                      for s in self.samples]
-    self.model.logEncodings(self.patterns, self.modelPath)
+    self.model.writeOutEncodings(self.patterns, self.modelPath)
 
 
   def runExperiment(self):

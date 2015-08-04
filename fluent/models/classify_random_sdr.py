@@ -74,7 +74,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
     return patterns
 
 
-  def logEncodings(self, patterns, path):
+  def writeOutEncodings(self, patterns, path):
     """
     Log the encoding dictionaries to a txt file; overrides the superclass
     implementation.
