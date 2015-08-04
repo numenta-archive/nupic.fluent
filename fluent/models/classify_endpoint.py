@@ -23,6 +23,7 @@ import numpy
 
 from collections import defaultdict, OrderedDict
 from fluent.encoders.cio_encoder import CioEncoder
+from fluent.encoders.cio_encoder import LanguageEncoder
 from fluent.models.classification_model import ClassificationModel
 
 
@@ -42,6 +43,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     super(ClassificationModelEndpoint, self).__init__(verbosity, numLabels)
 
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
+    self.compareEncoder = LanguageEncoder()
 
     self.n = self.encoder.n
     self.w = int((self.encoder.targetSparsity/100) * self.n)
@@ -138,7 +140,7 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     distances = defaultdict(list)
     for cat, catBitmap in self.categoryBitmaps.iteritems():
-      distances[cat] = self.encoder.compare(sampleBitmap, catBitmap)
+      distances[cat] = self.compareEncoder.compare(sampleBitmap, catBitmap)
 
     return self.getWinningLabels(distances, numLabels=numLabels, metric=metric)
 
@@ -192,7 +194,8 @@ class ClassificationModelEndpoint(ClassificationModel):
       catDistances[cat] = OrderedDict()
       for compareCat, compareBitmap in self.categoryBitmaps.iteritems():
         # List is in order of self.categoryBitmaps.keys()
-        catDistances[cat][compareCat] = self.encoder.compare(catBitmap, compareBitmap)
+        catDistances[cat][compareCat] = self.compareEncoder.compare(
+            catBitmap, compareBitmap)
 
     if sort:
       # Order each inner dict of catDistances such that the ranking is most to
@@ -200,7 +203,8 @@ class ClassificationModelEndpoint(ClassificationModel):
       catDistances = self.compareCategories(catDistances)
 
     if save is not None:
-      self.writeOutCategories(save, comparisons=catDistances, labelRefs=labelRefs)
+      self.writeOutCategories(
+          save, comparisons=catDistances, labelRefs=labelRefs)
 
     return catDistances
 

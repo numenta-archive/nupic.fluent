@@ -19,6 +19,7 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import math
 import numpy
 import random
 
@@ -104,8 +105,7 @@ class LanguageEncoder(object):
   def bitmapToSDR(self, bitmap):
     """Convert SDR encoding from bitmap to binary numpy array."""
     sdr = numpy.zeros(self.n)
-    for i in self.bitmap:
-      sdr[i] = 1
+    sdr[bitmap] = 1
     return sdr
 
 
@@ -120,16 +120,49 @@ class LanguageEncoder(object):
     return numpy.sort(random.sample(xrange(self.n), self.w))
 
 
-  @staticmethod
-  def compare(bitmap1, bitmap2):
+  def compare(self, bitmap1, bitmap2):
     """
-    Return dict of distances between the input bitmaps.
+    Compare bitmaps, returning a dict of similarity measures.
 
-    TODO: implement a distance method similar to CioEncoder, but without
-    querying an external API.
+    @param bitmap1     (list)        Indices of ON bits.
+    @param bitmap2     (list)        Indices of ON bits.
+    @return distances  (dict)        Key-values of distance metrics and values.
+
+    Example return dict:
+      {
+        "cosineSimilarity": 0.6666666666666666,
+        "euclideanDistance": 0.3333333333333333,
+        "jaccardDistance": 0.5,
+        "overlappingAll": 6,
+        "overlappingLeftRight": 0.6666666666666666,
+        "overlappingRightLeft": 0.6666666666666666,
+        "sizeLeft": 9,
+        "sizeRight": 9
+      }
     """
+    if not len(bitmap1) > 0 or not len(bitmap2) > 0:
+      raise ValueError("Bitmaps must have ON bits to compare.")
 
-    return
+    sdr1 = self.bitmapToSDR(bitmap1)
+    sdr2 = self.bitmapToSDR(bitmap2)
+
+    distances = {
+      "sizeLeft": float(len(bitmap1)),
+      "sizeRight": float(len(bitmap2)),
+      "overlappingAll": float(len(numpy.intersect1d(bitmap1, bitmap2))),
+      "euclideanDistance": numpy.linalg.norm(sdr1 - sdr2)
+    }
+
+    distances["overlappingLeftRight"] = (distances["overlappingAll"] /
+                                         distances["sizeLeft"])
+    distances["overlappingRightLeft"] = (distances["overlappingAll"] /
+                                         distances["sizeRight"])
+    distances["cosineSimilarity"] = (distances["overlappingAll"] /
+        (math.sqrt(distances["sizeLeft"]) * math.sqrt(distances["sizeRight"])))
+    distances["jaccardDistance"] = 1 - (distances["overlappingAll"] /
+        len(numpy.union1d(bitmap1, bitmap2)))
+
+    return distances
 
 
   def pprintHeader(self, prefix=""):
