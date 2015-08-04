@@ -1,5 +1,5 @@
 _token,_categories,_sequenceID,_reset
-string,string,int,int
+string,list,int,int
 ,C,S,R
 get,0,0,1
 rid,0,0,0
