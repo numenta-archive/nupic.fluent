@@ -20,9 +20,7 @@
 # ----------------------------------------------------------------------
 
 import itertools
-import numpy
 import os
-import random
 
 from collections import Counter
 from cortipy.cortical_client import CorticalClient
@@ -125,7 +123,7 @@ class CioEncoder(LanguageEncoder):
     @return                 (list)            List of dictionaries, where keys
                                               are terms and likelihood scores.
     """
-    terms = client.bitmapToTerms(encoding, numTerms=numTerms)
+    terms = self.client.bitmapToTerms(encoding, numTerms=numTerms)
     # Convert cortipy response to list of tuples (term, weight)
     return [((term["term"], term["score"])) for term in terms]
 
@@ -138,11 +136,11 @@ class CioEncoder(LanguageEncoder):
                                               could not be encoded.
     """
     tokens = list(itertools.chain.from_iterable(
-      [t.split(',') for t in self.client.tokenize(text)]))
+        [t.split(',') for t in self.client.tokenize(text)]))
     try:
       if method == "df":
         encoding = min([self.client.getBitmap(t) for t in tokens],
-                        key=lambda x: x["df"])
+                       key=lambda x: x["df"])
       elif method == "keyword":
         # Take a union of the bitmaps
         counts = Counter()
@@ -179,9 +177,11 @@ class CioEncoder(LanguageEncoder):
     return encoding
 
 
-  def compare(self, encoding1, encoding2):
+  def compare(self, bitmap1, bitmap2):
     """
-    Compare encodings, returning the distances between the SDRs.
+    Compare encodings, returning the distances between the SDRs. Input bitmaps
+    must be list objects (need to be serializable).
+
     Example return dict:
       {
         "cosineSimilarity": 0.6666666666666666,
@@ -195,11 +195,29 @@ class CioEncoder(LanguageEncoder):
         "weightedScoring": 0.4436476984102028
       }
     """
-    # Format input SDRs as Cio fingerprints
-    fp1 = {"fingerprint": {"positions":self.bitmapFromSDR(encoding1)}}
-    fp2 = {"fingerprint": {"positions":self.bitmapFromSDR(encoding2)}}
+    if not isinstance(bitmap1 and bitmap2, list):
+      raise TypeError("Comparison bitmaps must be lists.")
 
-    return self.client.compare(fp1, fp2)
+    return self.client.compare(bitmap1, bitmap2)
+
+
+  def createCategory(self, label, positives, negatives=None):
+    """
+    Create a classification category (bitmap) via the Cio claassify endpoint.
+
+    @param label      (str)     Name of category.
+    @param positives  (list)    Bitmap(s) of samples to define.
+    @param negatives  (list)    Not required to make category.
+
+    @return           (dict)    Key-values for "positions" (list bitmap encoding
+                                of the category and "categoryName" (str).
+    """
+    if negatives is None:
+      negatives = []
+    if not isinstance(positives and negatives, list):
+      raise TypeError("Input bitmaps must be lists.")
+
+    return self.client.createClassification(label, positives, negatives)
 
 
   def getWidth(self):
