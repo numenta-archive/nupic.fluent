@@ -63,6 +63,18 @@ class LSAEncoder(LanguageEncoder):
     return text.split(" ")
 
 
+  @staticmethod
+  def compare(bitmap1, bitmap2):
+    """
+    Return dict of distances between the input bitmaps.
+
+    TODO: implement a distance method similar to CioEncoder, but without
+    querying an external API.
+    """
+
+    return
+
+
   def encode(self, text):
     """
     Encodes the input text into an SDR.

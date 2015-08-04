@@ -179,9 +179,11 @@ class CioEncoder(LanguageEncoder):
     return encoding
 
 
-  def compare(self, encoding1, encoding2):
+  def compare(self, bitmap1, bitmap2):
     """
-    Compare encodings, returning the distances between the SDRs.
+    Compare encodings, returning the distances between the SDRs. Input bitmaps\
+    must be list objects (need to be serializable).
+
     Example return dict:
       {
         "cosineSimilarity": 0.6666666666666666,
@@ -195,11 +197,10 @@ class CioEncoder(LanguageEncoder):
         "weightedScoring": 0.4436476984102028
       }
     """
-    # Format input SDRs as Cio fingerprints
-    fp1 = {"fingerprint": {"positions":self.bitmapFromSDR(encoding1)}}
-    fp2 = {"fingerprint": {"positions":self.bitmapFromSDR(encoding2)}}
+    if not isinstance(bitmap1 and bitmap2, list):
+      raise TypeError("Comparison bitmaps must be lists.")
 
-    return self.client.compare(fp1, fp2)
+    return self.client.compare(bitmap1, bitmap2)
 
 
   def getWidth(self):

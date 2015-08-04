@@ -143,7 +143,7 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     distances = defaultdict(list)
     for cat, catBitmap in self.categoryBitmaps.iteritems():
-      distances[cat] = self.client.compare(sampleBitmap, catBitmap)
+      distances[cat] = self.encoder.compare(sampleBitmap, catBitmap)
 
     return self.getWinningLabels(distances, numLabels=numLabels, metric=metric)
 
@@ -197,7 +197,7 @@ class ClassificationModelEndpoint(ClassificationModel):
       catDistances[cat] = OrderedDict()
       for compareCat, compareBitmap in self.categoryBitmaps.iteritems():
         # List is in order of self.categoryBitmaps.keys()
-        catDistances[cat][compareCat] = self.client.compare(catBitmap, compareBitmap)
+        catDistances[cat][compareCat] = self.encoder.compare(catBitmap, compareBitmap)
 
     if sort:
       # Order each inner dict of catDistances such that the ranking is most to
