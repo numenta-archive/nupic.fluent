@@ -181,6 +181,32 @@ class NetworkDataGenerator(object):
 
 
   @staticmethod
+  def getClassifications(networkDataFile):
+    """
+    Returns the classifications at the indices where the data sequences
+    reset.
+    """
+    try:
+      with open(networkDataFile) as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        next(reader, None)
+        specials = next(reader)
+        resetIdx = specials.index("R")
+        classIdx = specials.index("C")
+
+        classifications = []
+        for i, line in enumerate(reader):
+          if int(line[resetIdx]) == 1:
+            classifications.append(line[classIdx])
+        return classifications
+
+    except IOError as e:
+      print "Could not open the file {}.".format(networkDataFile)
+      raise e
+
+
+  @staticmethod
   def getResetsIndices(networkDataFile):
     """Returns the indices at which the data sequences reset."""
     try:
@@ -192,7 +218,6 @@ class NetworkDataGenerator(object):
 
         resets = []
         for i, line in enumerate(reader):
-          print line
           if int(line[resetIdx]) == 1:
             resets.append(i)
         return resets

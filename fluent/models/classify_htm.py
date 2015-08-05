@@ -22,6 +22,7 @@
 import numpy
 
 from classification_network import createNetwork
+from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
 from nupic.data.file_record_stream import FileRecordStream
 
@@ -35,15 +36,18 @@ class ClassificationModelHTM(ClassificationModel):
   """
 
   def __init__(self, inputFilePath, verbosity=1, numLabels=3):
-    super(ClassificationModelFingerprint, self).__init__(verbosity, numLabels)
+    super(ClassificationModelHTM, self).__init__(verbosity=verbosity,
+      numLabels=numLabels)
 
     # Initialize Network
+    self.encoder = CioEncoder(cacheDir="./experiments/cache")
     self.recordStream = FileRecordStream(streamID=inputFilePath)
     self.network = createNetwork((self.recordStream, "py.LanguageSensor",
-      self.encoder))
+      self.encoder, numLabels))
     self.network.initialize()
 
     self.numTrained = 0
+    # TODO: pick value to start training TM
     self.tmTrainingSize = 0
     self.labels = set()
     self.oldClassifications = None
@@ -73,7 +77,8 @@ class ClassificationModelHTM(ClassificationModel):
   def resetModel(self):
     """Reset the model by clearing the classifier."""
     self.recordStream.clear()
-    self.network = createNetwork((self.recordStream, "py.RecordSensor", self.encoder))
+    self.network = createNetwork((self.recordStream, "py.LanguageSensor",
+      self.encoder, self.numLabels))
     self.network.initialize()
 
     self.numTrained = 0
@@ -94,8 +99,10 @@ class ClassificationModelHTM(ClassificationModel):
     self.network.run(1)
 
     # Only train classifier once TM is trained
-    if self.sequenceId > self.tmTrainingSize:
-      labels = sensorRegion.getOutputData("categoryOut")[0]
+    if self.numTrained >= self.tmTrainingSize:
+      labels = sensorRegion.getOutputData("categoryOut")
+      # TODO: Figure out why -1 appears
+      print labels
       for label in labels:
         self._classify(label)
     
@@ -122,7 +129,7 @@ class ClassificationModelHTM(ClassificationModel):
                           "actValue": None}
 
     clResults = classifierRegion.getSelf().customCompute(
-      recordNum=self.sequenceId, patternNZ=patternNZ,
+      recordNum=self.numTrained, patternNZ=patternNZ,
       classification=classificationIn)
 
     return clResults[int(classifierRegion.getParameter("steps"))]
@@ -130,18 +137,14 @@ class ClassificationModelHTM(ClassificationModel):
 
   def testModel(self, numLabels=3):
     """
-    Test the kNN classifier on the input sample. Returns the classification most
-    frequent amongst the classifications of the sample's individual tokens.
-    We ignore the terms that are unclassified, picking the most frequent
-    classification among those that are detected.
+    Test the CLA classifier on the input sample.
 
     @param numLabels      (int)           Number of predicted classifications.
     @return               (numpy array)   The numLabels most-frequent
-                                          classifications for the data samples;
-                                          values are int or empty.
+                                          classifications for the data sample
     """
     sensorRegion = self.network.regions["sensor"]
-    spatialPoolerRegion = net.regions["SP"]
+    spatialPoolerRegion = self.network.regions["SP"]
     temporalMemoryRegion = self.network.regions["TM"]
     spatialPoolerRegion.setParameter("learningMode", False)
     temporalMemoryRegion.setParameter("learningMode", False)
@@ -149,7 +152,7 @@ class ClassificationModelHTM(ClassificationModel):
     self.network.run(1)
 
     inferredValue = self._classify()
-    reset = sensorRegion.getOutputData("categoryOut")[0]
+    reset = sensorRegion.getOutputData("resetOut")[0]
 
     i = 1 # Hard coded for equal weighting. use lengthOfCurrentSequence later
     if reset:
@@ -159,7 +162,7 @@ class ClassificationModelHTM(ClassificationModel):
       self.lengthOfCurrentSequence += 1
       self.oldClassifications += (numpy.array(inferredValue) * i)
 
-    orderedInferrredValues = sorted(enumerate(self.oldClassifications),
+    orderedInferredValues = sorted(enumerate(self.oldClassifications),
       key=lambda x: x[1], reverse=True)
 
     labels = zip(*orderedInferredValues)[0]
