@@ -94,22 +94,13 @@ class ClassificationModel(object):
       raise ValueError("Invalid path to write file.")
 
     with open(os.path.join(dirName, "category_distances.json"), "w") as f:
-      if labelRefs:
-        json.dump(
-            dict(enumerate(labelRefs)),
-            f,
-            sort_keys=False,
-            indent=2,
-            separators=(",", ": "))
-      if comparisons:
-        json.dump(
-          comparisons,
-          f,
-          sort_keys=False,
-          indent=2,
-          separators=(",", ": "))
+      catDict = {
+        "categoryBitmaps":self.categoryBitmaps,
+        "labelRefs":dict(enumerate(labelRefs)) if labelRefs else None,
+        "comparisons":comparisons if comparisons else None
+      }
       json.dump(
-        self.categoryBitmaps,
+        catDict,
         f,
         sort_keys=True,
         indent=2,
