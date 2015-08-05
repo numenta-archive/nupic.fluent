@@ -207,6 +207,33 @@ class NetworkDataGenerator(object):
 
 
   @staticmethod
+  def getNumberOfTokens(networkDataFile):
+    """Returns the number of tokens for each sequence"""
+    try:
+      with open(networkDataFile) as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        next(reader, None)
+        resetIdx = next(reader).index("R")
+
+        count = 0
+        numTokens = []
+        for i, line in enumerate(reader):
+          if int(line[resetIdx]) == 1:
+            if count != 0:
+              numTokens.append(count)
+            count = 1
+          else:
+            count += 1
+        numTokens.append(count)
+        return numTokens
+
+    except IOError as e:
+      print "Could not open the file {}.".format(networkDataFile)
+      raise e
+
+
+  @staticmethod
   def getResetsIndices(networkDataFile):
     """Returns the indices at which the data sequences reset."""
     try:

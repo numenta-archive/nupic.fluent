@@ -99,25 +99,26 @@ class HTMRunner(Runner):
     recordStreamDataFile = self.dataPath
     if self.generateData:
       ndg = NetworkDataGenerator()
-      ndg.split(self.dataPath, sampleIdx, self.numLabels, preprocess,
+      ndg.split(self.dataPath, sampleIdx, self.numClasses, preprocess,
         ignoreCommon=100, removeStrings=["[identifier deleted]"],
         correctSpell=True)
 
       filename, ext = os.path.splitext(self.dataPath)
       self.classificationFile = "{}-classifications.json".format(filename)
-      for i in len(self.trainSize):
+      for i in xrange(len(self.trainSize)):
         if not self.orderedSplit:
-          ndg.randomize()
+          ndg.randomizeData()
         dataFile = "{}-{}{}".format(filename, i, ext)
-        ndg.saveData(dataFile, "{}-classifications.json".format(filename))
+        ndg.saveData(dataFile, self.classificationFile)
         self.dataFiles.append(dataFile)
     else:
+      # Does an orderedSplit
       self.dataFiles = [self.dataPath] * len(self.trainSize)
 
     self._mapLabelRefs()
 
 
-  def initModel(self, trial=None):
+  def _initModel(self, trial):
     """Load or instantiate the classification model."""
     if self.load:
       with open(os.path.join(self.modelPath, "model.pkl"), "rb") as f:
@@ -128,13 +129,10 @@ class HTMRunner(Runner):
       print "Model loaded from \'{0}\'.".format(self.modelPath)
     else:
       try:
-        if trial is not None:
-          module = __import__(self.modelModuleName, {}, {}, self.modelName)
-          modelClass = getattr(module, self.modelName)
-          self.model = modelClass(self.dataFiles[trial],
-                                  verbosity=self.verbosity)
-        else:
-          print "Must specify a trial"
+        module = __import__(self.modelModuleName, {}, {}, self.modelName)
+        modelClass = getattr(module, self.modelName)
+        self.model = modelClass(self.dataFiles[trial],
+                                verbosity=self.verbosity)
       except ImportError:
         raise RuntimeError("Could not find model class \'{0}\' to import.".
                            format(self.modelName))
@@ -152,7 +150,8 @@ class HTMRunner(Runner):
   def getClassifications(self, split, trial):
     dataFile = self.dataFiles[trial]
     classifications = NetworkDataGenerator.getClassifications(dataFile)
-    return [[int(c) for c in classes.split(" ")] for classes in classifications][split:]
+    return [[int(c) for c in classes.strip().split(" ")]
+             for classes in classifications][split:]
 
   
   def runExperiment(self):
@@ -166,7 +165,7 @@ class HTMRunner(Runner):
                format(self.partitions[i][0], self.partitions[i][1]))
 
       self.actualLabels = self.getClassifications(size, i)
-      self.initModel(i)
+      self._initModel(i)
       print "\tTraining for run {0} of {1}.".format(i+1, len(self.trainSize))
       self.training(i)
       print "\tTesting for this run."
@@ -191,7 +190,7 @@ class HTMRunner(Runner):
       counter = Counter()
       for p in predictions:
         counter.update(p)
-      return zip(*Counter.most_common(self.numClasses))[0]
+      return zip(*counter.most_common(self.numClasses))[0]
     else:
       raise ValueError("voting method must be either \'last\' or \'most\'")
 
@@ -224,8 +223,5 @@ class HTMRunner(Runner):
     Returns train and test indices.
     """
     dataFile = self.dataFiles[trial]
-    resets = NetworkDataGenerator.getResetsIndices(dataFile)
-    for i in reversed(xrange(1, len(resets))):
-      resets[i] -= resets[i - 1]
-
-    return (resets[:split], resets[split:])
+    numTokens = NetworkDataGenerator.getNumberOfTokens(dataFile)
+    return (numTokens[:split], numTokens[split:])

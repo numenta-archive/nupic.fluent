@@ -35,7 +35,9 @@ class ClassificationModelHTM(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, inputFilePath, verbosity=1, numLabels=3):
+  def __init__(self, inputFilePath, verbosity=1, numLabels=3, tmTrainingSize=0):
+    self.tmTrainingSize = tmTrainingSize
+
     super(ClassificationModelHTM, self).__init__(verbosity=verbosity,
       numLabels=numLabels)
 
@@ -43,15 +45,12 @@ class ClassificationModelHTM(ClassificationModel):
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
     self.recordStream = FileRecordStream(streamID=inputFilePath)
     self.network = createNetwork((self.recordStream, "py.LanguageSensor",
-      self.encoder, numLabels))
+      self.encoder, self.numLabels))
     self.network.initialize()
 
-    self.numTrained = 0
-    # TODO: pick value to start training TM
-    self.tmTrainingSize = 0
-    self.labels = set()
     self.oldClassifications = None
     self.lengthOfCurrentSequence = 0
+    self.numTrained = 0
 
 
   def encodePattern(self, sample):
@@ -82,7 +81,6 @@ class ClassificationModelHTM(ClassificationModel):
     self.network.initialize()
 
     self.numTrained = 0
-    self.labels.clear()
     self.oldClassifications = None
 
 
@@ -112,6 +110,8 @@ class ClassificationModelHTM(ClassificationModel):
   def _classify(self, label=None):
     """
     Get the labels from the classifier for the last input
+    @param label      (int)     class for learning.  If None, just classify
+    @return           (list)    inferred values for each category
     """
     temporalMemoryRegion = self.network.regions["TM"]
     classifierRegion =  self.network.regions["classifier"]
@@ -153,8 +153,9 @@ class ClassificationModelHTM(ClassificationModel):
     inferredValue = self._classify()
     reset = sensorRegion.getOutputData("resetOut")[0]
 
-    i = 1 # Hard coded for equal weighting. use lengthOfCurrentSequence later
-    if reset:
+    # TODO: Hard coded for equal weighting. Use lengthOfCurrentSequence later
+    i = 1 
+    if reset or self.oldClassifications is None:
       self.oldClassifications = numpy.array(inferredValue)
       self.lengthOfCurrentSequence = 1
     else:
