@@ -47,6 +47,7 @@ class ClassificationModelHTM(ClassificationModel):
     self.network = createNetwork((self.recordStream, "py.LanguageSensor",
       self.encoder, self.numLabels))
     self.network.initialize()
+    self.classifierType = "knn" # "cla"
 
     self.oldClassifications = None
     self.lengthOfCurrentSequence = 0
@@ -106,32 +107,35 @@ class ClassificationModelHTM(ClassificationModel):
     self.numTrained += 1
 
 
-  # TODO: replace with updated CLA
   def _classify(self, label=None):
     """
     Get the labels from the classifier for the last input
     @param label      (int)     class for learning.  If None, just classify
     @return           (list)    inferred values for each category
     """
-    temporalMemoryRegion = self.network.regions["TM"]
     classifierRegion =  self.network.regions["classifier"]
+    if self.classifierType == "knn":
+      return classifierRegion.getOutputData("categoriesOut")
+    elif self.classifierType == "cla":
+      # TODO: replace with updated CLA
+      temporalMemoryRegion = self.network.regions["TM"]
 
-    activeCells = temporalMemoryRegion.getOutputData("bottomUpOut")
-    patternNZ = activeCells.nonzero()[0]
-    if label is not None:
-      classifierRegion.setParameter("learningMode", True)
-      classificationIn = {"bucketIdx": int(label),
-                          "actValue": int(label)}
-    else:
-      classifierRegion.setParameter("learningMode", False)
-      classificationIn = {"bucketIdx": None,
-                          "actValue": None}
+      activeCells = temporalMemoryRegion.getOutputData("bottomUpOut")
+      patternNZ = activeCells.nonzero()[0]
+      if label is not None:
+        classifierRegion.setParameter("learningMode", True)
+        classificationIn = {"bucketIdx": int(label),
+                            "actValue": int(label)}
+      else:
+        classifierRegion.setParameter("learningMode", False)
+        classificationIn = {"bucketIdx": None,
+                            "actValue": None}
 
-    clResults = classifierRegion.getSelf().customCompute(
-      recordNum=self.numTrained, patternNZ=patternNZ,
-      classification=classificationIn)
+      clResults = classifierRegion.getSelf().customCompute(
+        recordNum=self.numTrained, patternNZ=patternNZ,
+        classification=classificationIn)
 
-    return clResults[int(classifierRegion.getParameter("steps"))]
+      return clResults[int(classifierRegion.getParameter("steps"))]
 
 
   def testModel(self, numLabels=3):
