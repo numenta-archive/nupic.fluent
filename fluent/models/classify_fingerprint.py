@@ -98,7 +98,6 @@ class ClassificationModelFingerprint(ClassificationModel):
                                       of each sample.
     """
     for sample, sample_labels in zip(samples, labels):
-      # import pdb; pdb.set_trace()
       if sample["bitmap"].any():
         for label in sample_labels:
           self.classifier.learn(sample["bitmap"], label, isSparse=self.n)

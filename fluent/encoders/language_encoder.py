@@ -45,6 +45,11 @@ class LanguageEncoder(object):
   - getDescription() returns a dict describing the encoded output
   """
 
+  def __init__(self, n=16384, w=328):
+    """The SDR dimensions are standard for Cortical.io fingerprints."""
+    self.n = n
+    self.w = w
+
 
   def encode(self, inputText):
     """
