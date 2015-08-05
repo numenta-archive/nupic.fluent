@@ -98,8 +98,8 @@ def run(args):
                     trainSize=args.trainSize,
                     verbosity=args.verbosity)
 
-  # The data isn't ready yet to initialize an htm model
   if args.modelName != "ClassificationModelHTM":
+    # The data isn't ready yet to initialize an htm model
     runner.initModel()
 
   print "Reading in data and preprocessing."

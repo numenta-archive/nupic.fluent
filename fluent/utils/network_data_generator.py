@@ -185,6 +185,11 @@ class NetworkDataGenerator(object):
     """
     Returns the classifications at the indices where the data sequences
     reset.
+    @param networkDataFile  (string)  Path to file in the FileRecordStream
+                                      format
+    @return                 (list)    list of string versions of the
+                                      classifications
+    Sample output: ["0 1", "1", "1 2 3"]
     """
     try:
       with open(networkDataFile) as f:
@@ -208,7 +213,12 @@ class NetworkDataGenerator(object):
 
   @staticmethod
   def getNumberOfTokens(networkDataFile):
-    """Returns the number of tokens for each sequence"""
+    """
+    Returns the number of tokens for each sequence
+    @param networkDataFile  (string)  Path to file in the FileRecordStream
+                                      format
+    @return                 (list)    list of number of tokens
+    """
     try:
       with open(networkDataFile) as f:
         reader = csv.reader(f)

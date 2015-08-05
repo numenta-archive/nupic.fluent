@@ -31,11 +31,17 @@ from nupic.data.file_record_stream import FileRecordStream
 class ClassificationModelHTM(ClassificationModel):
   """
   Class to run the survey response classification task with nupic network
-
-  From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
   def __init__(self, inputFilePath, verbosity=1, numLabels=3, tmTrainingSize=0):
+    """
+    @param inputFilePath      (string)    Path to data formatted for network
+                                          API
+    @param tmTrainingSize     (int)       Number of samples the network has to
+                                          be trained on before training the
+                                          classifier
+    See ClassificationModel for remaining parameters
+    """
     self.tmTrainingSize = tmTrainingSize
 
     super(ClassificationModelHTM, self).__init__(verbosity=verbosity,
@@ -61,7 +67,9 @@ class ClassificationModelHTM(ClassificationModel):
     @param sample     (list)            Tokenized sample, where each item is a
                                         string token.
     @return encodings (list)            The sample text, sparsity, and bitmap
-                                        for each token.
+                                        for each token. Since the network will
+                                        do the actual encoding, the bitmap and
+                                        sparsity will be None
     Example return list:
       [{
         "text": "Example text",
@@ -75,7 +83,10 @@ class ClassificationModelHTM(ClassificationModel):
 
 
   def resetModel(self):
-    """Reset the model by clearing the classifier."""
+    """
+    Reset the model by creating a new network since the network API does not
+    support resets.
+    """
     self.recordStream.clear()
     self.network = createNetwork((self.recordStream, "py.LanguageSensor",
       self.encoder, self.numLabels))
@@ -87,13 +98,17 @@ class ClassificationModelHTM(ClassificationModel):
 
   def trainModel(self):
     """
-    Train the classifier on the input sample and labels.
+    Train the network on the input to FileRecordStream.  Train the classifier
+    if the network has been trained on enough (self.tmTrainingSize) samples
     """
     sensorRegion = self.network.regions["sensor"]
     spatialPoolerRegion = self.network.regions["SP"]
     temporalMemoryRegion = self.network.regions["TM"]
+    classifierRegion = self.network.regions["classifier"]
+
     spatialPoolerRegion.setParameter("learningMode", True)
     temporalMemoryRegion.setParameter("learningMode", True)
+    classifierRegion.setParameter("learningMode", True)
 
     self.network.run(1)
 
@@ -113,15 +128,9 @@ class ClassificationModelHTM(ClassificationModel):
     @param label      (int)     class for learning.  If None, just classify
     @return           (list)    inferred values for each category
     """
-    classifierRegion =  self.network.regions["classifier"]
-    if self.classifierType == "knn":
-      return classifierRegion.getOutputData("categoriesOut")
-    elif self.classifierType == "cla":
-      # TODO: replace with updated CLA
-      temporalMemoryRegion = self.network.regions["TM"]
+    classifierRegion = self.network.regions["classifier"]
 
-      activeCells = temporalMemoryRegion.getOutputData("bottomUpOut")
-      patternNZ = activeCells.nonzero()[0]
+    if self.classifierType == "cla":
       if label is not None:
         classifierRegion.setParameter("learningMode", True)
         classificationIn = {"bucketIdx": int(label),
@@ -137,10 +146,12 @@ class ClassificationModelHTM(ClassificationModel):
 
       return clResults[int(classifierRegion.getParameter("steps"))]
 
+    return classifierRegion.getOutputData("categoriesOut")
+
 
   def testModel(self, numLabels=3):
     """
-    Test the CLA classifier on the input sample.
+    Test the KNN/CLA classifier on the input sample.
 
     @param numLabels      (int)           Number of predicted classifications.
     @return               (numpy array)   The numLabels most-frequent

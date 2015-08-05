@@ -39,8 +39,8 @@ except:
 
 class HTMRunner(Runner):
   """
-  Class to run the HTM NLP experiments with the specified data, models,
-  text processing, and evaluation metrics. 
+  Class to run the HTM NLP experiments with the specified data and evaluation
+  metrics. 
   """
 
   def __init__(self,
@@ -70,7 +70,7 @@ class HTMRunner(Runner):
     self.votingMethod = votingMethod
 
     if classificationFile == "" and not generateData:
-      raise ValueError("Must give classificationFile if not generating Data")
+      raise ValueError("Must give classificationFile if not generating data")
     self.classificationFile = classificationFile
 
     self.dataFiles = []
@@ -81,20 +81,22 @@ class HTMRunner(Runner):
 
     
   def _mapLabelRefs(self):
-    """Get the mapping from label strings to the corresponding ints."""
-    if os.path.isfile(self.classificationFile) and \
-      os.path.splitext(self.classificationFile)[1] == ".json":
-      labelToId = json.load(open(self.classificationFile))
-      self.labelRefs = zip(*sorted(labelToId.iteritems(), key=lambda x:x[1]))[0]
-    else:
-      raise ValueError("must have a valid classification json file")
-
-
-  def setupData(self, preprocess=False, sampleIdx=2):
     """
-    Get the data from a directory and preprocess if specified.
-    One index in labelIdx implies the model will train on a single
-    classification per sample.
+    Get the mapping from label strings to the corresponding ints.
+    """
+    try:
+      with open(self.classificationFile, "r") as f:
+        labelToId = json.load(f)
+      # Convert the dict of strings -> ids to a list of strings ordered by id
+      self.labelRefs = zip(*sorted(labelToId.iteritems(), key=lambda x:x[1]))[0]
+    except IOError as e:
+      print "Must have a valid classification json file"
+      raise e
+
+
+  def setupData(self, preprocess=False):
+    """
+    Generate the data in network API format if necessary.
     """
     recordStreamDataFile = self.dataPath
     if self.generateData:
@@ -119,7 +121,9 @@ class HTMRunner(Runner):
 
 
   def _initModel(self, trial):
-    """Load or instantiate the classification model."""
+    """
+    Load or instantiate the classification model.
+    """
     if self.load:
       with open(os.path.join(self.modelPath, "model.pkl"), "rb") as f:
         self.model = pkl.load(f)
@@ -140,14 +144,19 @@ class HTMRunner(Runner):
 
   def encodeSamples(self):
     """
-    Encode the text samples into bitmap patterns. The
-    encoded patterns are stored in a dict along with their corresponding class
-    labels.
+    This method does nothing since the network encodes the samples
     """
     pass
 
 
-  def getClassifications(self, split, trial):
+  def _getClassifications(self, split, trial):
+    """
+    Gets the classifications for testing samples for a particular trial
+    @param split      (int)       Size of training set
+    @param trial      (int)       trial count
+    @return           (list)      List of list of ids of classifications for a
+                                  sample
+    """
     dataFile = self.dataFiles[trial]
     classifications = NetworkDataGenerator.getClassifications(dataFile)
     return [[int(c) for c in classes.strip().split(" ")]
@@ -155,7 +164,9 @@ class HTMRunner(Runner):
 
   
   def runExperiment(self):
-    """Train and test the model for each trial specified by self.trainSize."""
+    """
+    Train and test the model for each trial specified by self.trainSize.
+    """
     for i, size in enumerate(self.trainSize):
       self.partitions.append(self.partitionIndices(size, i))
 
@@ -164,7 +175,7 @@ class HTMRunner(Runner):
                "on sample(s) {1}.".
                format(self.partitions[i][0], self.partitions[i][1]))
 
-      self.actualLabels = self.getClassifications(size, i)
+      self.actualLabels = self._getClassifications(size, i)
       self._initModel(i)
       print "\tTraining for run {0} of {1}.".format(i+1, len(self.trainSize))
       self.training(i)
@@ -174,9 +185,9 @@ class HTMRunner(Runner):
 
   def training(self, trial):
     """
-    Train the model one-by-one on each pattern specified in this trials
-    partition of indices. Models' training methods require the sample and label
-    to be in a list.
+    Train the network on all the tokens in the training set for a particular
+    trial
+    @param trial      (int)       trial count
     """
     for numTokens in self.partitions[trial][0]:
       for _ in xrange(numTokens):
@@ -184,6 +195,13 @@ class HTMRunner(Runner):
 
 
   def _selectWinners(self, predictions):
+    """
+    Selects the final classifications for the predictions.  Voting
+    method=="last" means the predictions of the last sample are used. Voting
+    method=="most" means the most frequent sample is used.
+    @param predictions    (list)    List of list of possible classifications
+    @return               (list)    List of winning classifications
+    """
     if self.votingMethod == "last":
       return predictions[-1]
     elif self.votingMethod == "most":
@@ -196,6 +214,11 @@ class HTMRunner(Runner):
 
 
   def testing(self, trial):
+    """
+    Test the network on the test set for a particular trial and store the
+    results
+    @param trial      (int)       trial count
+    """
     results = ([], [])
     for i, numTokens in enumerate(self.partitions[trial][1]):
       predictions = []
@@ -210,6 +233,9 @@ class HTMRunner(Runner):
 
 
   def save(self):
+    """
+    Save the serialized model and network
+    """
     # Can't pickle a SWIG object so serialize it using nupic
     networkPath = os.path.join(self.modelPath, "network.nta")
     # TODO: uncomment once we can save TPRegion
@@ -220,7 +246,8 @@ class HTMRunner(Runner):
 
   def partitionIndices(self, split, trial):
     """
-    Returns train and test indices.
+    Returns the number of tokens for each sample in the training and test set
+    when doing an ordered split
     """
     dataFile = self.dataFiles[trial]
     numTokens = NetworkDataGenerator.getNumberOfTokens(dataFile)
