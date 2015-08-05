@@ -101,10 +101,9 @@ class ClassificationModelHTM(ClassificationModel):
     # Only train classifier once TM is trained
     if self.numTrained >= self.tmTrainingSize:
       labels = sensorRegion.getOutputData("categoryOut")
-      # TODO: Figure out why -1 appears
-      print labels
       for label in labels:
-        self._classify(label)
+        if label != -1:
+          self._classify(label)
     
     self.numTrained += 1
 

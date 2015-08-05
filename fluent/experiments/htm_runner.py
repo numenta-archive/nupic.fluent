@@ -123,7 +123,8 @@ class HTMRunner(Runner):
       with open(os.path.join(self.modelPath, "model.pkl"), "rb") as f:
         self.model = pkl.load(f)
       networkFile = self.model.network
-      self.model.network = Network(networkFile)
+      # TODO: uncomment once we can save TPRegion
+      #self.model.network = Network(networkFile)
       print "Model loaded from \'{0}\'.".format(self.modelPath)
     else:
       try:
@@ -212,7 +213,8 @@ class HTMRunner(Runner):
   def save(self):
     # Can't pickle a SWIG object so serialize it using nupic
     networkPath = os.path.join(self.modelPath, "network.nta")
-    self.model.network.save(networkPath)
+    # TODO: uncomment once we can save TPRegion
+    #self.model.network.save(networkPath)
     self.model.network = networkPath
     super(HTMRunner, self).save()
 
