@@ -19,20 +19,17 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import csv
-import numpy
 import os
-import random
+import pickle as pkl
 
 from collections import Counter
 from fluent.experiments.runner import Runner
-from fluent.utils.csv_helper import readCSV
 from fluent.utils.network_data_generator import NetworkDataGenerator
 from nupic.engine import Network
 
 try:
   import simplejson as json
-except:
+except ImportError:
   import json
 
 
@@ -40,7 +37,7 @@ except:
 class HTMRunner(Runner):
   """
   Class to run the HTM NLP experiments with the specified data and evaluation
-  metrics. 
+  metrics.
   """
 
   def __init__(self,
@@ -74,12 +71,13 @@ class HTMRunner(Runner):
     self.classificationFile = classificationFile
 
     self.dataFiles = []
+    self.actualLabels = None
 
     super(HTMRunner, self).__init__(dataPath, resultsDir, experimentName, load,
-                                    modelName, modelModuleName, numClasses, plots,
-                                    orderedSplit, trainSize, verbosity)
+                                    modelName, modelModuleName, numClasses,
+                                    plots, orderedSplit, trainSize, verbosity)
 
-    
+
   def _mapLabelRefs(self):
     """
     Get the mapping from label strings to the corresponding ints.
@@ -94,11 +92,10 @@ class HTMRunner(Runner):
       raise e
 
 
-  def setupData(self, preprocess=False):
+  def setupData(self, preprocess=False, sampleIdx=2):
     """
     Generate the data in network API format if necessary.
     """
-    recordStreamDataFile = self.dataPath
     if self.generateData:
       ndg = NetworkDataGenerator()
       ndg.split(self.dataPath, sampleIdx, self.numClasses, preprocess,
@@ -162,7 +159,7 @@ class HTMRunner(Runner):
     return [[int(c) for c in classes.strip().split(" ")]
              for classes in classifications][split:]
 
-  
+ 
   def runExperiment(self):
     """
     Train and test the model for each trial specified by self.trainSize.

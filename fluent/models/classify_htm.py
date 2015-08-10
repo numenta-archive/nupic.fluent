@@ -118,7 +118,7 @@ class ClassificationModelHTM(ClassificationModel):
       for label in labels:
         if label != -1:
           self._classify(label)
-    
+
     self.numTrained += 1
 
 
@@ -140,6 +140,10 @@ class ClassificationModelHTM(ClassificationModel):
         classificationIn = {"bucketIdx": None,
                             "actValue": None}
 
+      temporalMemoryRegion = self.network.regions["TM"]
+
+      activeCells = temporalMemoryRegion.getOutputData("bottomUpOut")
+      patternNZ = activeCells.nonzero()[0]
       clResults = classifierRegion.getSelf().customCompute(
         recordNum=self.numTrained, patternNZ=patternNZ,
         classification=classificationIn)
@@ -169,7 +173,7 @@ class ClassificationModelHTM(ClassificationModel):
     reset = sensorRegion.getOutputData("resetOut")[0]
 
     # TODO: Hard coded for equal weighting. Use lengthOfCurrentSequence later
-    i = 1 
+    i = 1
     if reset or self.oldClassifications is None:
       self.oldClassifications = numpy.array(inferredValue)
       self.lengthOfCurrentSequence = 1

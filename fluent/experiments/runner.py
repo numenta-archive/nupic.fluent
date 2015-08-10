@@ -95,6 +95,7 @@ class Runner(object):
     self.samples = None
     self.patterns = None
     self.results = []
+    self.model = None
 
 
   def _calculateTrialAccuracies(self):

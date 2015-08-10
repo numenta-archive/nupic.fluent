@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
 # Copyright (C) 2015, Numenta, Inc.  Unless you have purchased from
@@ -33,7 +34,6 @@ import time
 from fluent.experiments.runner import Runner
 from fluent.experiments.multi_runner import MultiRunner
 from fluent.experiments.htm_runner import HTMRunner
-from fluent.utils.plotting import PlotNLP
 
 
 def checkInputs(args):
@@ -196,8 +196,9 @@ if __name__ == "__main__":
                       default=False,
                       action="store_true")
   parser.add_argument("--generateData", default=False, action="store_true",
-                      help="Whether or not the network data files should be generated")
-  parser.add_argument("--votingMethod", default="last", choices=["last", "most"],
+                      help="Whether or not to generate network data files")
+  parser.add_argument("--votingMethod", default="last",
+                      choices=["last", "most"],
                       help="Method to use when picking final classifications")
   parser.add_argument("--classificationFile", default="",
                       help="Json file mapping string labels to ids")
