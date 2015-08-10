@@ -26,6 +26,7 @@ from collections import Counter
 from cortipy.cortical_client import CorticalClient
 from cortipy.exceptions import UnsuccessfulEncodingError
 from fluent.encoders.language_encoder import LanguageEncoder
+from fluent.utils.text_preprocess import TextPreprocess
 
 
 
@@ -38,7 +39,8 @@ class CioEncoder(LanguageEncoder):
   converted to binary SDR arrays with this Cio encoder.
   """
 
-  def __init__(self, w=128, h=128, cacheDir="./cache", verbosity=0):
+  def __init__(self, w=128, h=128, cacheDir="./cache", verbosity=0,
+               fpType="document"):
     if 'CORTICAL_API_KEY' not in os.environ:
       print ("Missing CORTICAL_API_KEY environment variable. If you have a "
         "key, set it with $ export CORTICAL_API_KEY=api_key\n"
@@ -53,6 +55,7 @@ class CioEncoder(LanguageEncoder):
     self.h = h
     self.n = w*h
     self.verbosity = verbosity
+    self.fpType = fpType
     self.description = ("Cio Encoder", 0)
 
 
@@ -71,13 +74,45 @@ class CioEncoder(LanguageEncoder):
     if not text:
       return None
     try:
-      encoding = self.client.getTextBitmap(text)
+      if self.fpType == "document":
+        encoding = self.client.getTextBitmap(text)
+      elif self.fpType == "word":
+        encoding = self.getUnionEncoding(text)
     except UnsuccessfulEncodingError:
       if self.verbosity > 0:
         print ("\tThe client returned no encoding for the text \'{0}\', so "
                "we'll use the encoding of the token that is least frequent in "
                "the corpus.".format(text))
       encoding = self._subEncoding(text)
+
+    return encoding
+
+
+  def getUnionEncoding(self, text):
+    """
+    Encode each token of the input text, take the union, and then sparsify.
+
+    @param  text    (str)             A non-tokenized sample of text.
+    @return         (dict)            The bitmap encoding is at
+                                      encoding["fingerprint"]["positions"].
+    """
+    tokens = TextPreprocess().tokenize(text)
+
+    positions = self.sparseUnion(tokens)
+
+    # Populate encoding
+    encoding = {
+        "text": text,
+        "sparsity": len(positions) * 100 / float(self.n),
+        "df": 0.0,
+        "height": self.h,
+        "width": self.w,
+        "score": 0.0,
+        "fingerprint": {
+          "positions":sorted(positions)
+          },
+        "pos_types": []
+        }
 
     return encoding
 
@@ -128,7 +163,26 @@ class CioEncoder(LanguageEncoder):
     return [((term["term"], term["score"])) for term in terms]
 
 
-  def _subEncoding(self, text, method="df"):
+  def sparseUnion(self, tokens):
+    """
+    Unionize the input tokens patterns, and then sparsify.
+
+    @param tokens     (list)      String tokens.
+
+    @return           (list)      Union of the tokens' bitmap encodings.
+    """
+    counts = Counter()
+    for t in tokens:
+      bitmap = self.client.getBitmap(t)["fingerprint"]["positions"]
+      counts.update(bitmap)
+
+    # Sample to remain sparse
+    max_sparsity = int((self.targetSparsity / 100) * self.n)
+    w = min(len(counts), max_sparsity)
+    return [c[0] for c in counts.most_common(w)]
+
+
+  def _subEncoding(self, text, method="keyword"):
     """
     @param text             (str)             A non-tokenized sample of text.
     @return encoding        (dict)            Fingerprint from cortipy client.
@@ -142,21 +196,12 @@ class CioEncoder(LanguageEncoder):
         encoding = min([self.client.getBitmap(t) for t in tokens],
                        key=lambda x: x["df"])
       elif method == "keyword":
-        # Take a union of the bitmaps
-        counts = Counter()
-        for t in tokens:
-          bitmap = self.client.getBitmap(t)["fingerprint"]["positions"]
-          counts.update(bitmap)
-
-        # Sample to remain sparse
-        max_sparsity = int((self.targetSparsity / 100) * self.n)
-        w = min(len(counts), max_sparsity)
-        positions = [c[0] for c in counts.most_common(w)]
+        postions = self.sparseUnion(tokens)
 
         # Populate encoding
         encoding = {
             "text": text,
-            "sparsity": w * 100 / float(self.n),
+            "sparsity": len(positions) * 100 / float(self.n),
             "df": 0.0,
             "height": self.h,
             "width": self.w,
