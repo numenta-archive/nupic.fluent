@@ -35,7 +35,7 @@ class ClassificationModelFingerprint(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, verbosity=1, numLabels=3):
+  def __init__(self, verbosity=1, numLabels=3, fpType="word"):
     super(ClassificationModelFingerprint, self).__init__(verbosity, numLabels)
 
     # Init kNN classifier and Cortical.io encoder; need valid API key (see
@@ -45,7 +45,11 @@ class ClassificationModelFingerprint(ClassificationModel):
                                     exact=False,
                                     verbosity=verbosity-1)
 
-    self.encoder = CioEncoder(cacheDir="./experiments/cache")
+    if fpType is (not "document" or not "word"):
+      raise ValueError("Invaid type of fingerprint encoding, must be either"
+                       "\'document\' or \'word\'.")
+    self.encoder = CioEncoder(cacheDir="./fluent/experiments/cioCache",
+                              fpType=fpType)
     self.n = self.encoder.n
     self.w = int((self.encoder.targetSparsity/100)*self.n)
 
