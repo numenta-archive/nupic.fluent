@@ -264,12 +264,12 @@ def run(args):
       print("Fold complete; elapsed time is {0:.2f} seconds.".format(
             time.time() - kTime))
       
+      # Populate resultsDict for writing out the classifications.
       for i, sampleNum in enumerate(partitions[k][1]):
         sample = samples[sampleNum][0]
-        pred = sorted([labelReference[int(j)] for j in trialResults[0][i]])
-        actual = sorted([labelReference[int(j)] for j in trialResults[1][i]])
+        pred = sorted([labelReference[j] for j in trialResults[0][i]])
+        actual = sorted([labelReference[j] for j in trialResults[1][i]])
         resultsDict[sampleNum] = [sample, actual, pred]
-      
       
       if args.expectationDataPath:
         # Keep the predicted labels (top prediction only) for later.
