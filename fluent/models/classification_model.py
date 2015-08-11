@@ -75,8 +75,8 @@ class ClassificationModel(object):
       jp["pattern"]["bitmap"] = jp["pattern"].get("bitmap", None).tolist()
       jp["labels"] = jp.get("labels", None).tolist()
 
-    with open(os.path.join(dirName, "encoding_log.txt"), "w") as f:
-      f.write(json.dumps(jsonPatterns, indent=1))
+    with open(os.path.join(dirName, "encoding_log.json"), "w") as f:
+      json.dump(jsonPatterns, f, indent=2)
 
 
   def writeOutCategories(self, dirName, comparisons=None, labelRefs=None):

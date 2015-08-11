@@ -88,7 +88,18 @@ def readDir(dirPath, sampleIdx, numLabels, modify=False):
 
 def writeCSV(data, headers, csvFile):
   """Write data with column headers to a CSV."""
-  with open(csvFile, 'wb') as f:
-    writer = csv.writer(f, delimiter=',')
+  with open(csvFile, "wb") as f:
+    writer = csv.writer(f, delimiter=",")
     writer.writerow(headers)
     writer.writerows(data)
+
+
+def writeFromDict(dataDict, headers, csvFile):
+  """
+  Write dictionary to a CSV, where keys are row numbers and values are a list.
+  """
+  with open(csvFile, "wb") as f:
+    writer = csv.writer(f, delimiter=",")
+    writer.writerow(headers)
+    for row in xrange(len(dataDict)):
+      writer.writerow(dataDict[row])
