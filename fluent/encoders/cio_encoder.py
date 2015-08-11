@@ -98,7 +98,13 @@ class CioEncoder(LanguageEncoder):
     """
     tokens = TextPreprocess().tokenize(text)
 
-    positions = self.sparseUnion(tokens)
+    # Count the ON bits represented in the encoded tokens.
+    counts = Counter()
+    for t in tokens:
+      bitmap = self.client.getBitmap(t)["fingerprint"]["positions"]
+      counts.update(bitmap)
+
+    positions = self.sparseUnion(counts)
 
     # Populate encoding
     encoding = {
@@ -161,25 +167,6 @@ class CioEncoder(LanguageEncoder):
     terms = self.client.bitmapToTerms(encoding, numTerms=numTerms)
     # Convert cortipy response to list of tuples (term, weight)
     return [((term["term"], term["score"])) for term in terms]
-
-
-  def sparseUnion(self, tokens):
-    """
-    Unionize the input tokens patterns, and then sparsify.
-
-    @param tokens     (list)      String tokens.
-
-    @return           (list)      Union of the tokens' bitmap encodings.
-    """
-    counts = Counter()
-    for t in tokens:
-      bitmap = self.client.getBitmap(t)["fingerprint"]["positions"]
-      counts.update(bitmap)
-
-    # Sample to remain sparse
-    max_sparsity = int((self.targetSparsity / 100) * self.n)
-    w = min(len(counts), max_sparsity)
-    return [c[0] for c in counts.most_common(w)]
 
 
   def _subEncoding(self, text, method="keyword"):
