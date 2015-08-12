@@ -116,6 +116,8 @@ def run(args):
 
   runner.runExperiment()
 
+  runner.writeOutClassifications()
+
   runner.calculateResults()
 
   print "Saving..."
