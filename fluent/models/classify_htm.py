@@ -36,12 +36,12 @@ class ClassificationModelHTM(ClassificationModel):
   def __init__(self, inputFilePath, verbosity=1, numLabels=3, tmTrainingSize=0,
                classifierType="KNN"):
     """
-    @param inputFilePath      (string)    Path to data formatted for network
+    @param inputFilePath      (str)       Path to data formatted for network
                                           API
     @param tmTrainingSize     (int)       Number of samples the network has to
                                           be trained on before training the
                                           classifier
-    @param classifierType     (string)    Either "KNN" or "CLA"
+    @param classifierType     (str)       Either "KNN" or "CLA"
     See ClassificationModel for remaining parameters
     """
     self.tmTrainingSize = tmTrainingSize
@@ -55,22 +55,27 @@ class ClassificationModelHTM(ClassificationModel):
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
     self._initModel()
 
+
   def _initModel(self):
     """Initialize the network and related variables"""
     if self.classifierType == "CLA":
-      classifier_params = {"steps": "1",
-                           "implementation": "py", "clVerbosity": self.verbosity}
+      classifier_params = {
+        "steps": "1",
+        "implementation": "py",
+        "clVerbosity": self.verbosity
+      }
     elif self.classifierType == "KNN":
       classifier_params = {
         "k": self.numLabels,
-        'distThreshold': 0,
-        'maxCategoryCount': self.numLabels
+        "distThreshold": 0,
+        "maxCategoryCount": self.numLabels
       }
     else:
-      raise ValueError("Classifier type {} is not supported.".format(self.classifierType))
+      raise ValueError("Classifier type {} is not supported.".format(
+        self.classifierType))
 
-    self.network = createNetwork((self.recordStream, "py.LanguageSensor",
-      self.encoder, self.numLabels,
+    self.network = createNetwork(
+      (self.recordStream, "py.LanguageSensor", self.encoder, self.numLabels,
       "py.{}ClassifierRegion".format(self.classifierType), classifier_params))
 
     self.network.initialize()
