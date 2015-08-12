@@ -62,7 +62,7 @@ class HTMRunner(Runner):
                                        frequent
     @param classificationFile (str)    Path to json file containing the
                                        mappings of string labels to ids
-    @param classifierType     (string)    Either "KNN" or "CLA"
+    @param classifierType     (str)    Either "KNN" or "CLA"
     Look at runner.py for the other parameters
     """
     self.generateData = generateData
@@ -93,13 +93,18 @@ class HTMRunner(Runner):
       raise e
 
 
-  def setupData(self, preprocess=False, sampleIdx=2):
-    """Generate the data in network API format if necessary."""
+  def setupData(self, preprocess=False, sampleIdx=2, **kwargs):
+    """
+    Generate the data in network API format if necessary. self.dataFiles is
+    populated with the paths of network data files, one for each trial
+
+    Look at runner.py (setupData) and network_data_generator.py (split) for the
+    parameters
+    """
     if self.generateData:
       ndg = NetworkDataGenerator()
       ndg.split(self.dataPath, sampleIdx, self.numClasses, preprocess,
-        ignoreCommon=100, removeStrings=["[identifier deleted]"],
-        correctSpell=True)
+        **kwargs)
 
       filename, ext = os.path.splitext(self.dataPath)
       self.classificationFile = "{}-classifications.json".format(filename)
@@ -109,6 +114,11 @@ class HTMRunner(Runner):
         dataFile = "{}-{}{}".format(filename, i, ext)
         ndg.saveData(dataFile, self.classificationFile)
         self.dataFiles.append(dataFile)
+
+      if self.verbosity > 0:
+        print "{} file(s) generated at {}".format(len(self.dataFiles),
+          self.dataFiles)
+        print "Classification json is at: {}".format(self.classificationFile)
     else:
       # Does an orderedSplit
       self.dataFiles = [self.dataPath] * len(self.trainSize)
@@ -165,6 +175,14 @@ class HTMRunner(Runner):
     trial
     @param trial      (int)       trial count
     """
+    if self.verbosity > 0:
+      i = 0
+      indices = []
+      for numTokens in self.partitions[trial][0]:
+        indices.append(i)
+        i += numTokens
+      print "\tRunner selects to train on sample(s) {}".format(indices)
+
     for numTokens in self.partitions[trial][0]:
       for _ in xrange(numTokens):
         self.model.trainModel()
@@ -195,6 +213,14 @@ class HTMRunner(Runner):
     results
     @param trial      (int)       trial count
     """
+    if self.verbosity > 0:
+      i = sum(self.partitions[trial][0])
+      indices = []
+      for numTokens in self.partitions[trial][1]:
+        indices.append(i)
+        i += numTokens
+      print "\tRunner selects to test on sample(s) {}".format(indices)
+
     results = ([], [])
     for i, numTokens in enumerate(self.partitions[trial][1]):
       predictions = []
