@@ -170,6 +170,9 @@ class Runner(object):
     Get the data from CSV and preprocess if specified.
     One index in labelIdx implies the model will train on a single
     classification per sample.
+    @param preprocess   (bool)    Whether or not to preprocess the data when
+                                  generating the files
+    @param sampleIdx    (int)     Column number of the text samples in the csv
     """
     self.dataDict = readCSV(self.dataPath, sampleIdx, self.numClasses)
 
@@ -226,12 +229,6 @@ class Runner(object):
     for i, size in enumerate(self.trainSize):
       self.partitions.append(self.partitionIndices(size, i))
 
-      if self.verbosity > 0:
-        print ("\tRunner randomly selects to train on sample(s) {0}, and test "
-               "on sample(s) {1}.".
-               format(self.partitions[i][0],
-                 self.partitions[i][1]))
-
       self.resetModel(i)
       print "\tTraining for run {0} of {1}.".format(i + 1,
         len(self.trainSize))
@@ -246,12 +243,20 @@ class Runner(object):
     partition of indices. Models' training methods require the sample and label
     to be in a list.
     """
+    if self.verbosity > 0:
+      print ("\tRunner selects to train on sample(s) {}".
+        format(self.partitions[trial][0]))
+
     for i in self.partitions[trial][0]:
       self.model.trainModel([self.patterns[i]["pattern"]],
                             [self.patterns[i]["labels"]])
 
 
   def testing(self, trial):
+    if self.verbosity > 0:
+      print ("\tRunner selects to test on sample(s) {}".
+        format(self.partitions[trial][1]))
+
     results = ([], [])
     for i in self.partitions[trial][1]:
       predicted = self.model.testModel(self.patterns[i]["pattern"])

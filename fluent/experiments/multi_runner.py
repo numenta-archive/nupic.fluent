@@ -167,6 +167,10 @@ class MultiRunner(Runner):
     partition of indices. Models' training methods require the sample and label
     to be in a list.
     """
+    if self.verbosity > 0:
+      print ("\tRunner selects to train on sample(s) {}".
+        format(self.partitions[trial][0]))
+
     for labelRef, categoryIndices in enumerate(self.partitions[trial][0]):
       category = self.labelRefs[labelRef]
       for i in categoryIndices:
@@ -175,6 +179,10 @@ class MultiRunner(Runner):
 
 
   def testing(self, trial):
+    if self.verbosity > 0:
+      print ("\tRunner selects to test on sample(s) {}".
+        format(self.partitions[trial][1]))
+
     results = ([], [])
     if self.testPatterns:
       # Test the file that was provided

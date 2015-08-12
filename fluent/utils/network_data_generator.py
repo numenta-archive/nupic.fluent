@@ -70,8 +70,8 @@ class NetworkDataGenerator(object):
 
 
   def split(self, filename, sampleIdx, numLabels, textPreprocess, abbrCSV="",
-      contrCSV="", ignoreCommon=None, removeStrings=None, correctSpell=False,
-      **kwargs):
+      contrCSV="", ignoreCommon=100, removeStrings="[identifier deleted]",
+      correctSpell=True, **kwargs):
     """
     Split all the comments in a file into tokens. Preprocess if necessary.
     @param filename        (str)    Path to csv file
