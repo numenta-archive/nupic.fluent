@@ -197,7 +197,7 @@ class MultiRunner(Runner):
     self.results.append(results)
 
 
-  def partitionIndices(self, split):
+  def partitionIndices(self, split, trial):
     """
     Returns train and test indices.
 

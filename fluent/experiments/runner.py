@@ -96,7 +96,6 @@ class Runner(object):
     self.patterns = None
     self.results = []
     self.model = None
-    self.trial = 0
 
 
   def _calculateTrialAccuracies(self):
@@ -202,7 +201,7 @@ class Runner(object):
                            format(self.modelName))
 
 
-  def resetModel(self):
+  def resetModel(self, trial):
     """Resets or initializes the model"""
     if self.model is None:
       self.initModel()
@@ -224,21 +223,21 @@ class Runner(object):
 
   def runExperiment(self):
     """Train and test the model for each trial specified by self.trainSize."""
-    for self.trial, size in enumerate(self.trainSize):
-      self.partitions.append(self.partitionIndices(size))
+    for i, size in enumerate(self.trainSize):
+      self.partitions.append(self.partitionIndices(size, i))
 
       if self.verbosity > 0:
         print ("\tRunner randomly selects to train on sample(s) {0}, and test "
                "on sample(s) {1}.".
-               format(self.partitions[self.trial][0],
-                 self.partitions[self.trial][1]))
+               format(self.partitions[i][0],
+                 self.partitions[i][1]))
 
-      self.resetModel()
-      print "\tTraining for run {0} of {1}.".format(self.trial + 1,
+      self.resetModel(i)
+      print "\tTraining for run {0} of {1}.".format(i + 1,
         len(self.trainSize))
-      self.training(self.trial)
+      self.training(i)
       print "\tTesting for this run."
-      self.testing(self.trial)
+      self.testing(i)
 
 
   def training(self, trial):
@@ -297,7 +296,7 @@ class Runner(object):
       pkl.dump(self.model, f)
 
 
-  def partitionIndices(self, split):
+  def partitionIndices(self, split, trial):
     """
     Returns train and test indices.
 

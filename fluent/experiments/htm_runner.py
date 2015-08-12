@@ -119,7 +119,7 @@ class HTMRunner(Runner):
     self._mapLabelRefs()
 
 
-  def resetModel(self):
+  def resetModel(self, trial):
     """Load or instantiate the classification model."""
     if self.load:
       with open(os.path.join(self.modelPath, "model.pkl"), "rb") as f:
@@ -132,7 +132,7 @@ class HTMRunner(Runner):
       try:
         module = __import__(self.modelModuleName, {}, {}, self.modelName)
         modelClass = getattr(module, self.modelName)
-        self.model = modelClass(self.dataFiles[self.trial],
+        self.model = modelClass(self.dataFiles[trial],
                                 verbosity=self.verbosity,
                                 classifierType=self.classifierType)
       except ImportError:
@@ -218,11 +218,11 @@ class HTMRunner(Runner):
     super(HTMRunner, self).save()
 
 
-  def partitionIndices(self, split):
+  def partitionIndices(self, split, trial):
     """
     Returns the number of tokens for each sample in the training and test set
     when doing an ordered split
     """
-    dataFile = self.dataFiles[self.trial]
+    dataFile = self.dataFiles[trial]
     numTokens = NetworkDataGenerator.getNumberOfTokens(dataFile)
     return (numTokens[:split], numTokens[split:])
