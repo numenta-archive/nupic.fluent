@@ -25,7 +25,7 @@ from collections import Counter
 
 from cortipy.cortical_client import CorticalClient
 from cortipy.exceptions import UnsuccessfulEncodingError
-from fluent.encoders.encoder_types import EncoderEnums
+from fluent.encoders import EncoderTypes
 from fluent.encoders.language_encoder import LanguageEncoder
 from fluent.utils.text_preprocess import TextPreprocess
 
@@ -41,7 +41,7 @@ class CioEncoder(LanguageEncoder):
   """
 
   def __init__(self, w=128, h=128, cacheDir="./cache", verbosity=0,
-               fingerprintType=EncoderEnums.document):
+               fingerprintType=EncoderTypes.document):
     """
     @param w               (int)      Width dimension of the SDR topology.
     @param h               (int)      Height dimension of the SDR topology.
@@ -82,9 +82,9 @@ class CioEncoder(LanguageEncoder):
     if not text:
       return None
     try:
-      if self.fingerprintType is EncoderEnums.document:
+      if self.fingerprintType is EncoderTypes.document:
         encoding = self.client.getTextBitmap(text)
-      elif self.fingerprintType is EncoderEnums.word:
+      elif self.fingerprintType is EncoderTypes.word:
         encoding = self.getUnionEncoding(text)
     except UnsuccessfulEncodingError:
       if self.verbosity > 0:

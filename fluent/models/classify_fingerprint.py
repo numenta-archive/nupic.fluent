@@ -22,7 +22,7 @@
 import numpy
 
 from fluent.encoders.cio_encoder import CioEncoder
-from fluent.encoders.encoder_types import EncoderEnums
+from fluent.encoders import EncoderTypes
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
 
@@ -39,7 +39,7 @@ class ClassificationModelFingerprint(ClassificationModel):
   def __init__(self,
                verbosity=1,
                numLabels=3,
-               fingerprintType=EncoderEnums.word):
+               fingerprintType=EncoderTypes.word):
 
     super(ClassificationModelFingerprint, self).__init__(verbosity, numLabels)
 
@@ -50,9 +50,9 @@ class ClassificationModelFingerprint(ClassificationModel):
                                     exact=False,
                                     verbosity=verbosity-1)
 
-    if fingerprintType is (not EncoderEnums.document or not EncoderEnums.word):
+    if fingerprintType is (not EncoderTypes.document or not EncoderTypes.word):
       raise ValueError("Invaid type of fingerprint encoding; see the "
-                       "EncoderEnums class for eligble types.")
+                       "EncoderTypes class for eligble types.")
     self.encoder = CioEncoder(cacheDir="./fluent/experiments/cioCache",
                               fingerprintType=fingerprintType)
     self.n = self.encoder.n
