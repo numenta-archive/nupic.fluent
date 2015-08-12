@@ -48,8 +48,8 @@ import itertools
 import numpy
 import os
 import time
-
 from collections import defaultdict
+
 from fluent.utils.csv_helper import readCSV, writeFromDict
 from fluent.utils.data_split import KFolds
 from fluent.utils.text_preprocess import TextPreprocess
@@ -269,7 +269,7 @@ def run(args):
         sample = samples[sampleNum][0]
         pred = sorted([labelReference[j] for j in trialResults[0][i]])
         actual = sorted([labelReference[j] for j in trialResults[1][i]])
-        resultsDict[sampleNum] = [sample, actual, pred]
+        resultsDict[sampleNum] = (sample, actual, pred)
       
       if args.expectationDataPath:
         # Keep the predicted labels (top prediction only) for later.
@@ -306,7 +306,7 @@ def run(args):
 
   resultsPath = os.path.join(modelPath, "results.csv")
   print "Saving results to {}.".format(resultsPath)
-  headers = ["Tokenized sample", "Actual", "Predicted"]
+  headers = ("Tokenized sample", "Actual", "Predicted")
   writeFromDict(resultsDict, headers, resultsPath)
 
 

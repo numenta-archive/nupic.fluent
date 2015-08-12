@@ -21,10 +21,11 @@
 
 import itertools
 import os
-
 from collections import Counter
+
 from cortipy.cortical_client import CorticalClient
 from cortipy.exceptions import UnsuccessfulEncodingError
+from fluent.encoders.encoder_types import EncoderEnums
 from fluent.encoders.language_encoder import LanguageEncoder
 from fluent.utils.text_preprocess import TextPreprocess
 
@@ -40,22 +41,29 @@ class CioEncoder(LanguageEncoder):
   """
 
   def __init__(self, w=128, h=128, cacheDir="./cache", verbosity=0,
-               fpType="document"):
-    if 'CORTICAL_API_KEY' not in os.environ:
+               fingerprintType=EncoderEnums.document):
+    """
+    @param w               (int)      Width dimension of the SDR topology.
+    @param h               (int)      Height dimension of the SDR topology.
+    @param cacheDir        (str)      Where to cache results of API queries.
+    @param verbosity       (int)      Amount of info printed out, 0, 1, or 2.
+    @param fingerprintType (Enum)     Specify word- or document-level encoding.
+    """
+    if "CORTICAL_API_KEY" not in os.environ:
       print ("Missing CORTICAL_API_KEY environment variable. If you have a "
         "key, set it with $ export CORTICAL_API_KEY=api_key\n"
         "You can retrieve a key by registering for the REST API at "
         "http://www.cortical.io/resources_apikey.html")
       raise OSError("Missing API key.")
 
-    self.apiKey = os.environ['CORTICAL_API_KEY']
+    self.apiKey = os.environ["CORTICAL_API_KEY"]
     self.client = CorticalClient(self.apiKey, cacheDir=cacheDir)
     self.targetSparsity = 5.0
     self.w = w
     self.h = h
     self.n = w*h
     self.verbosity = verbosity
-    self.fpType = fpType
+    self.fingerprintType = fingerprintType
     self.description = ("Cio Encoder", 0)
 
 
@@ -74,9 +82,9 @@ class CioEncoder(LanguageEncoder):
     if not text:
       return None
     try:
-      if self.fpType == "document":
+      if self.fingerprintType is EncoderEnums.document:
         encoding = self.client.getTextBitmap(text)
-      elif self.fpType == "word":
+      elif self.fingerprintType is EncoderEnums.word:
         encoding = self.getUnionEncoding(text)
     except UnsuccessfulEncodingError:
       if self.verbosity > 0:
@@ -115,8 +123,8 @@ class CioEncoder(LanguageEncoder):
         "width": self.w,
         "score": 0.0,
         "fingerprint": {
-          "positions":sorted(positions)
-          },
+            "positions":sorted(positions)
+            },
         "pos_types": []
         }
 
@@ -194,8 +202,8 @@ class CioEncoder(LanguageEncoder):
             "width": self.w,
             "score": 0.0,
             "fingerprint": {
-              "positions":sorted(positions)
-              },
+                "positions":sorted(positions)
+                },
             "pos_types": []
             }
       else:

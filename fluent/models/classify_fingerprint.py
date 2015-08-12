@@ -22,6 +22,7 @@
 import numpy
 
 from fluent.encoders.cio_encoder import CioEncoder
+from fluent.encoders.encoder_types import EncoderEnums
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
 
@@ -35,7 +36,11 @@ class ClassificationModelFingerprint(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, verbosity=1, numLabels=3, fpType="word"):
+  def __init__(self,
+               verbosity=1,
+               numLabels=3,
+               fingerprintType=EncoderEnums.word):
+
     super(ClassificationModelFingerprint, self).__init__(verbosity, numLabels)
 
     # Init kNN classifier and Cortical.io encoder; need valid API key (see
@@ -45,11 +50,11 @@ class ClassificationModelFingerprint(ClassificationModel):
                                     exact=False,
                                     verbosity=verbosity-1)
 
-    if fpType is (not "document" or not "word"):
-      raise ValueError("Invaid type of fingerprint encoding, must be either"
-                       "\'document\' or \'word\'.")
+    if fingerprintType is (not EncoderEnums.document or not EncoderEnums.word):
+      raise ValueError("Invaid type of fingerprint encoding; see the "
+                       "EncoderEnums class for eligble types.")
     self.encoder = CioEncoder(cacheDir="./fluent/experiments/cioCache",
-                              fpType=fpType)
+                              fingerprintType=fingerprintType)
     self.n = self.encoder.n
     self.w = int((self.encoder.targetSparsity/100)*self.n)
 

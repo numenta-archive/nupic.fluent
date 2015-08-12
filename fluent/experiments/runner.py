@@ -252,7 +252,7 @@ class Runner(object):
 
   def writeOutClassifications(self):
     """Write the samples, actual, and predicted classes to a CSV."""
-    headers = ["Tokenized sample", "Actual", "Predicted"]
+    headers = ("Tokenized sample", "Actual", "Predicted")
     for trial, size in enumerate(self.trainSize):
       resultsDict = defaultdict(list)
       for i, sampleNum in enumerate(self.partitions[trial][1]):
@@ -260,7 +260,7 @@ class Runner(object):
         sample = self.samples[sampleNum][0]
         pred = sorted([self.labelRefs[j] for j in self.results[trial][0][i]])
         actual = sorted([self.labelRefs[j] for j in self.results[trial][1][i]])
-        resultsDict[sampleNum] = [sample, actual, pred]
+        resultsDict[sampleNum] = (sample, actual, pred)
 
       resultsPath = os.path.join(self.modelPath,
                                  "results_trial" + str(trial) + ".csv")
