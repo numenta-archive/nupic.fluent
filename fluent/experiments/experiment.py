@@ -84,7 +84,8 @@ def run(args):
                        verbosity=args.verbosity,
                        generateData=args.generateData,
                        votingMethod=args.votingMethod,
-                       classificationFile=args.classificationFile)
+                       classificationFile=args.classificationFile,
+                       classifierType=args.classifierType)
   else:
     runner = Runner(dataPath=args.dataPath,
                     resultsDir=resultsDir,
@@ -97,10 +98,6 @@ def run(args):
                     orderedSplit=args.orderedSplit,
                     trainSize=args.trainSize,
                     verbosity=args.verbosity)
-
-  if args.modelName != "ClassificationModelHTM":
-    # The data isn't ready yet to initialize an htm model
-    runner.initModel()
 
   print "Reading in data and preprocessing."
   dataTime = time.time()
@@ -195,13 +192,21 @@ if __name__ == "__main__":
                       help="If specified will skip the user confirmation step",
                       default=False,
                       action="store_true")
-  parser.add_argument("--generateData", default=False, action="store_true",
+  parser.add_argument("--generateData",
+                      default=False,
+                      action="store_true",
                       help="Whether or not to generate network data files")
-  parser.add_argument("--votingMethod", default="last",
+  parser.add_argument("--votingMethod",
+                      default="last",
                       choices=["last", "most"],
                       help="Method to use when picking final classifications")
-  parser.add_argument("--classificationFile", default="",
+  parser.add_argument("--classificationFile",
+                      default="",
                       help="Json file mapping string labels to ids")
+  parser.add_argument("--classifierType",
+                      default="KNN",
+                      choices=["KNN", "CLA"],
+                      help="Type of classifier to use for the HTM")
 
   args = parser.parse_args()
 

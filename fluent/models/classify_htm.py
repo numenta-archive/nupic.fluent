@@ -21,7 +21,7 @@
 
 import numpy
 
-from classification_network import createNetwork
+from classification.classification_network import createNetwork
 from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
 from nupic.data.file_record_stream import FileRecordStream
@@ -33,13 +33,15 @@ class ClassificationModelHTM(ClassificationModel):
   Class to run the survey response classification task with nupic network
   """
 
-  def __init__(self, inputFilePath, verbosity=1, numLabels=3, tmTrainingSize=0):
+  def __init__(self, inputFilePath, verbosity=1, numLabels=3, tmTrainingSize=0,
+               classifierType="KNN"):
     """
     @param inputFilePath      (string)    Path to data formatted for network
                                           API
     @param tmTrainingSize     (int)       Number of samples the network has to
                                           be trained on before training the
                                           classifier
+    @param classifierType     (string)    Either "KNN" or "CLA"
     See ClassificationModel for remaining parameters
     """
     self.tmTrainingSize = tmTrainingSize
@@ -48,16 +50,34 @@ class ClassificationModelHTM(ClassificationModel):
       numLabels=numLabels)
 
     # Initialize Network
-    self.encoder = CioEncoder(cacheDir="./experiments/cache")
+    self.classifierType = classifierType
     self.recordStream = FileRecordStream(streamID=inputFilePath)
-    self.network = createNetwork((self.recordStream, "py.LanguageSensor",
-      self.encoder, self.numLabels))
-    self.network.initialize()
-    self.classifierType = "knn" # "cla"
+    self.encoder = CioEncoder(cacheDir="./experiments/cache")
+    self._initModel()
 
+  def _initModel(self):
+    """Initialize the network and related variables"""
+    if self.classifierType == "CLA":
+      classifier_params = {"steps": "1",
+                           "implementation": "py", "clVerbosity": self.verbosity}
+    elif self.classifierType == "KNN":
+      classifier_params = {
+        "k": self.numLabels,
+        'distThreshold': 0,
+        'maxCategoryCount': self.numLabels
+      }
+    else:
+      raise ValueError("Classifier type {} is not supported.".format(self.classifierType))
+
+    self.network = createNetwork((self.recordStream, "py.LanguageSensor",
+      self.encoder, self.numLabels,
+      "py.{}ClassifierRegion".format(self.classifierType), classifier_params))
+
+    self.network.initialize()
+
+    self.numTrained = 0
     self.oldClassifications = None
     self.lengthOfCurrentSequence = 0
-    self.numTrained = 0
 
 
   def encodePattern(self, sample):
@@ -88,12 +108,7 @@ class ClassificationModelHTM(ClassificationModel):
     support resets.
     """
     self.recordStream.clear()
-    self.network = createNetwork((self.recordStream, "py.LanguageSensor",
-      self.encoder, self.numLabels))
-    self.network.initialize()
-
-    self.numTrained = 0
-    self.oldClassifications = None
+    self._initModel()
 
 
   def trainModel(self):
@@ -130,7 +145,7 @@ class ClassificationModelHTM(ClassificationModel):
     """
     classifierRegion = self.network.regions["classifier"]
 
-    if self.classifierType == "cla":
+    if self.classifierType == "CLA":
       if label is not None:
         classifierRegion.setParameter("learningMode", True)
         classificationIn = {"bucketIdx": int(label),

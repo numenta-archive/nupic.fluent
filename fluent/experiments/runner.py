@@ -96,6 +96,7 @@ class Runner(object):
     self.patterns = None
     self.results = []
     self.model = None
+    self.trial = 0
 
 
   def _calculateTrialAccuracies(self):
@@ -197,8 +198,16 @@ class Runner(object):
         modelClass = getattr(module, self.modelName)
         self.model = modelClass(verbosity=self.verbosity)
       except ImportError:
-        raise RuntimeError("Could not find model class \'{0}\' to import.".
+        raise RuntimeError("Could not import model class \'{0}\'.".
                            format(self.modelName))
+
+
+  def resetModel(self):
+    """Resets or initializes the model"""
+    if self.model is None:
+      self.initModel()
+    else:
+      self.model.resetModel()
 
 
   def encodeSamples(self):
@@ -215,19 +224,21 @@ class Runner(object):
 
   def runExperiment(self):
     """Train and test the model for each trial specified by self.trainSize."""
-    for i, size in enumerate(self.trainSize):
+    for self.trial, size in enumerate(self.trainSize):
       self.partitions.append(self.partitionIndices(size))
 
       if self.verbosity > 0:
         print ("\tRunner randomly selects to train on sample(s) {0}, and test "
                "on sample(s) {1}.".
-               format(self.partitions[i][0], self.partitions[i][1]))
+               format(self.partitions[self.trial][0],
+                 self.partitions[self.trial][1]))
 
-      self.model.resetModel()
-      print "\tTraining for run {0} of {1}.".format(i+1, len(self.trainSize))
-      self.training(i)
+      self.resetModel()
+      print "\tTraining for run {0} of {1}.".format(self.trial + 1,
+        len(self.trainSize))
+      self.training(self.trial)
       print "\tTesting for this run."
-      self.testing(i)
+      self.testing(self.trial)
 
 
   def training(self, trial):
