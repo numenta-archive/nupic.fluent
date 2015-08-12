@@ -49,6 +49,7 @@ class LanguageEncoder(object):
     """The SDR dimensions are standard for Cortical.io fingerprints."""
     self.n = n
     self.w = w
+    self.targetSparsity = 5.0
 
 
   def encode(self, inputText):
@@ -168,6 +169,19 @@ class LanguageEncoder(object):
         len(numpy.union1d(bitmap1, bitmap2)))
 
     return distances
+
+
+  def sparseUnion(self, counts):
+    """
+    Bits from the input patterns are unionizes and then sparsified.
+
+    @param counts     (Counter)   A count of the ON bits for the union bitmap.
+
+    @return           (list)      A sparsified union bitmap.
+    """
+    max_sparsity = int((self.targetSparsity / 100) * self.n)
+    w = min(len(counts), max_sparsity)
+    return [c[0] for c in counts.most_common(w)]
 
 
   def pprintHeader(self, prefix=""):

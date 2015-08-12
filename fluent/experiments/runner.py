@@ -27,7 +27,7 @@ import os
 import random
 
 from collections import defaultdict
-from fluent.utils.csv_helper import readCSV
+from fluent.utils.csv_helper import readCSV, writeFromDict
 from fluent.utils.plotting import PlotNLP
 
 from fluent.utils.text_preprocess import TextPreprocess
@@ -248,6 +248,23 @@ class Runner(object):
       results[1].append(self.patterns[i]["labels"])
 
     self.results.append(results)
+
+
+  def writeOutClassifications(self):
+    """Write the samples, actual, and predicted classes to a CSV."""
+    headers = ("Tokenized sample", "Actual", "Predicted")
+    for trial, size in enumerate(self.trainSize):
+      resultsDict = defaultdict(list)
+      for i, sampleNum in enumerate(self.partitions[trial][1]):
+        # Loop through the indices in the test set of this trial.
+        sample = self.samples[sampleNum][0]
+        pred = sorted([self.labelRefs[j] for j in self.results[trial][0][i]])
+        actual = sorted([self.labelRefs[j] for j in self.results[trial][1][i]])
+        resultsDict[sampleNum] = (sample, actual, pred)
+
+      resultsPath = os.path.join(self.modelPath,
+                                 "results_trial" + str(trial) + ".csv")
+      writeFromDict(resultsDict, headers, resultsPath)
 
 
   def calculateResults(self):

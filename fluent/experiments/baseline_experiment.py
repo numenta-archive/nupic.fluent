@@ -43,14 +43,14 @@ Please note the following definitions:
 
 
 import argparse
-import collections
 import cPickle as pkl
 import itertools
 import numpy
 import os
 import time
+from collections import defaultdict
 
-from fluent.utils.csv_helper import readCSV
+from fluent.utils.csv_helper import readCSV, writeFromDict
 from fluent.utils.data_split import KFolds
 from fluent.utils.text_preprocess import TextPreprocess
 
@@ -74,8 +74,6 @@ def runExperiment(model, patterns, idxSplits, batch):
   return testing(model, [patterns[i] for i in idxSplits[1]])
 
 
-# training() and testing() methods send one data sample at a time to the model,
-# i.e. streaming input.
 def training(model, trainSet, batch):
   """
   Trains model on the bitmap patterns and corresponding labels lists one at a
@@ -231,7 +229,6 @@ def run(args):
 
   print "Encoding the data."
   encodeTime = time.time()
-  patterns = [(model.encodePattern(s[0]), s[1]) for s in samples]
   patterns = [{"pattern": model.encodePattern(s[0]),
               "labels": s[1]}
               for s in samples]
@@ -259,13 +256,21 @@ def run(args):
     partitions = KFolds(args.kFolds).split(range(len(samples)), randomize=True)
     intermResults = []
     predictions = []
+    resultsDict = defaultdict(list)
     for k in xrange(args.kFolds):
       print "Training and testing for CV fold {0}.".format(k)
       kTime = time.time()
       trialResults = runExperiment(model, patterns, partitions[k], args.batch)
       print("Fold complete; elapsed time is {0:.2f} seconds.".format(
             time.time() - kTime))
-
+      
+      # Populate resultsDict for writing out the classifications.
+      for i, sampleNum in enumerate(partitions[k][1]):
+        sample = samples[sampleNum][0]
+        pred = sorted([labelReference[j] for j in trialResults[0][i]])
+        actual = sorted([labelReference[j] for j in trialResults[1][i]])
+        resultsDict[sampleNum] = (sample, actual, pred)
+      
       if args.expectationDataPath:
         # Keep the predicted labels (top prediction only) for later.
         p = [l if l else [None] for l in trialResults[0]]
@@ -299,6 +304,11 @@ def run(args):
     pkl.dump(model, f)
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 
+  resultsPath = os.path.join(modelPath, "results.csv")
+  print "Saving results to {}.".format(resultsPath)
+  headers = ("Tokenized sample", "Actual", "Predicted")
+  writeFromDict(resultsDict, headers, resultsPath)
+
 
 if __name__ == "__main__":
 
@@ -319,12 +329,12 @@ if __name__ == "__main__":
                       default="survey_response_sample",
                       type=str,
                       help="Experiment name.")
-  parser.add_argument("--modelName",
+  parser.add_argument("-m", "--modelName",
                       default="ClassificationModelRandomSDR",
                       type=str,
                       help="Name of model class. Also used for model results "
                       "directory and pickle checkpoint.")
-  parser.add_argument("--modelModuleName",
+  parser.add_argument("-mm", "--modelModuleName",
                       default="fluent.models.classify_random_sdr",
                       type=str,
                       help="model module (location of model class).")
