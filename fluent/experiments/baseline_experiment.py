@@ -330,12 +330,12 @@ if __name__ == "__main__":
                       type=str,
                       help="Experiment name.")
   parser.add_argument("-m", "--modelName",
-                      default="ClassificationModelRandomSDR",
+                      default="ClassificationModelKeywords",
                       type=str,
                       help="Name of model class. Also used for model results "
                       "directory and pickle checkpoint.")
   parser.add_argument("-mm", "--modelModuleName",
-                      default="fluent.models.classify_random_sdr",
+                      default="fluent.models.classify_keywords",
                       type=str,
                       help="model module (location of model class).")
   parser.add_argument("--numLabels",
