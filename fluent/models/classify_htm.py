@@ -33,8 +33,8 @@ class ClassificationModelHTM(ClassificationModel):
   Class to run the survey response classification task with nupic network
   """
 
-  def __init__(self, inputFilePath, verbosity=1, numLabels=3, tmTrainingSize=0,
-               classifierType="KNN"):
+  def __init__(self, inputFilePath, verbosity=1, numLabels=3, spTrainingSize=0,
+               tmTrainingSize=0, classifierType="KNN"):
     """
     @param inputFilePath      (str)       Path to data formatted for network
                                           API
@@ -44,6 +44,7 @@ class ClassificationModelHTM(ClassificationModel):
     @param classifierType     (str)       Either "KNN" or "CLA"
     See ClassificationModel for remaining parameters
     """
+    self.spTrainingSize = spTrainingSize
     self.tmTrainingSize = tmTrainingSize
 
     super(ClassificationModelHTM, self).__init__(verbosity=verbosity,
@@ -79,6 +80,14 @@ class ClassificationModelHTM(ClassificationModel):
       "py.{}ClassifierRegion".format(self.classifierType), classifier_params))
 
     self.network.initialize()
+
+    spatialPoolerRegion = self.network.regions["SP"]
+    temporalMemoryRegion = self.network.regions["TM"]
+    classifierRegion = self.network.regions["classifier"]
+
+    spatialPoolerRegion.setParameter("learningMode", True)
+    temporalMemoryRegion.setParameter("learningMode", False)
+    classifierRegion.setParameter("learningMode", False)
 
     self.numTrained = 0
     self.oldClassifications = None
@@ -121,27 +130,31 @@ class ClassificationModelHTM(ClassificationModel):
     Train the network on the input to FileRecordStream.  Train the classifier
     if the network has been trained on enough (self.tmTrainingSize) samples
     """
+    self.numTrained += 1
+
     sensorRegion = self.network.regions["sensor"]
     spatialPoolerRegion = self.network.regions["SP"]
     temporalMemoryRegion = self.network.regions["TM"]
     classifierRegion = self.network.regions["classifier"]
 
     spatialPoolerRegion.setParameter("learningMode", True)
-    temporalMemoryRegion.setParameter("learningMode", True)
-    classifierRegion.setParameter("learningMode", True)
+    if self.numTrained >= self.spTrainingSize:
+      temporalMemoryRegion.setParameter("learningMode", True)
+    if self.numTrained >= self.tmTrainingSize:
+      classifierRegion.setParameter("learningMode", True)
 
     self.network.run(1)
 
-    # Only train classifier once TM is trained
+    # TODO: delete after Marion's PR is merged
+    # https://github.com/numenta/nupic/pull/2415
     if self.numTrained >= self.tmTrainingSize:
       labels = sensorRegion.getOutputData("categoryOut")
       for label in labels:
         if label != -1:
           self._classify(label)
 
-    self.numTrained += 1
 
-
+  # TODO: delete after Marion's PR is merged
   def _classify(self, label=None):
     """
     Get the labels from the classifier for the last input
@@ -184,8 +197,11 @@ class ClassificationModelHTM(ClassificationModel):
     sensorRegion = self.network.regions["sensor"]
     spatialPoolerRegion = self.network.regions["SP"]
     temporalMemoryRegion = self.network.regions["TM"]
+    classifierRegion = self.network.regions["classifier"]
+
     spatialPoolerRegion.setParameter("learningMode", False)
     temporalMemoryRegion.setParameter("learningMode", False)
+    classifierRegion.setParameter("learningMode", False)
 
     self.network.run(1)
 
