@@ -276,7 +276,7 @@ class Runner(object):
         sample = self.samples[sampleNum][0]
         pred = sorted([self.labelRefs[j] for j in self.results[trial][0][i]])
         actual = sorted([self.labelRefs[j] for j in self.results[trial][1][i]])
-        resultsDict[sampleNum] = (sample, actual, pred)
+        resultsDict[sampleNum] = (sampleNum, sample, actual, pred)
 
       resultsPath = os.path.join(self.modelPath,
                                  "results_trial" + str(trial) + ".csv")
