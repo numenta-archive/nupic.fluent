@@ -181,6 +181,39 @@ class NetworkDataGenerator(object):
 
 
   @staticmethod
+  def getSamples(networkDataFile):
+    """
+    Returns the a list of samples joined at reset points
+    @param networkDataFile  (string)  Path to file in the FileRecordStream
+                                      format
+    @return                 (list)    list of list of strings
+    """
+    try:
+      with open(networkDataFile) as f:
+        reader = csv.reader(f)
+        header = next(reader, None)
+        next(reader, None)
+        resetIdx = next(reader).index("R")
+        tokenIdx = header.index("_token")
+
+        currentSample = []
+        samples = []
+        for i, line in enumerate(reader):
+          if int(line[resetIdx]) == 1:
+            if len(currentSample) != 0:
+              samples.append([" ".join(currentSample)])
+            currentSample = [line[tokenIdx]]
+          else:
+            currentSample.append(line[tokenIdx])
+        samples.append([" ".join(currentSample)])
+        return samples
+
+    except IOError as e:
+      print "Could not open the file {}.".format(networkDataFile)
+      raise e
+
+
+  @staticmethod
   def getClassifications(networkDataFile):
     """
     Returns the classifications at the indices where the data sequences

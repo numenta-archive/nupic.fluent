@@ -93,11 +93,6 @@ class HTMRunner(Runner):
       raise e
 
 
-  # TODO: remove after defining self.samples and self.partitions correctly
-  def writeOutClassifications(self):
-    pass
-
-
   def setupData(self, preprocess=False, sampleIdx=2, **kwargs):
     """
     Generate the data in network API format if necessary. self.dataFiles is
@@ -239,6 +234,13 @@ class HTMRunner(Runner):
       winningPredictions = self._selectWinners(predictions)
       results[0].append(winningPredictions)
       results[1].append(self.actualLabels[trial][i])
+
+    # Prepare data for writeOutClassifications
+    trainIdx = range(len(self.partitions[trial][0]))
+    testIdx = range(len(self.partitions[trial][0]),
+      len(self.partitions[trial][0]) + len(self.partitions[trial][1]))
+    self.partitions[trial] = (trainIdx, testIdx)
+    self.samples = NetworkDataGenerator.getSamples(self.dataFiles[trial])
 
     self.results.append(results)
 
