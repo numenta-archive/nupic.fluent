@@ -172,7 +172,7 @@ class Runner(object):
     """
     self.dataDict = readCSV(self.dataPath, sampleIdx, self.numClasses)
 
-    if not (isinstance(self.trainSize, list) or
+    if (not isinstance(self.trainSize, list) or not
         all([0 <= size <= len(self.dataDict) for size in self.trainSize])):
       raise ValueError("Invalid size(s) for training set.")
 
