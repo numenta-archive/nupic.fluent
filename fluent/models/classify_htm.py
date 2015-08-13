@@ -104,10 +104,9 @@ class ClassificationModelHTM(ClassificationModel):
   def encodePattern(self, sample):
     """
     Put each token in its own dictionary with its bitmap
-
     @param sample     (list)            Tokenized sample, where each item is a
                                         string token.
-    @return encodings (list)            The sample text, sparsity, and bitmap
+    @return           (list)            The sample text, sparsity, and bitmap
                                         for each token. Since the network will
                                         do the actual encoding, the bitmap and
                                         sparsity will be None
@@ -134,8 +133,11 @@ class ClassificationModelHTM(ClassificationModel):
 
   def trainModel(self):
     """
-    Train the network on the input to FileRecordStream.  Train the classifier
-    if the network has been trained on enough (self.tmTrainingSize) samples
+    Train the network on the input to FileRecordStream.  Train the spatial
+    pooler if the network has been trained on enough (self.cpTrainingSize)
+    samples. Train the temporal memory if the network has been trained on
+    enough (self.tpTrainingSize) samples. Train the classifier if the network
+    has been trained on enough (self.clsTrainingSize) samples.
     """
     sensorRegion = self.network.regions["sensor"]
     spatialPoolerRegion = self.network.regions["SP"]
@@ -165,7 +167,7 @@ class ClassificationModelHTM(ClassificationModel):
   # TODO: delete after Marion's PR is merged
   def _classify(self, label=None):
     """
-    Get the labels from the classifier for the last input
+    Work around to get the labels from the classifier for the last input
     @param label      (int)     class for learning.  If None, just classify
     @return           (list)    inferred values for each category
     """
@@ -197,7 +199,6 @@ class ClassificationModelHTM(ClassificationModel):
   def testModel(self, numLabels=3):
     """
     Test the KNN/CLA classifier on the input sample.
-
     @param numLabels      (int)           Number of predicted classifications.
     @return               (numpy array)   The numLabels most-frequent
                                           classifications for the data sample
