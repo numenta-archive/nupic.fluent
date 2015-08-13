@@ -147,12 +147,12 @@ class HTMRunner(Runner):
       try:
         module = __import__(self.modelModuleName, {}, {}, self.modelName)
         modelClass = getattr(module, self.modelName)
-        spTrainingSize = self.trainSize[trial] / 3.0
-        tmTrainingSize = 2 * self.trainSize[trial] / 3.0
+        tmTrainingSize = self.trainSize[trial] / 3.0
+        clsTrainingSize = 2 * self.trainSize[trial] / 3.0
         self.model = modelClass(self.dataFiles[trial],
                                 verbosity=self.verbosity,
-                                spTrainingSize=spTrainingSize,
                                 tmTrainingSize=tmTrainingSize,
+                                clsTrainingSize=clsTrainingSize,
                                 classifierType=self.classifierType)
       except ImportError:
         raise RuntimeError("Could not import model class \'{0}\'.".
