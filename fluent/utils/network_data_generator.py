@@ -184,7 +184,7 @@ class NetworkDataGenerator(object):
   def getSamples(networkDataFile):
     """
     Returns the a list of samples joined at reset points
-    @param networkDataFile  (string)  Path to file in the FileRecordStream
+    @param networkDataFile  (str)     Path to file in the FileRecordStream
                                       format
     @return                 (list)    list of list of strings
     """
@@ -218,7 +218,7 @@ class NetworkDataGenerator(object):
     """
     Returns the classifications at the indices where the data sequences
     reset.
-    @param networkDataFile  (string)  Path to file in the FileRecordStream
+    @param networkDataFile  (str)     Path to file in the FileRecordStream
                                       format
     @return                 (list)    list of string versions of the
                                       classifications
@@ -248,7 +248,7 @@ class NetworkDataGenerator(object):
   def getNumberOfTokens(networkDataFile):
     """
     Returns the number of tokens for each sequence
-    @param networkDataFile  (string)  Path to file in the FileRecordStream
+    @param networkDataFile  (str)     Path to file in the FileRecordStream
                                       format
     @return                 (list)    list of number of tokens
     """
