@@ -22,6 +22,7 @@
 
 import numpy
 import os
+import shutil
 import unittest
 
 from fluent.experiments.runner import Runner
@@ -39,13 +40,19 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_data")
 
 class ClassificationModelsTest(unittest.TestCase):
   """Test class for ClassificationModelKeywords."""
-  
+
   @staticmethod
   def runExperiment(runner):
-    runner.initModel()
-    runner.setupData()
-    runner.encodeSamples()
-    runner.runExperiment()
+    try:
+      runner.initModel()
+      runner.setupData()
+      runner.encodeSamples()
+      runner.runExperiment()
+    except Exception as e:
+      raise e("Runner could not execute the experiment.")
+    finally:
+      # Cleanup
+      shutil.rmtree(runner.modelPath.split("/")[0])
   
   
   @staticmethod
@@ -67,8 +74,8 @@ class ClassificationModelsTest(unittest.TestCase):
         expectedClasses.append(dataDict.items()[j+runner.trainSize[i]][1][1])
 
     return expectedClasses, resultClasses
-  
-  
+
+
   def testClassifyKeywordsAsExpected(self):
     """
     Tests ClassificationModelKeywords.
