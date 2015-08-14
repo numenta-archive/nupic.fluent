@@ -95,6 +95,7 @@ class Runner(object):
     self.samples = None
     self.patterns = None
     self.results = []
+    self.model = None
 
 
   def _calculateTrialAccuracies(self):
@@ -169,6 +170,9 @@ class Runner(object):
     Get the data from CSV and preprocess if specified.
     One index in labelIdx implies the model will train on a single
     classification per sample.
+    @param preprocess   (bool)    Whether or not to preprocess the data when
+                                  generating the files
+    @param sampleIdx    (int)     Column number of the text samples in the csv
     """
     self.dataDict = readCSV(self.dataPath, sampleIdx, self.numClasses)
 
@@ -196,8 +200,16 @@ class Runner(object):
         modelClass = getattr(module, self.modelName)
         self.model = modelClass(verbosity=self.verbosity)
       except ImportError:
-        raise RuntimeError("Could not find model class \'{0}\' to import.".
+        raise RuntimeError("Could not import model class \'{0}\'.".
                            format(self.modelName))
+
+
+  def resetModel(self, trial):
+    """Resets or initializes the model"""
+    if self.model is None:
+      self.initModel()
+    else:
+      self.model.resetModel()
 
 
   def encodeSamples(self):
@@ -215,15 +227,11 @@ class Runner(object):
   def runExperiment(self):
     """Train and test the model for each trial specified by self.trainSize."""
     for i, size in enumerate(self.trainSize):
-      self.partitions.append(self.partitionIndices(size))
+      self.partitions.append(self.partitionIndices(size, i))
 
-      if self.verbosity > 0:
-        print ("\tRunner randomly selects to train on sample(s) {0}, and test "
-               "on sample(s) {1}.".
-               format(self.partitions[i][0], self.partitions[i][1]))
-
-      self.model.resetModel()
-      print "\tTraining for run {0} of {1}.".format(i+1, len(self.trainSize))
+      self.resetModel(i)
+      print "\tTraining for run {0} of {1}.".format(i + 1,
+        len(self.trainSize))
       self.training(i)
       print "\tTesting for this run."
       self.testing(i)
@@ -235,12 +243,20 @@ class Runner(object):
     partition of indices. Models' training methods require the sample and label
     to be in a list.
     """
+    if self.verbosity > 0:
+      print ("\tRunner selects to train on sample(s) {}".
+        format(self.partitions[trial][0]))
+
     for i in self.partitions[trial][0]:
       self.model.trainModel([self.patterns[i]["pattern"]],
                             [self.patterns[i]["labels"]])
 
 
   def testing(self, trial):
+    if self.verbosity > 0:
+      print ("\tRunner selects to test on sample(s) {}".
+        format(self.partitions[trial][1]))
+
     results = ([], [])
     for i in self.partitions[trial][1]:
       predicted = self.model.testModel(self.patterns[i]["pattern"])
@@ -260,7 +276,7 @@ class Runner(object):
         sample = self.samples[sampleNum][0]
         pred = sorted([self.labelRefs[j] for j in self.results[trial][0][i]])
         actual = sorted([self.labelRefs[j] for j in self.results[trial][1][i]])
-        resultsDict[sampleNum] = (sample, actual, pred)
+        resultsDict[sampleNum] = (sampleNum, sample, actual, pred)
 
       resultsPath = os.path.join(self.modelPath,
                                  "results_trial" + str(trial) + ".csv")
@@ -302,7 +318,7 @@ class Runner(object):
       pkl.dump(self.model, f)
 
 
-  def partitionIndices(self, split):
+  def partitionIndices(self, split, trial):
     """
     Returns train and test indices.
 

@@ -102,5 +102,5 @@ def writeFromDict(dataDict, headers, csvFile):
   with open(csvFile, "wb") as f:
     writer = csv.writer(f, delimiter=",")
     writer.writerow(headers)
-    for row in xrange(len(dataDict)):
+    for row in sorted(dataDict.keys()):
       writer.writerow(dataDict[row])
