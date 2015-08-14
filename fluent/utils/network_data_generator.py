@@ -70,8 +70,8 @@ class NetworkDataGenerator(object):
 
 
   def split(self, filename, sampleIdx, numLabels, textPreprocess, abbrCSV="",
-      contrCSV="", ignoreCommon=None, removeStrings=None, correctSpell=False,
-      **kwargs):
+      contrCSV="", ignoreCommon=100, removeStrings="[identifier deleted]",
+      correctSpell=True, **kwargs):
     """
     Split all the comments in a file into tokens. Preprocess if necessary.
     @param filename        (str)    Path to csv file
@@ -181,6 +181,102 @@ class NetworkDataGenerator(object):
 
 
   @staticmethod
+  def getSamples(networkDataFile):
+    """
+    Returns the a list of samples joined at reset points
+    @param networkDataFile  (str)     Path to file in the FileRecordStream
+                                      format
+    @return                 (list)    list of list of strings
+    """
+    try:
+      with open(networkDataFile) as f:
+        reader = csv.reader(f)
+        header = next(reader, None)
+        next(reader, None)
+        resetIdx = next(reader).index("R")
+        tokenIdx = header.index("_token")
+
+        currentSample = []
+        samples = []
+        for i, line in enumerate(reader):
+          if int(line[resetIdx]) == 1:
+            if len(currentSample) != 0:
+              samples.append([" ".join(currentSample)])
+            currentSample = [line[tokenIdx]]
+          else:
+            currentSample.append(line[tokenIdx])
+        samples.append([" ".join(currentSample)])
+        return samples
+
+    except IOError as e:
+      print "Could not open the file {}.".format(networkDataFile)
+      raise e
+
+
+  @staticmethod
+  def getClassifications(networkDataFile):
+    """
+    Returns the classifications at the indices where the data sequences
+    reset.
+    @param networkDataFile  (str)     Path to file in the FileRecordStream
+                                      format
+    @return                 (list)    list of string versions of the
+                                      classifications
+    Sample output: ["0 1", "1", "1 2 3"]
+    """
+    try:
+      with open(networkDataFile) as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        next(reader, None)
+        specials = next(reader)
+        resetIdx = specials.index("R")
+        classIdx = specials.index("C")
+
+        classifications = []
+        for i, line in enumerate(reader):
+          if int(line[resetIdx]) == 1:
+            classifications.append(line[classIdx])
+        return classifications
+
+    except IOError as e:
+      print "Could not open the file {}.".format(networkDataFile)
+      raise e
+
+
+  @staticmethod
+  def getNumberOfTokens(networkDataFile):
+    """
+    Returns the number of tokens for each sequence
+    @param networkDataFile  (str)     Path to file in the FileRecordStream
+                                      format
+    @return                 (list)    list of number of tokens
+    """
+    try:
+      with open(networkDataFile) as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        next(reader, None)
+        resetIdx = next(reader).index("R")
+
+        count = 0
+        numTokens = []
+        for i, line in enumerate(reader):
+          if int(line[resetIdx]) == 1:
+            if count != 0:
+              numTokens.append(count)
+            count = 1
+          else:
+            count += 1
+        numTokens.append(count)
+        return numTokens
+
+    except IOError as e:
+      print "Could not open the file {}.".format(networkDataFile)
+      raise e
+
+
+  @staticmethod
   def getResetsIndices(networkDataFile):
     """Returns the indices at which the data sequences reset."""
     try:
@@ -192,7 +288,6 @@ class NetworkDataGenerator(object):
 
         resets = []
         for i, line in enumerate(reader):
-          print line
           if int(line[resetIdx]) == 1:
             resets.append(i)
         return resets
