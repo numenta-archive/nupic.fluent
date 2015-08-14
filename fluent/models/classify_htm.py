@@ -134,9 +134,9 @@ class ClassificationModelHTM(ClassificationModel):
   def trainModel(self):
     """
     Train the network on the input to FileRecordStream.  Train the spatial
-    pooler if the network has been trained on enough (self.cpTrainingSize)
+    pooler if the network has been trained on enough (self.spTrainingSize)
     samples. Train the temporal memory if the network has been trained on
-    enough (self.tpTrainingSize) samples. Train the classifier if the network
+    enough (self.tmTrainingSize) samples. Train the classifier if the network
     has been trained on enough (self.clsTrainingSize) samples.
     """
     sensorRegion = self.network.regions["sensor"]
