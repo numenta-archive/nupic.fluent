@@ -144,6 +144,7 @@ class HTMRunner(Runner):
         modelClass = getattr(module, self.modelName)
         tmTrainingSize = self.trainSize[trial] / 3.0
         clsTrainingSize = 2 * self.trainSize[trial] / 3.0
+        # import pdb; pdb.set_trace()
         self.model = modelClass(self.dataFiles[trial],
                                 verbosity=self.verbosity,
                                 tmTrainingSize=tmTrainingSize,

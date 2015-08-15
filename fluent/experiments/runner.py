@@ -176,7 +176,7 @@ class Runner(object):
     """
     self.dataDict = readCSV(self.dataPath, sampleIdx, self.numClasses)
 
-    if not (isinstance(self.trainSize, list) or
+    if (not isinstance(self.trainSize, list) or not
         all([0 <= size <= len(self.dataDict) for size in self.trainSize])):
       raise ValueError("Invalid size(s) for training set.")
 
@@ -230,10 +230,12 @@ class Runner(object):
       self.partitions.append(self.partitionIndices(size, i))
 
       self.resetModel(i)
-      print "\tTraining for run {0} of {1}.".format(i + 1,
-        len(self.trainSize))
+      if self.verbosity > 0:
+        print "\tTraining for run {0} of {1}.".format(
+          i + 1, len(self.trainSize))
       self.training(i)
-      print "\tTesting for this run."
+      if self.verbosity > 0:
+        print "\tTesting for this run."
       self.testing(i)
 
 
