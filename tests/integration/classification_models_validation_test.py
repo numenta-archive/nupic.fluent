@@ -25,6 +25,7 @@ import os
 import shutil
 import unittest
 
+from fluent.experiments.htm_runner import HTMRunner
 from fluent.experiments.runner import Runner
 from fluent.utils.csv_helper import readCSV
 
@@ -44,7 +45,6 @@ class ClassificationModelsTest(unittest.TestCase):
   @staticmethod
   def runExperiment(runner):
     try:
-      runner.initModel()
       runner.setupData()
       runner.encodeSamples()
       runner.runExperiment()
@@ -95,6 +95,7 @@ class ClassificationModelsTest(unittest.TestCase):
                     orderedSplit=True,
                     trainSize=[5],
                     verbosity=0)
+    runner.initModel()
     self.runExperiment(runner)
 
     expectedClasses, resultClasses = self.getExpectedClassifications(
@@ -129,6 +130,7 @@ class ClassificationModelsTest(unittest.TestCase):
                     orderedSplit=True,
                     trainSize=[5],
                     verbosity=0)
+    runner.initModel()
     self.runExperiment(runner)
 
     expectedClasses, resultClasses = self.getExpectedClassifications(runner,
@@ -158,6 +160,7 @@ class ClassificationModelsTest(unittest.TestCase):
                     orderedSplit=True,
                     trainSize=[5],
                     verbosity=0)
+    runner.initModel()
     self.runExperiment(runner)
 
     expectedClasses, resultClasses = self.getExpectedClassifications(runner,
@@ -165,6 +168,40 @@ class ClassificationModelsTest(unittest.TestCase):
 
     [self.assertEqual(sorted(e), sorted(r),
       "Endpoint model predicted classes other than what we expect.")
+      for e, r in zip(expectedClasses, resultClasses)]
+
+
+  def testClassifyHTMAsExpected(self):
+    """
+    Tests ClassificationModelHTM.
+    
+    Training on the first five samples of the dataset, and testing on the rest,
+    the model's classifications should match those in the expected classes
+    data file.
+    """
+    runner = HTMRunner(dataPath=os.path.join(DATA_DIR, "responses_network.csv"),
+                       resultsDir="",
+                       experimentName="fingerprints_test",
+                       load=False,
+                       modelName="ClassificationModelHTM",
+                       modelModuleName="fluent.models.classify_htm",
+                       numClasses=3,
+                       plots=0,
+                       orderedSplit=True,
+                       trainSize=[5],
+                       verbosity=0,
+                       generateData=False,
+                       votingMethod="last",
+                       classificationFile=os.path.join(
+                         DATA_DIR, "responses_classifications.json"),
+                       classifierType="KNN")
+    self.runExperiment(runner)
+
+    expectedClasses, resultClasses = self.getExpectedClassifications(runner,
+      os.path.join(DATA_DIR, "responses_expected_classes_htm.csv"))
+
+    [self.assertEqual(sorted(e), sorted(r),
+      "HTM model predicted classes other than what we expect.")
       for e, r in zip(expectedClasses, resultClasses)]
 
 

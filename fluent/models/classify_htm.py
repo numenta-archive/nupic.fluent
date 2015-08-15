@@ -160,7 +160,7 @@ class ClassificationModelHTM(ClassificationModel):
       for label in labels:
         if label != -1:
           self._classify(label)
-    
+
     self.numTrained += 1
 
 
