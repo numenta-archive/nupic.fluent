@@ -83,8 +83,8 @@ class ClassificationModelHTM(ClassificationModel):
         self.classifierType))
 
     self.network = createNetwork(
-      (self.recordStream, "py.LanguageSensor", self.encoder, self.numLabels,
-      "py.{}ClassifierRegion".format(self.classifierType), classifier_params))
+      self.recordStream, "py.LanguageSensor", self.encoder, self.numLabels,
+      "py.{}ClassifierRegion".format(self.classifierType), classifier_params)
 
     self.network.initialize()
 
