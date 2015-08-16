@@ -49,7 +49,8 @@ class ClassificationModelsTest(unittest.TestCase):
       runner.encodeSamples()
       runner.runExperiment()
     except Exception as e:
-      raise e("Runner could not execute the experiment.")
+      print "Runner could not execute the experiment."
+      raise e
     finally:
       # Cleanup
       shutil.rmtree(runner.modelPath.split("/")[0])
