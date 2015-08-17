@@ -30,6 +30,9 @@ from fluent.encoders.language_encoder import LanguageEncoder
 from fluent.utils.text_preprocess import TextPreprocess
 
 
+DEFAULT_RETINA = "en_synonymous"
+
+
 
 class CioEncoder(LanguageEncoder):
   """
@@ -40,8 +43,8 @@ class CioEncoder(LanguageEncoder):
   converted to binary SDR arrays with this Cio encoder.
   """
 
-  def __init__(self, w=128, h=128, cacheDir="./cache", verbosity=0,
-               fingerprintType=EncoderTypes.document):
+  def __init__(self, w=128, h=128, retina=DEFAULT_RETINA, cacheDir="./cache",
+               verbosity=0, fingerprintType=EncoderTypes.document):
     """
     @param w               (int)      Width dimension of the SDR topology.
     @param h               (int)      Height dimension of the SDR topology.
@@ -57,7 +60,7 @@ class CioEncoder(LanguageEncoder):
       raise OSError("Missing API key.")
 
     self.apiKey = os.environ["CORTICAL_API_KEY"]
-    self.client = CorticalClient(self.apiKey, cacheDir=cacheDir)
+    self.client = CorticalClient(self.apiKey, retina=retina, cacheDir=cacheDir)
     self.targetSparsity = 5.0
     self.w = w
     self.h = h
