@@ -42,7 +42,7 @@ def readCSV(csvFile, sampleIdx, numLabels):
                                         corresponding category labels (strings).
   """
   try:
-    with open(csvFile) as f:
+    with open(csvFile, "rb") as f:
       reader = csv.reader(f)
       next(reader, None)
       
