@@ -23,8 +23,9 @@ This file contains CSV utility functions to use with nupic.fluent experiments.
 """
 
 import csv
+import os
 
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 
 
 def readCSV(csvFile, sampleIdx, numLabels):
@@ -41,7 +42,7 @@ def readCSV(csvFile, sampleIdx, numLabels):
                                         corresponding category labels (strings).
   """
   try:
-    with open(csvFile) as f:
+    with open(csvFile, "rb") as f:
       reader = csv.reader(f)
       next(reader, None)
       
@@ -49,7 +50,8 @@ def readCSV(csvFile, sampleIdx, numLabels):
       labelIdx = range(sampleIdx + 1, sampleIdx + 1 + numLabels)
 
       for line in reader:
-        dataDict[line[sampleIdx]] = [line[i] for i in labelIdx if line[i]]
+        dataDict[int(line[0]) - 1] = (line[sampleIdx],
+                                      [line[i] for i in labelIdx if line[i]])
     
       return dataDict
 
@@ -57,9 +59,48 @@ def readCSV(csvFile, sampleIdx, numLabels):
     print e
 
 
+def readDir(dirPath, sampleIdx, numLabels, modify=False):
+  """
+  Reads in data from a directory of CSV files; assumes the directory only
+  contains CSV files.
+  
+  @param dirPath            (str)          Path to the directory.
+  @param sampleIdx          (int)          Column number of the text samples.
+  @param numLabels          (int)          Number of columns of category labels.
+  @param modify             (bool)         Map the unix friendly category names
+                                           to the actual names. 0 -> /, _ -> " "
+  
+  @return samplesDict       (defaultdict)  Keys are CSV names, values are
+      OrderedDicts, where the keys/values are as specified in readCSV().
+  """
+  samplesDict = defaultdict(list)
+  for _, _, files in os.walk(dirPath):
+    for f in files:
+      basename, extension = os.path.splitext(os.path.basename(f))
+      if "." in basename and extension == ".csv":
+        category = basename.split(".")[-1]
+        if modify:
+          category = category.replace("0", "/")
+          category = category.replace("_", " ")
+        samplesDict[category] = readCSV(os.path.join(dirPath, f), sampleIdx, numLabels)
+
+  return samplesDict
+
+
 def writeCSV(data, headers, csvFile):
   """Write data with column headers to a CSV."""
-  with open(csvFile, 'wb') as f:
-    writer = csv.writer(f, delimiter=',')
+  with open(csvFile, "wb") as f:
+    writer = csv.writer(f, delimiter=",")
     writer.writerow(headers)
     writer.writerows(data)
+
+
+def writeFromDict(dataDict, headers, csvFile):
+  """
+  Write dictionary to a CSV, where keys are row numbers and values are a list.
+  """
+  with open(csvFile, "wb") as f:
+    writer = csv.writer(f, delimiter=",")
+    writer.writerow(headers)
+    for row in sorted(dataDict.keys()):
+      writer.writerow(dataDict[row])

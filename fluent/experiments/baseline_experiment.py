@@ -43,14 +43,14 @@ Please note the following definitions:
 
 
 import argparse
-import collections
 import cPickle as pkl
 import itertools
 import numpy
 import os
 import time
+from collections import defaultdict
 
-from fluent.utils.csv_helper import readCSV
+from fluent.utils.csv_helper import readCSV, writeFromDict
 from fluent.utils.data_split import KFolds
 from fluent.utils.text_preprocess import TextPreprocess
 
@@ -74,8 +74,6 @@ def runExperiment(model, patterns, idxSplits, batch):
   return testing(model, [patterns[i] for i in idxSplits[1]])
 
 
-# training() and testing() methods send one data sample at a time to the model,
-# i.e. streaming input.
 def training(model, trainSet, batch):
   """
   Trains model on the bitmap patterns and corresponding labels lists one at a
@@ -126,7 +124,9 @@ def computeExpectedAccuracy(predictedLabels, dataPath):
   Compute the accuracy of the models predictions against what we expect it to
   predict; considers only single classification.
   """
-  _, expectedLabels = readCSV(dataPath, 2, [3])
+  dataDict = readCSV(dataPath, 2, [3])
+  expectedLabels = [data[1] for _, data in dataDict.iteritems()]
+
   if len(expectedLabels) != len(predictedLabels):
     raise ValueError("Lists of labels must have the same length.")
 
@@ -150,23 +150,28 @@ def setupData(args):
   # Collect each possible label string into a list, where the indices will be
   # their references throughout the experiment.
   labelReference = list(set(
-      itertools.chain.from_iterable(dataDict.values())))
+    itertools.chain.from_iterable(map(lambda x: x[1], dataDict.values()))))
 
-  for sample, labels in dataDict.iteritems():
-    dataDict[sample] = numpy.array([labelReference.index(label)
+  for idx, data in dataDict.iteritems():
+    comment, labels = data
+    dataDict[idx] = (comment, numpy.array([labelReference.index(label)
                                     for label in labels],
-                                    dtype="int8")
+                                    dtype="int8"))
 
-  texter = TextPreprocess()
+  texter = TextPreprocess(abbrCSV=args.abbrCSV, contrCSV=args.contrCSV)
+  expandAbbr = (args.abbrCSV != "")
+  expandContr = (args.contrCSV != "")
   if args.textPreprocess:
-    samples = [(texter.tokenize(sample,
+    samples = [(texter.tokenize(data[0],
                                 ignoreCommon=100,
                                 removeStrings=["[identifier deleted]"],
-                                correctSpell=True),
-               labels) for sample, labels in dataDict.iteritems()]
+                                correctSpell=True,
+                                expandAbbr=expandAbbr,
+                                expandContr=expandContr),
+               data[1]) for _, data in dataDict.iteritems()]
   else:
-    samples = [(texter.tokenize(sample), labels)
-               for sample, labels in dataDict.iteritems()]
+    samples = [(texter.tokenize(data[0]), data[1])
+               for _, data in dataDict.iteritems()]
 
   return samples, labelReference
 
@@ -224,18 +229,17 @@ def run(args):
 
   print "Encoding the data."
   encodeTime = time.time()
-  patterns = [(model.encodePattern(s[0]), s[1]) for s in samples]
   patterns = [{"pattern": model.encodePattern(s[0]),
               "labels": s[1]}
               for s in samples]
 
   print("Done encoding; elapsed time is {0:.2f} seconds.".
         format(time.time() - encodeTime))
-  model.logEncodings(patterns, modelPath)
+  model.writeOutEncodings(patterns, modelPath)
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:
-    training(model, patterns)
+    training(model, patterns, args.batch)
 
   if args.test:
     results = testing(model, patterns)
@@ -252,13 +256,21 @@ def run(args):
     partitions = KFolds(args.kFolds).split(range(len(samples)), randomize=True)
     intermResults = []
     predictions = []
+    resultsDict = defaultdict(list)
     for k in xrange(args.kFolds):
       print "Training and testing for CV fold {0}.".format(k)
       kTime = time.time()
       trialResults = runExperiment(model, patterns, partitions[k], args.batch)
       print("Fold complete; elapsed time is {0:.2f} seconds.".format(
             time.time() - kTime))
-
+      
+      # Populate resultsDict for writing out the classifications.
+      for i, sampleNum in enumerate(partitions[k][1]):
+        sample = samples[sampleNum][0]
+        pred = sorted([labelReference[j] for j in trialResults[0][i]])
+        actual = sorted([labelReference[j] for j in trialResults[1][i]])
+        resultsDict[sampleNum] = (sample, actual, pred)
+      
       if args.expectationDataPath:
         # Keep the predicted labels (top prediction only) for later.
         p = [l if l else [None] for l in trialResults[0]]
@@ -266,9 +278,12 @@ def run(args):
           [labelReference[idx[0]] if idx[0] != None else '(none)' for idx in p])
 
       print "Calculating intermediate results for this fold. Writing to CSV."
-      intermResults.append(calculateResults(
+      (accuracy, cm) = calculateResults(
         model, trialResults, labelReference, partitions[k][1],
-        os.path.join(modelPath, "evaluation_fold_" + str(k) + ".csv")))
+        os.path.join(modelPath, "evaluation_fold_" + str(k) + ".csv"))
+      print "Accuracy after fold %d is %f" %(k, accuracy)
+
+      intermResults.append((accuracy, cm))
 
     print "Calculating cumulative results for {0} trials.".format(args.kFolds)
     results = model.evaluateCumulativeResults(intermResults)
@@ -288,6 +303,11 @@ def run(args):
     os.path.join(modelPath, "model.pkl"), "wb") as f:
     pkl.dump(model, f)
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
+
+  resultsPath = os.path.join(modelPath, "results.csv")
+  print "Saving results to {}.".format(resultsPath)
+  headers = ("Tokenized sample", "Actual", "Predicted")
+  writeFromDict(resultsDict, headers, resultsPath)
 
 
 if __name__ == "__main__":
@@ -309,13 +329,13 @@ if __name__ == "__main__":
                       default="survey_response_sample",
                       type=str,
                       help="Experiment name.")
-  parser.add_argument("--modelName",
-                      default="ClassificationModelRandomSDR",
+  parser.add_argument("-m", "--modelName",
+                      default="ClassificationModelKeywords",
                       type=str,
                       help="Name of model class. Also used for model results "
                       "directory and pickle checkpoint.")
-  parser.add_argument("--modelModuleName",
-                      default="fluent.models.classify_random_sdr",
+  parser.add_argument("-mm", "--modelModuleName",
+                      default="fluent.models.classify_keywords",
                       type=str,
                       help="model module (location of model class).")
   parser.add_argument("--numLabels",
@@ -326,6 +346,12 @@ if __name__ == "__main__":
                       type=bool,
                       help="Whether to preprocess text",
                       default=False)
+  parser.add_argument("--contrCSV",
+                      default="",
+                      help="Path to contraction csv")
+  parser.add_argument("--abbrCSV",
+                      default="",
+                      help="Path to abbreviation csv")
   parser.add_argument("--batch",
                       help="Train the model with all the data at one time",
                       action="store_true")

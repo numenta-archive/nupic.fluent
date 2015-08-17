@@ -117,8 +117,13 @@ class TextPreprocess(object):
 
     expansionPairs = {}
     try:
-      path = os.path.abspath(os.path.join(
-        os.path.dirname(__file__), '../..', 'data/etc', filename))
+      # Allow absolute paths
+      if os.path.exists(filename):
+        path = filename
+      # Allow relative paths
+      else:
+        path = os.path.abspath(os.path.join(
+          os.path.dirname(__file__), '../..', 'data/etc', filename))
       dataFrame = pandas.read_csv(path)
 
       for i in xrange(dataFrame.shape[0]):

@@ -19,7 +19,9 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import math
 import numpy
+import random
 
 from nupic.encoders.utils import bitsToString
 
@@ -43,6 +45,12 @@ class LanguageEncoder(object):
   - getDescription() returns a dict describing the encoded output
   """
 
+  def __init__(self, n=16384, w=328):
+    """The SDR dimensions are standard for Cortical.io fingerprints."""
+    self.n = n
+    self.w = w
+    self.targetSparsity = 5.0
+
 
   def encode(self, inputText):
     """
@@ -54,6 +62,19 @@ class LanguageEncoder(object):
                                     the encoder subclass.
     @param output         (numpy)   1-D array of same length returned by
                                     getWidth().
+    """
+    raise NotImplementedError
+
+
+  def encodeIntoArray(self, inputText, output):
+    """
+    Encodes inputData and puts the encoded value into the numpy output array,
+    which is a 1-D array of length returned by getWidth().
+
+    Note: The numpy output array is reused, so clear it before updating it.
+
+    @param inputData Data to encode. This should be validated by the encoder.
+    @param output numpy 1-D array of same length returned by getWidth()
     """
     raise NotImplementedError
 
@@ -80,8 +101,9 @@ class LanguageEncoder(object):
 
   def getDescription(self):
     """
-    Get a dictionary describing the encoding. See subclass implementation for
-    details.
+    Returns a tuple, each containing (name, offset).
+    The name is a string description of each sub-field, and offset is the bit
+    offset of the sub-field for that encoder; should be 0.
     """
     raise NotImplementedError()
 
@@ -89,14 +111,77 @@ class LanguageEncoder(object):
   def bitmapToSDR(self, bitmap):
     """Convert SDR encoding from bitmap to binary numpy array."""
     sdr = numpy.zeros(self.n)
-    for i in self.bitmap:
-      sdr[i] = 1
+    sdr[bitmap] = 1
     return sdr
 
 
   def bitmapFromSDR(self, sdr):
     """Convert SDR encoding from binary numpy array to bitmap."""
     return numpy.array([i for i in range(len(sdr)) if sdr[i]==1])
+
+
+  def encodeRandomly(self, text):
+    """Return a random bitmap representation of the sample."""
+    random.seed(sample)
+    return numpy.sort(random.sample(xrange(self.n), self.w))
+
+
+  def compare(self, bitmap1, bitmap2):
+    """
+    Compare bitmaps, returning a dict of similarity measures.
+
+    @param bitmap1     (list)        Indices of ON bits.
+    @param bitmap2     (list)        Indices of ON bits.
+    @return distances  (dict)        Key-values of distance metrics and values.
+
+    Example return dict:
+      {
+        "cosineSimilarity": 0.6666666666666666,
+        "euclideanDistance": 0.3333333333333333,
+        "jaccardDistance": 0.5,
+        "overlappingAll": 6,
+        "overlappingLeftRight": 0.6666666666666666,
+        "overlappingRightLeft": 0.6666666666666666,
+        "sizeLeft": 9,
+        "sizeRight": 9
+      }
+    """
+    if not len(bitmap1) > 0 or not len(bitmap2) > 0:
+      raise ValueError("Bitmaps must have ON bits to compare.")
+
+    sdr1 = self.bitmapToSDR(bitmap1)
+    sdr2 = self.bitmapToSDR(bitmap2)
+
+    distances = {
+      "sizeLeft": float(len(bitmap1)),
+      "sizeRight": float(len(bitmap2)),
+      "overlappingAll": float(len(numpy.intersect1d(bitmap1, bitmap2))),
+      "euclideanDistance": numpy.linalg.norm(sdr1 - sdr2)
+    }
+
+    distances["overlappingLeftRight"] = (distances["overlappingAll"] /
+                                         distances["sizeLeft"])
+    distances["overlappingRightLeft"] = (distances["overlappingAll"] /
+                                         distances["sizeRight"])
+    distances["cosineSimilarity"] = (distances["overlappingAll"] /
+        (math.sqrt(distances["sizeLeft"]) * math.sqrt(distances["sizeRight"])))
+    distances["jaccardDistance"] = 1 - (distances["overlappingAll"] /
+        len(numpy.union1d(bitmap1, bitmap2)))
+
+    return distances
+
+
+  def sparseUnion(self, counts):
+    """
+    Bits from the input patterns are unionizes and then sparsified.
+
+    @param counts     (Counter)   A count of the ON bits for the union bitmap.
+
+    @return           (list)      A sparsified union bitmap.
+    """
+    max_sparsity = int((self.targetSparsity / 100) * self.n)
+    w = min(len(counts), max_sparsity)
+    return [c[0] for c in counts.most_common(w)]
 
 
   def pprintHeader(self, prefix=""):

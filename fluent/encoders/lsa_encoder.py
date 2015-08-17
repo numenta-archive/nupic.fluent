@@ -54,7 +54,9 @@ class LSAEncoder(LanguageEncoder):
     else:
       self.w = int(float(self.n) * 0.05)
 
-  
+    self.description = ("LSA Encoder", 0)
+
+
   def _tokenize(self, text):
     """Tokenize the text string into a list of strings."""
     text = "".join([c for c in text if c not in exclusions])
@@ -64,19 +66,18 @@ class LSAEncoder(LanguageEncoder):
   def encode(self, text):
     """
     Encodes the input text into an SDR.
-    
+
     @param  text    (str, list)       If the input is type str, the encoder
                                       assumes it has not yet been tokenized. A
                                       list input will skip the tokenization
                                       step.
     @return         (list)            SDR.
-    """
-    
-    """Converts a string into an SDR."""
-   if isinstance(text, str):
-     text = self._tokenize(text)
 
-    ## TODO: test tokenization logic for str and list inputs
+    TODO: test tokenization logic for str and list inputs
+    """
+    if isinstance(text, str):
+      text = self._tokenize(text)
+
     bow = self.dictionary.doc2bow(text.lower().split())
     tfidf = self.tfidf[bow]
     weights = self.lsa[tfidf]
@@ -85,7 +86,17 @@ class LSAEncoder(LanguageEncoder):
     encoded = numpy.zeros([self.n], dtype=numpy.bool)
     encoded[activeIndices] = 1
     return encoded
-      
+
+
+  def encodeIntoArray(self, inputText, output):
+    """See method description in language_encoder.py."""
+    if not isinstance(inputText, str):
+      raise TypeError("Expected a string input but got input of type {}."
+                      .format(type(inputText)))
+
+    ## TODO
+    pass
+
 
   def decode(self, encoding, numTerms=None):
     """Converts an SDR back into the most likely word or words.
@@ -115,7 +126,7 @@ class LSAEncoder(LanguageEncoder):
 
 
   def getWidth(self):
-    return self.w
+    return self.n
 
 
   def getDescription(self):

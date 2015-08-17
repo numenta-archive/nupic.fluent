@@ -19,168 +19,128 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import copy
 import numpy
+import os
 import random
 
 from fluent.models.classification_model import ClassificationModel
-from fluent.encoders.cio_encoder import CioEncoder
+from nupic.algorithms.KNNClassifier import KNNClassifier
 
-from cortipy.cortical_client import CorticalClient
+try:
+  import simplejson as json
+except ImportError:
+  import json
 
 
 
 class ClassificationModelKeywords(ClassificationModel):
   """
-  Class to run the survey response classification task with Cortical.io
-  text keyword extraction, then AND the keywords
+  Class to run the survey response classification task with random SDRs.
 
   From the experiment runner, the methods expect to be fed one sample at a time.
+
+  TODO: use nupic.bindings.math import Random
   """
 
-  def __init__(self, verbosity=1, numLabels=1):
+  def __init__(self, n=100, w=20, verbosity=1, numLabels=3):
+    super(ClassificationModelKeywords, self).__init__(n, w, verbosity,
+                                                       numLabels)
+
+    self.classifier = KNNClassifier(exact=True,
+                                    distanceMethod='rawOverlap',
+                                    k=numLabels,
+                                    verbosity=verbosity-1)
+
+
+  def encodePattern(self, sample):
     """
-    Initialize the CorticalClient and CioEncoder. Requires a valid API key
+    Randomly encode an SDR of the input strings. We seed the random number
+    generator such that a given string will yield the same SDR each time this
+    method is called.
+
+    @param sample     (list)            Tokenized sample, where each item is a
+                                        string token.
+    @return           (list)            Numpy arrays, each with a bitmap of the
+                                        encoding.
     """
-    super(ClassificationModelKeywords, self).__init__(verbosity)
-
-    self.encoder = CioEncoder(cacheDir="./experiments/cache")
-    self.client = CorticalClient(self.encoder.apiKey)
-
-    self.n = self.encoder.n
-    self.w = int((self.encoder.targetSparsity/100) * self.n)
-
-    self.categoryBitmaps = {}
-    self.numLabels = numLabels
+    patterns = []
+    for token in sample:
+      patterns.append({
+                        "text":token,
+                        "sparsity":float(self.w)/self.n,
+                        "bitmap":self.encodeRandomly(token)
+                        })
+    return patterns
 
 
-  def encodePattern(self, pattern):
+  def writeOutEncodings(self, patterns, path):
     """
-    Encode an SDR of the input string by querying the Cortical.io API.
-
-    @param pattern     (list)           Tokenized sample, where each item is a
-                                        string
-    @return            (dictionary)     Dictionary, containing text, sparsity,
-                                        and bitmap
-    Example return dict:
-    {
-      "text": "Example text",
-      "sparsity": 0.0,
-      "bitmap": numpy.zeros(0)
-    }
+    Log the encoding dictionaries to a txt file; overrides the superclass
+    implementation.
     """
-    text = " ".join(pattern)
-    return {"text": " ".join(pattern),
-            "sparsity": 0.0,
-            "bitmap": self._encodeText(text)}
+    if not os.path.isdir(path):
+      raise ValueError("Invalid path to write file.")
 
+    # Cast numpy arrays to list objects for serialization.
+    jsonPatterns = copy.deepcopy(patterns)
+    for jp in jsonPatterns:
+      for tokenPattern in jp["pattern"]:
+        tokenPattern["bitmap"] = tokenPattern.get("bitmap", None).tolist()
+      jp["labels"] = jp.get("labels", None).tolist()
 
-  def _encodeText(self, text):
-    fpInfo = self.encoder.encode(text)
-    if self.verbosity > 1:
-      print "Fingerprint sparsity = {0}%.".format(fpInfo["sparsity"])
-
-    if fpInfo:
-      bitmap = numpy.array(fpInfo["fingerprint"]["positions"])
-    else:
-      bitmap = self.encodeRandomly(text)
-
-    return bitmap
+    with open(os.path.join(path, "encoding_log.txt"), "w") as f:
+      f.write(json.dumps(jsonPatterns, indent=1))
 
 
   def resetModel(self):
-    """Reset the model"""
-    self.categoryBitmaps.clear()
+    """Reset the model by clearing the classifier."""
+    self.classifier.clear()
 
 
   def trainModel(self, samples, labels):
     """
-    Train the classifier on the input sample and label. Use Cortical.io's
-    keyword extraction to get the most relevant terms then get the intersection
-    of those bitmaps
+    Train the classifier on the input sample and label. This model is unique in
+    that a single sample contains multiple encoded patterns.
 
-    @param samples     (dictionary)      Dictionary, containing text, sparsity,
-                                         and bitmap
-    @param labels      (int)             Reference index for the classification
-                                         of this sample.
+    @param samples    (list)          List of list of dicts, each representing
+                                      the encoding of one token in a sample.
+    @param labels     (list)          List of numpy arrays containing the
+                                      reference indices for the classifications
+                                      of each sample.
     """
+    # This experiment classifies individual tokens w/in each sample. Train the
+    # classifier on each token.
     for sample, sample_labels in zip(samples, labels):
-      keywords = self.client.extractKeywords(sample["text"])
-
-      # No keywords were found
-      if len(keywords) == 0:
-        # Get each token in the sample so the union is not empty
-        keywords = sample["text"].split(" ")
-
-      union = numpy.zeros(0)
-      for word in keywords:
-        bitmap = self._encodeText(word)
-        union = numpy.union1d(bitmap, union).astype(int)
-
-      for label in sample_labels:
-        if label not in self.categoryBitmaps:
-          self.categoryBitmaps[label] = union
-
-        intersection = numpy.intersect1d(union, self.categoryBitmaps[label])
-        if intersection.size == 0:
-          # Don't want to lose all the old information
-          union = numpy.union1d(union, self.categoryBitmaps[label]).astype(int)
-          # Need to sample to stay sparse
-          count = len(union)
-          sampleIndices = random.sample(xrange(count), min(count, self.w))
-          intersection = numpy.sort(union[sampleIndices])
-
-        self.categoryBitmaps[label] = intersection
+      for token in sample:
+        if not token: continue
+        for label in sample_labels:
+          self.classifier.learn(token["bitmap"], label, isSparse=self.n)
 
 
-
-  def testModel(self, sample):
+  def testModel(self, sample, numLabels=3):
     """
-    Test the intersection bitmap on the input sample. Returns a dictionary
-    containing various distance metrics between the sample and the classes.
-
-    @param sample     (dictionary)      Dictionary, containing text, sparsity,
-                                        and bitmap
-    @return           (dictionary)      The distances between the sample and
-                                        the classes
-    Example return dict:
-      {
-        0: {
-          "cosineSimilarity": 0.6666666666666666,
-          "euclideanDistance": 0.3333333333333333,
-          "jaccardDistance": 0.5,
-          "overlappingAll": 6,
-          "overlappingLeftRight": 0.6666666666666666,
-          "overlappingRightLeft": 0.6666666666666666,
-          "sizeLeft": 9,
-          "sizeRight": 9,
-          "weightedScoring": 0.4436476984102028
-        }
-      }
+    Test the classifier on the input sample. Returns the classifications
+    most frequent amongst the classifications of the sample's individual tokens.
+    We ignore the terms that are unclassified, picking the most frequent
+    classifications among those that are detected.
+    @param sample           (list)          List of dict encodings, one for each
+                                            token in the sample.
+    @param numLabels        (int)           Number of predicted classifications.
+    @return                 (numpy array)   The numLabels most-frequent
+                                            classifications for the data
+                                            samples; values are int or empty.
     """
+    totalInferenceResult = None
+    for idx, s in enumerate(sample):
+      if not s: continue
 
-    sampleBitmap = sample["bitmap"].tolist()
+      (_, inferenceResult, _, _) = self.classifier.infer(
+        self._densifyPattern(s["bitmap"]))
 
-    distances = {}
-    for cat, catBitmap in self.categoryBitmaps.iteritems():
-      distances[cat] = self.client.compare(sampleBitmap, catBitmap.tolist())
+      if totalInferenceResult is None:
+        totalInferenceResult = inferenceResult
+      else:
+        totalInferenceResult += inferenceResult
 
-    return self.winningLabels(distances, numberCats=self.numLabels,
-      metric="overlappingAll")
-
-
-  @staticmethod
-  def winningLabels(distances, numberCats, metric):
-    """
-    Return indices of winning categories, based off of the input metric.
-    Overrides the base class implementation.
-    """
-    metricValues = numpy.array([v[metric] for v in distances.values()])
-    sortedIdx = numpy.argsort(metricValues)
-
-    # euclideanDistance and jaccardDistance are ascending
-    descendingOrder = set(["overlappingAll", "overlappingLeftRight",
-      "overlappingRightLeft", "cosineSimilarity", "weightedScoring"])
-    if metric in descendingOrder:
-      sortedIdx = sortedIdx[::-1]
-
-    return [distances.keys()[catIdx] for catIdx in sortedIdx[:numberCats]]
+    return self.getWinningLabels(totalInferenceResult, numLabels)

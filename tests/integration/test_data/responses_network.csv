@@ -1,0 +1,503 @@
+_token,_categories,_sequenceID,_reset
+string,list,int,int
+,C,S,R
+get,0,0,1
+rid,0,0,0
+of,0,0,0
+the,0,0,0
+trrible,0,0,0
+odor,0,0,0
+in,0,0,0
+the,0,0,0
+kitchen,0,0,0
+it,0,0,0
+smells,0,0,0
+alot,0,0,0
+when,0,0,0
+we,0,0,0
+bring,0,0,0
+in,0,0,0
+lunch,0,0,0
+air,0,0,0
+freshners,0,0,0
+would,0,0,0
+help,0,0,0
+not,0,0,0
+candles,0,0,0
+though,0,0,0
+i,1,1,1
+don,1,1,0
+t,1,1,0
+care,1,1,0
+wfh,2 3,2,1
+everyday,2 3,2,0
+get,2 3,2,0
+video,2 3,2,0
+calls,2 3,2,0
+set,2 3,2,0
+up,2 3,2,0
+so,2 3,2,0
+we,2 3,2,0
+can,2 3,2,0
+phone,2 3,2,0
+in,2 3,2,0
+nothing,4 1,3,1
+blah,1,4,1
+blah,1,4,0
+like,1,4,0
+anyone,1,4,0
+will,1,4,0
+read,1,4,0
+this,1,4,0
+anyway,1,4,0
+sugestions,5 6 7,5,1
+vote,5 6 7,5,0
+box,5 6 7,5,0
+could,5 6 7,5,0
+be,5 6 7,5,0
+used,5 6 7,5,0
+for,5 6 7,5,0
+i,5 6 7,5,0
+wednesday,5 6 7,5,0
+lunch,5 6 7,5,0
+ii,5 6 7,5,0
+office,5 6 7,5,0
+improvements,5 6 7,5,0
+iii,5 6 7,5,0
+game,5 6 7,5,0
+movie,5 6 7,5,0
+night,5 6 7,5,0
+requests,5 6 7,5,0
+etc,5 6 7,5,0
+better,7,6,1
+snacks,7,6,0
+stop,7,6,0
+people,7,6,0
+from,7,6,0
+stealing,7,6,0
+my,7,6,0
+food,7,6,0
+even,7,6,0
+after,7,6,0
+i,7,6,0
+labeled,7,6,0
+it,7,6,0
+its,7,6,0
+not,7,6,0
+right,7,6,0
+and,7,6,0
+it,7,6,0
+makes,7,6,0
+me,7,6,0
+ngry,7,6,0
+stay,1,7,1
+golden,1,7,0
+pony,1,7,0
+boy,1,7,0
+once,6,8,1
+a,6,8,0
+week,6,8,0
+show,6,8,0
+at,6,8,0
+lunch,6,8,0
+i,6,8,0
+e,6,8,0
+lecture,6,8,0
+tv,6,8,0
+show,6,8,0
+documentary,6,8,0
+etc,6,8,0
+more,6,9,1
+video,6,9,0
+games,6,9,0
+board,6,9,0
+games,6,9,0
+and,6,9,0
+scavenger,6,9,0
+hunts,6,9,0
+love,4,10,1
+teh,4,10,0
+office,4,10,0
+i,4,10,0
+wouldn,4,10,0
+t,4,10,0
+change,4,10,0
+a,4,10,0
+thing,4,10,0
+better,7 4,11,1
+more,7 4,11,0
+healthy,7 4,11,0
+snacks,7 4,11,0
+otherwise,7 4,11,0
+the,7 4,11,0
+office,7 4,11,0
+is,7 4,11,0
+perfect,7 4,11,0
+i,4,12,1
+can,4,12,0
+t,4,12,0
+think,4,12,0
+of,4,12,0
+a,4,12,0
+better,4,12,0
+workplace,4,12,0
+environment,4,12,0
+identifier,8,13,1
+deleted,8,13,0
+gives,8,13,0
+each,8,13,0
+employee,8,13,0
+$,8,13,0
+to,8,13,0
+decorate,8,13,0
+their,8,13,0
+workspace,8,13,0
+just,8,13,0
+sayin,8,13,0
+they,1 5,14,1
+ve,1 5,14,0
+moved,1 5,14,0
+my,1 5,14,0
+desk,1 5,14,0
+four,1 5,14,0
+times,1 5,14,0
+already,1 5,14,0
+this,1 5,14,0
+year,1 5,14,0
+and,1 5,14,0
+i,1 5,14,0
+used,1 5,14,0
+to,1 5,14,0
+be,1 5,14,0
+over,1 5,14,0
+by,1 5,14,0
+the,1 5,14,0
+window,1 5,14,0
+and,1 5,14,0
+i,1 5,14,0
+could,1 5,14,0
+see,1 5,14,0
+the,1 5,14,0
+squirrels,1 5,14,0
+and,1 5,14,0
+they,1 5,14,0
+were,1 5,14,0
+merry,1 5,14,0
+but,1 5,14,0
+then,1 5,14,0
+they,1 5,14,0
+switched,1 5,14,0
+from,1 5,14,0
+the,1 5,14,0
+swingline,1 5,14,0
+to,1 5,14,0
+the,1 5,14,0
+boston,1 5,14,0
+stapler,1 5,14,0
+but,1 5,14,0
+i,1 5,14,0
+kept,1 5,14,0
+my,1 5,14,0
+swingline,1 5,14,0
+stapler,1 5,14,0
+because,1 5,14,0
+it,1 5,14,0
+didn,1 5,14,0
+t,1 5,14,0
+bind,1 5,14,0
+up,1 5,14,0
+as,1 5,14,0
+much,1 5,14,0
+and,1 5,14,0
+i,1 5,14,0
+kept,1 5,14,0
+the,1 5,14,0
+staples,1 5,14,0
+for,1 5,14,0
+the,1 5,14,0
+swingline,1 5,14,0
+stapler,1 5,14,0
+and,1 5,14,0
+it,1 5,14,0
+s,1 5,14,0
+not,1 5,14,0
+okay,1 5,14,0
+because,1 5,14,0
+if,1 5,14,0
+they,1 5,14,0
+take,1 5,14,0
+my,1 5,14,0
+stapler,1 5,14,0
+then,1 5,14,0
+i,1 5,14,0
+ll,1 5,14,0
+set,1 5,14,0
+the,1 5,14,0
+building,1 5,14,0
+on,1 5,14,0
+fire,1 5,14,0
+i,3 9,15,1
+wouldn,3 9,15,0
+t,3 9,15,0
+say,3 9,15,0
+no,3 9,15,0
+to,3 9,15,0
+trying,3 9,15,0
+tellpresience,3 9,15,0
+robots,3 9,15,0
+or,3 9,15,0
+standing,3 9,15,0
+desks,3 9,15,0
+the,3,16,1
+projector,3,16,0
+is,3,16,0
+misaligned,3,16,0
+and,3,16,0
+it,3,16,0
+bugs,3,16,0
+the,3,16,0
+hell,3,16,0
+out,3,16,0
+of,3,16,0
+me,3,16,0
+it,3,16,0
+was,3,16,0
+embarassing,3,16,0
+in,3,16,0
+the,3,16,0
+identifier,3,16,0
+deleted,3,16,0
+meeting,3,16,0
+when,3,16,0
+identifier,3,16,0
+deleted,3,16,0
+pinted,3,16,0
+it,3,16,0
+out,3,16,0
+the,2 4,17,1
+office,2 4,17,0
+is,2 4,17,0
+great,2 4,17,0
+don,2 4,17,0
+t,2 4,17,0
+change,2 4,17,0
+anything,2 4,17,0
+we,2 4,17,0
+should,2 4,17,0
+do,2 4,17,0
+more,2 4,17,0
+offsite,2 4,17,0
+activities,2 4,17,0
+though,2 4,17,0
+like,2 4,17,0
+a,2 4,17,0
+giants,2 4,17,0
+game,2 4,17,0
+showers,10,18,1
+a,10,18,0
+lot,10,18,0
+of,10,18,0
+us,10,18,0
+bike,10,18,0
+to,10,18,0
+from,10,18,0
+work,10,18,0
+and,10,18,0
+wouldn,10,18,0
+t,10,18,0
+mind,10,18,0
+cleaning,10,18,0
+up,10,18,0
+we,10,18,0
+could,10,18,0
+also,10,18,0
+workout,10,18,0
+before,10,18,0
+work,10,18,0
+or,10,18,0
+even,10,18,0
+at,10,18,0
+lunchtime,10,18,0
+if,10,18,0
+we,10,18,0
+want,10,18,0
+to,10,18,0
+i,1,19,1
+wish,1,19,0
+to,1,19,0
+work,1,19,0
+in,1,19,0
+a,1,19,0
+unicorn,1,19,0
+free,1,19,0
+environment,1,19,0
+snack,7,20,1
+suggestion,7,20,0
+box,7,20,0
+bar,7,20,0
+better,7,20,0
+more,7,20,0
+beer,7,20,0
+move,1,21,1
+the,1,21,0
+office,1,21,0
+to,1,21,0
+sf,1,21,0
+the,7 0,22,1
+keurig,7 0,22,0
+is,7 0,22,0
+no,7 0,22,0
+good,7 0,22,0
+we,7 0,22,0
+should,7 0,22,0
+have,7 0,22,0
+an,7 0,22,0
+arrngment,7 0,22,0
+with,7 0,22,0
+identifier,7 0,22,0
+deleted,7 0,22,0
+for,7 0,22,0
+discounts,7 0,22,0
+or,7 0,22,0
+at,7 0,22,0
+least,7 0,22,0
+we,7 0,22,0
+could,7 0,22,0
+have,7 0,22,0
+meetings,7 0,22,0
+at,7 0,22,0
+identifier,7 0,22,0
+deleted,7 0,22,0
+fresher,7,23,1
+fruit,7,23,0
+actual,7,23,0
+coffee,7,23,0
+almond,7,23,0
+milk,7,23,0
+i,1,24,1
+want,1,24,0
+to,1,24,0
+sit,1,24,0
+down,1,24,0
+druing,1,24,0
+stand,1,24,0
+up,1,24,0
+sonos,6 3,25,1
+speakers,6 3,25,0
+then,6 3,25,0
+a,6 3,25,0
+few,6 3,25,0
+of,6 3,25,0
+us,6 3,25,0
+could,6 3,25,0
+play,6 3,25,0
+some,6 3,25,0
+music,6 3,25,0
+and,6 3,25,0
+work,6 3,25,0
+together,6 3,25,0
+in,6 3,25,0
+a,6 3,25,0
+conference,6 3,25,0
+room,6 3,25,0
+otherwise,6 3,25,0
+all,6 3,25,0
+is,6 3,25,0
+well,6 3,25,0
+personal,5 3,26,1
+whiteboards,5 3,26,0
+at,5 3,26,0
+each,5 3,26,0
+desk,5 3,26,0
+webcams,5 3,26,0
+in,5 3,26,0
+the,5 3,26,0
+confrnce,5 3,26,0
+rooms,5 3,26,0
+retrofit,11,27,1
+a,11,27,0
+conference,11,27,0
+room,11,27,0
+for,11,27,0
+a,11,27,0
+nap,11,27,0
+room,11,27,0
+lecture,11 6,28,1
+series,11 6,28,0
+guest,11 6,28,0
+lectures,11 6,28,0
+videos,11 6,28,0
+or,11 6,28,0
+we,11 6,28,0
+give,11 6,28,0
+them,11 6,28,0
+oursleves,11 6,28,0
+chairs,9,29,1
+could,9,29,0
+be,9,29,0
+better,9,29,0
+i,4 6 7,30,1
+love,4 6 7,30,0
+the,4 6 7,30,0
+office,4 6 7,30,0
+wouldn,4 6 7,30,0
+t,4 6 7,30,0
+want,4 6 7,30,0
+to,4 6 7,30,0
+work,4 6 7,30,0
+anywere,4 6 7,30,0
+else,4 6 7,30,0
+maybe,4 6 7,30,0
+have,4 6 7,30,0
+more,4 6 7,30,0
+drinks,4 6 7,30,0
+and,4 6 7,30,0
+game,4 6 7,30,0
+nights,4 6 7,30,0
+healthier,2 7,31,1
+snacks,2 7,31,0
+bring,2 7,31,0
+in,2 7,31,0
+dinner,2 7,31,0
+when,2 7,31,0
+working,2 7,31,0
+late,2 7,31,0
+allow,2 7,31,0
+for,2 7,31,0
+lunchtime,2 7,31,0
+workout,2 7,31,0
+and,2 7,31,0
+maybe,2 7,31,0
+a,2 7,31,0
+gym,2 7,31,0
+membership,2 7,31,0
+at,2 7,31,0
+identifier,2 7,31,0
+deleted,2 7,31,0
+down,2 7,31,0
+the,2 7,31,0
+street,2 7,31,0
+fewer,1,32,1
+surveys,1,32,0
+drones,6 3 7,33,1
+video,6 3 7,33,0
+games,6 3 7,33,0
+book,6 3 7,33,0
+club,6 3 7,33,0
+beer,6 3 7,33,0
+supplies,4,34,1
+and,4,34,0
+tech,4,34,0
+are,4,34,0
+phenomnal,4,34,0
+food,4,34,0
+is,4,34,0
+great,4,34,0
+kitchen,4,34,0
+and,4,34,0
+bathrooms,4,34,0
+clean,4,34,0
+i,4,34,0
+wouldnt,4,34,0
+change,4,34,0
+anyting,4,34,0

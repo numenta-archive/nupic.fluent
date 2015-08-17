@@ -23,6 +23,7 @@ import numpy
 import pandas
 import unittest
 
+from collections import OrderedDict
 from fluent.models.classification_model import ClassificationModel
 from fluent.models.classify_endpoint import ClassificationModelEndpoint
 from fluent.models.classify_fingerprint import ClassificationModelFingerprint
@@ -117,9 +118,8 @@ class ClassificationModelTest(unittest.TestCase):
     patterns = [{"pattern": model.encodePattern(s[0]),
                  "labels": s[1]}
                 for s in samples]
-
     for i in xrange(len(samples)):
-      model.trainModel(patterns[i]["pattern"], patterns[i]["labels"])
+      model.trainModel([patterns[i]["pattern"]], [patterns[i]["labels"]])
 
     output = [model.testModel(p["pattern"]) for p in patterns]
 
@@ -135,6 +135,50 @@ class ClassificationModelTest(unittest.TestCase):
     # Test the order of class labels doesn't matter when training.
     self.assertTrue(numpy.allclose(output[2], output[4]),
                     "Outputs for samples 2 and 4 should be identical.")
+
+
+  def testCompareCategories(self):
+    model = ClassificationModelEndpoint()
+
+    # Fake distances between three categories (each of size three):
+    catDistances = {
+        0: OrderedDict([
+          (0, {"overlappingAll": 3, "euclideanDistance": 0.0}),
+          (1, {"overlappingAll": 0, "euclideanDistance": 1.0}),
+          (2, {"overlappingAll": 1, "euclideanDistance": 0.2}),
+          ]),
+        1: OrderedDict([
+          (0, {"overlappingAll": 0, "euclideanDistance": 1.0}),
+          (1, {"overlappingAll": 3, "euclideanDistance": 0.0}),
+          (2, {"overlappingAll": 2, "euclideanDistance": 0.2}),
+          ]),
+        2: OrderedDict([
+          (0, {"overlappingAll": 1, "euclideanDistance": 0.7}),
+          (1, {"overlappingAll": 2, "euclideanDistance": 0.2}),
+          (2, {"overlappingAll": 3, "euclideanDistance": 0.0}),
+          ]),
+        }
+
+    # Assert correct sorting of categories for different metrics.
+    expected = {
+        0: OrderedDict([(0, 3), (2, 1), (1, 0)]),
+        1: OrderedDict([(1, 3), (2, 2), (0, 0)]),
+        2: OrderedDict([(2, 3), (1, 2), (0, 1)]),
+        }
+    catComparisons = model.compareCategories(
+        catDistances, metric="overlappingAll")
+    self.assertDictEqual(expected, catComparisons,
+        "Unexpected category comparison values for overlap metric.")
+
+    expected = {
+        0: OrderedDict([(0, 0.0), (2, 0.2), (1, 1.0)]),
+        1: OrderedDict([(1, 0.0), (2, 0.2), (0, 1.0)]),
+        2: OrderedDict([(2, 0.0), (1, 0.2), (0, 0.7)])
+        }
+    catComparisons = model.compareCategories(
+        catDistances, metric="euclideanDistance")
+    self.assertDictEqual(expected, catComparisons,
+        "Unexpected category comparison values for Euclidean metric.")
 
 
 ## TODO: ClassificationModelEndpoint/Fingerprint tests (mock out encodings)
