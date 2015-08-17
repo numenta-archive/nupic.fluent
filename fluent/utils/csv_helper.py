@@ -42,7 +42,7 @@ def readCSV(csvFile, sampleIdx, numLabels):
                                         corresponding category labels (strings).
   """
   try:
-    with open(csvFile) as f:
+    with open(csvFile, "rb") as f:
       reader = csv.reader(f)
       next(reader, None)
       
@@ -50,7 +50,8 @@ def readCSV(csvFile, sampleIdx, numLabels):
       labelIdx = range(sampleIdx + 1, sampleIdx + 1 + numLabels)
 
       for line in reader:
-        dataDict[line[0]] = (line[sampleIdx], [line[i] for i in labelIdx if line[i]])
+        dataDict[int(line[0]) - 1] = (line[sampleIdx],
+                                      [line[i] for i in labelIdx if line[i]])
     
       return dataDict
 
@@ -88,7 +89,18 @@ def readDir(dirPath, sampleIdx, numLabels, modify=False):
 
 def writeCSV(data, headers, csvFile):
   """Write data with column headers to a CSV."""
-  with open(csvFile, 'wb') as f:
-    writer = csv.writer(f, delimiter=',')
+  with open(csvFile, "wb") as f:
+    writer = csv.writer(f, delimiter=",")
     writer.writerow(headers)
     writer.writerows(data)
+
+
+def writeFromDict(dataDict, headers, csvFile):
+  """
+  Write dictionary to a CSV, where keys are row numbers and values are a list.
+  """
+  with open(csvFile, "wb") as f:
+    writer = csv.writer(f, delimiter=",")
+    writer.writerow(headers)
+    for row in sorted(dataDict.keys()):
+      writer.writerow(dataDict[row])

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
 # Copyright (C) 2015, Numenta, Inc.  Unless you have purchased from
@@ -19,11 +20,8 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 """
-Experiment runner for classification survey question responses.
-
-TODO: after merging PlotNLP code, set the defualt plotting to 1.
+Script to run "incremental training" classification experiment.
 """
-
 
 import argparse
 import os
@@ -32,7 +30,8 @@ import time
 
 from fluent.experiments.runner import Runner
 from fluent.experiments.multi_runner import MultiRunner
-from fluent.utils.plotting import PlotNLP
+from fluent.experiments.htm_runner import HTMRunner
+
 
 
 def checkInputs(args):
@@ -69,6 +68,22 @@ def run(args):
                          trainSize=args.trainSize,
                          verbosity=args.verbosity,
                          test=args.test)
+  elif args.modelName == "ClassificationModelHTM":
+    runner = HTMRunner(dataPath=args.dataPath,
+                       resultsDir=resultsDir,
+                       experimentName=args.experimentName,
+                       load=args.load,
+                       modelName=args.modelName,
+                       modelModuleName=args.modelModuleName,
+                       numClasses=args.numClasses,
+                       plots=args.plots,
+                       orderedSplit=args.orderedSplit,
+                       trainSize=args.trainSize,
+                       verbosity=args.verbosity,
+                       generateData=args.generateData,
+                       votingMethod=args.votingMethod,
+                       classificationFile=args.classificationFile,
+                       classifierType=args.classifierType)
   else:
     runner = Runner(dataPath=args.dataPath,
                     resultsDir=resultsDir,
@@ -82,13 +97,15 @@ def run(args):
                     trainSize=args.trainSize,
                     verbosity=args.verbosity)
 
-  runner.initModel()
+  if args.modelName != "ClassificationModelHTM":
+    # The data isn't ready yet to initialize an htm model
+    runner.initModel()
 
   print "Reading in data and preprocessing."
   dataTime = time.time()
   runner.setupData(args.textPreprocess)
   print ("Data setup complete; elapsed time is {0:.2f} seconds.\nNow encoding "
-        "the data".format(time.time() - dataTime))
+         "the data".format(time.time() - dataTime))
 
   encodeTime = time.time()
   runner.encodeSamples()
@@ -97,8 +114,11 @@ def run(args):
 
   runner.runExperiment()
 
+  runner.writeOutClassifications()
+
   runner.calculateResults()
 
+  print "Saving..."
   runner.save()
 
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
@@ -114,20 +134,21 @@ if __name__ == "__main__":
 
   parser.add_argument("dataPath",
                       help="absolute path to data CSV or folder of CSVs.")
-  parser.add_argument("--test", default=None,
-                      help="path to data CSV to use for testing if provided.\
-                      Otherwise will test on \'dataPath\'")
+  parser.add_argument("--test",
+                      default=None,
+                      help="Path to data CSV to use for testing if provided. "
+                           "Otherwise will test on \'dataPath\'.")
   parser.add_argument("-e", "--experimentName",
-                      default="survey_baseline_example",
+                      default="incremental_training",
                       type=str,
                       help="Experiment name.")
   parser.add_argument("-m", "--modelName",
-                      default="ClassificationModelRandomSDR",
+                      default="ClassificationModelKeywords",
                       type=str,
                       help="Name of model class. Also used for model results "
                            "directory and pickle checkpoint.")
   parser.add_argument("-mm", "--modelModuleName",
-                      default="fluent.models.classify_random_sdr",
+                      default="fluent.models.classify_keywords",
                       type=str,
                       help="Model module (location of model class).")
   parser.add_argument("--resultsDir",
@@ -176,6 +197,21 @@ if __name__ == "__main__":
                       help="If specified will skip the user confirmation step",
                       default=False,
                       action="store_true")
+  parser.add_argument("--generateData",
+                      default=False,
+                      action="store_true",
+                      help="Whether or not to generate network data files")
+  parser.add_argument("--votingMethod",
+                      default="last",
+                      choices=["last", "most"],
+                      help="Method to use when picking final classifications")
+  parser.add_argument("--classificationFile",
+                      default="",
+                      help="Json file mapping string labels to ids")
+  parser.add_argument("--classifierType",
+                      default="KNN",
+                      choices=["KNN", "CLA"],
+                      help="Type of classifier to use for the HTM")
 
   args = parser.parse_args()
 
