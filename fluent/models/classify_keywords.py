@@ -34,7 +34,7 @@ except ImportError:
 
 
 
-class ClassificationModelRandomSDR(ClassificationModel):
+class ClassificationModelKeywords(ClassificationModel):
   """
   Class to run the survey response classification task with random SDRs.
 
@@ -44,7 +44,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
   """
 
   def __init__(self, n=100, w=20, verbosity=1, numLabels=3):
-    super(ClassificationModelRandomSDR, self).__init__(n, w, verbosity,
+    super(ClassificationModelKeywords, self).__init__(n, w, verbosity,
                                                        numLabels)
 
     self.classifier = KNNClassifier(exact=True,
@@ -74,7 +74,7 @@ class ClassificationModelRandomSDR(ClassificationModel):
     return patterns
 
 
-  def logEncodings(self, patterns, path):
+  def writeOutEncodings(self, patterns, path):
     """
     Log the encoding dictionaries to a txt file; overrides the superclass
     implementation.

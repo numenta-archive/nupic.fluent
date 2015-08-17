@@ -72,13 +72,12 @@ class LSAEncoder(LanguageEncoder):
                                       list input will skip the tokenization
                                       step.
     @return         (list)            SDR.
+
+    TODO: test tokenization logic for str and list inputs
     """
+    if isinstance(text, str):
+      text = self._tokenize(text)
 
-    """Converts a string into an SDR."""
-   if isinstance(text, str):
-     text = self._tokenize(text)
-
-    ## TODO: test tokenization logic for str and list inputs
     bow = self.dictionary.doc2bow(text.lower().split())
     tfidf = self.tfidf[bow]
     weights = self.lsa[tfidf]

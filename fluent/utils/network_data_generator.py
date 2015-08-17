@@ -21,7 +21,7 @@
 # ----------------------------------------------------------------------
 """
 This file contains a class that tokenizes, randomizes, and writes the data to a
-file in the format of the network API
+file in the format of the network API.
 """
 
 import argparse
@@ -29,10 +29,11 @@ import csv
 import os
 import pprint
 import random
+import string
 
 from collections import defaultdict
-from fluent.utils.text_preprocess import TextPreprocess
 from fluent.utils.csv_helper import readCSV
+from fluent.utils.text_preprocess import TextPreprocess
 
 try:
   import simplejson as json
@@ -42,16 +43,24 @@ except ImportError:
 
 
 class NetworkDataGenerator(object):
-  """Class for generating data for the network"""
+  """Class for generating data in the format for a record stream."""
 
 
   def  __init__(self):
+    """
+    Column headers are marked "private" with a leading underscore in order to
+    distingush them from dictinonary keys used in the Network API.
+
+    Note: a reset marks the first item of a new sequence.
+    """
     self.records = []
-    self.fieldNames = ["token", "_sequenceID", "_reset"]
-    self.types = {"token": "string",
+    self.fieldNames = ["_token", "_categories", "_sequenceID", "_reset"]
+    self.types = {"_token": "string",
+                  "_categories": "list",
                   "_sequenceID": "int",
                   "_reset": "int"}
-    self.specials = {"token": "",
+    self.specials = {"_token": "",
+                     "_categories": "C",
                      "_sequenceID": "S",
                      "_reset": "R"}
 
@@ -61,8 +70,8 @@ class NetworkDataGenerator(object):
 
 
   def split(self, filename, sampleIdx, numLabels, textPreprocess, abbrCSV="",
-      contrCSV="", ignoreCommon=None, removeStrings=None, correctSpell=False,
-      **kwargs):
+      contrCSV="", ignoreCommon=100, removeStrings="[identifier deleted]",
+      correctSpell=True, **kwargs):
     """
     Split all the comments in a file into tokens. Preprocess if necessary.
     @param filename        (str)    Path to csv file
@@ -72,17 +81,8 @@ class NetworkDataGenerator(object):
     Please see TextPreprocess tokenize() for the other parameters
     """
     dataDict = readCSV(filename, sampleIdx, numLabels)
-    
-    # There was a problem reading the CSV
     if dataDict is None:
-      return
-
-    # Update header details
-    for i in xrange(numLabels):
-      categoryKey = "_category{}".format(i)
-      self.fieldNames.append(categoryKey)
-      self.types[categoryKey] = "int"
-      self.specials[categoryKey] = "C"
+      raise Exception("Could not read CSV.")
 
     preprocessor = TextPreprocess(abbrCSV=abbrCSV, contrCSV=contrCSV)
     expandAbbr = (abbrCSV != "")
@@ -90,8 +90,8 @@ class NetworkDataGenerator(object):
 
     for i, idx in enumerate(dataDict.keys()):
       comment, categories = dataDict[idx]
-      # Convert the category to its id
-      categories = [str(self.categoryToId[c]) for c in categories]
+      # Convert the categories to a string of their IDs
+      categories = string.join([str(self.categoryToId[c]) for c in categories])
 
       if textPreprocess:
         tokens = preprocessor.tokenize(comment, ignoreCommon, removeStrings,
@@ -99,16 +99,16 @@ class NetworkDataGenerator(object):
       else:
         tokens = preprocessor.tokenize(comment)
 
-      record = {"_category{}".format(i): c for i, c in enumerate(categories)}
-      record["_sequenceID"] = str(i)
-
+      # Write the sequence of data records for this sample.
+      record = {"_categories":categories,
+                "_sequenceID":i}
       data = []
-      reset = "1"
+      reset = 1
       for t in tokens:
         tokenRecord = record.copy()
-        tokenRecord["token"] = t
+        tokenRecord["_token"] = t
         tokenRecord["_reset"] = reset
-        reset = "0"
+        reset = 0
         data.append(tokenRecord)
 
       self.records.append(data)
@@ -123,6 +123,8 @@ class NetworkDataGenerator(object):
     Save the processed data and the associated category mapping.
     @param dataOutputFile       (str)   Location to save data
     @param categoriesOutputFile (str)   Location to save category map
+    @return                     (str)   Path to the saved data file iff
+                                        saveData() is successful.
     """
     if self.records is None:
       return False
@@ -162,7 +164,7 @@ class NetworkDataGenerator(object):
                          indent=4,
                          separators=(',', ': ')))
 
-    return True
+    return dataOutputFile
 
 
   def reset(self):
@@ -178,15 +180,132 @@ class NetworkDataGenerator(object):
     self.categoryToId.clear()
 
 
+  @staticmethod
+  def getSamples(networkDataFile):
+    """
+    Returns the a list of samples joined at reset points
+    @param networkDataFile  (str)     Path to file in the FileRecordStream
+                                      format
+    @return                 (list)    list of list of strings
+    """
+    try:
+      with open(networkDataFile) as f:
+        reader = csv.reader(f)
+        header = next(reader, None)
+        next(reader, None)
+        resetIdx = next(reader).index("R")
+        tokenIdx = header.index("_token")
+
+        currentSample = []
+        samples = []
+        for i, line in enumerate(reader):
+          if int(line[resetIdx]) == 1:
+            if len(currentSample) != 0:
+              samples.append([" ".join(currentSample)])
+            currentSample = [line[tokenIdx]]
+          else:
+            currentSample.append(line[tokenIdx])
+        samples.append([" ".join(currentSample)])
+        return samples
+
+    except IOError as e:
+      print "Could not open the file {}.".format(networkDataFile)
+      raise e
+
+
+  @staticmethod
+  def getClassifications(networkDataFile):
+    """
+    Returns the classifications at the indices where the data sequences
+    reset.
+    @param networkDataFile  (str)     Path to file in the FileRecordStream
+                                      format
+    @return                 (list)    list of string versions of the
+                                      classifications
+    Sample output: ["0 1", "1", "1 2 3"]
+    """
+    try:
+      with open(networkDataFile) as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        next(reader, None)
+        specials = next(reader)
+        resetIdx = specials.index("R")
+        classIdx = specials.index("C")
+
+        classifications = []
+        for i, line in enumerate(reader):
+          if int(line[resetIdx]) == 1:
+            classifications.append(line[classIdx])
+        return classifications
+
+    except IOError as e:
+      print "Could not open the file {}.".format(networkDataFile)
+      raise e
+
+
+  @staticmethod
+  def getNumberOfTokens(networkDataFile):
+    """
+    Returns the number of tokens for each sequence
+    @param networkDataFile  (str)     Path to file in the FileRecordStream
+                                      format
+    @return                 (list)    list of number of tokens
+    """
+    try:
+      with open(networkDataFile) as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        next(reader, None)
+        resetIdx = next(reader).index("R")
+
+        count = 0
+        numTokens = []
+        for i, line in enumerate(reader):
+          if int(line[resetIdx]) == 1:
+            if count != 0:
+              numTokens.append(count)
+            count = 1
+          else:
+            count += 1
+        numTokens.append(count)
+        return numTokens
+
+    except IOError as e:
+      print "Could not open the file {}.".format(networkDataFile)
+      raise e
+
+
+  @staticmethod
+  def getResetsIndices(networkDataFile):
+    """Returns the indices at which the data sequences reset."""
+    try:
+      with open(networkDataFile) as f:
+        reader = csv.reader(f)
+        next(reader, None)
+        next(reader, None)
+        resetIdx = next(reader).index("R")
+
+        resets = []
+        for i, line in enumerate(reader):
+          if int(line[resetIdx]) == 1:
+            resets.append(i)
+        return resets
+
+    except IOError as e:
+      print "Could not open the file {}.".format(networkDataFile)
+      raise e
+
+
 if __name__ == "__main__":
 
   parser = argparse.ArgumentParser(description="Create data for network API")
-  
-  parser.add_argument("-f", "--filename",
+
+  parser.add_argument("-fin", "--filename",
                       type=str,
                       required=True,
                       help="path to input file. REQUIRED")
-  parser.add_argument("-o", "--dataOutputFile",
+  parser.add_argument("-fo", "--dataOutputFile",
                       default="network_experiment/data.csv",
                       type=str,
                       help="File to write processed data to.")
@@ -236,7 +355,7 @@ if __name__ == "__main__":
 
   pprint.pprint(options)
   print ("Note: preprocessing params only take affect if textPreprocess "
-        "argument is set.")
+         "argument is set.")
 
   dataGenerator = NetworkDataGenerator()
   dataGenerator.split(**options)
@@ -244,4 +363,4 @@ if __name__ == "__main__":
   if options["randomize"]:
     dataGenerator.randomizeData()
 
-  dataGenerator.saveData(**options)
+  outFile = dataGenerator.saveData(**options)

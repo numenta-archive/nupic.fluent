@@ -64,9 +64,9 @@ class ClassificationModel(object):
     return numpy.sort(random.sample(xrange(self.n), self.w))
 
 
-  def logEncodings(self, patterns, path):
+  def writeOutEncodings(self, patterns, dirName):
     """Log the encoding dictionaries to a txt file."""
-    if not os.path.isdir(path):
+    if not os.path.isdir(dirName):
       raise ValueError("Invalid path to write file.")
 
     # Cast numpy arrays to list objects for serialization.
@@ -75,8 +75,36 @@ class ClassificationModel(object):
       jp["pattern"]["bitmap"] = jp["pattern"].get("bitmap", None).tolist()
       jp["labels"] = jp.get("labels", None).tolist()
 
-    with open(os.path.join(path, "encoding_log.txt"), "w") as f:
-      f.write(json.dumps(jsonPatterns, indent=1))
+    with open(os.path.join(dirName, "encoding_log.json"), "w") as f:
+      json.dump(jsonPatterns, f, indent=2)
+
+
+  def writeOutCategories(self, dirName, comparisons=None, labelRefs=None):
+    """
+    For models which define categories with bitmaps, log the categories (and
+    their relative distances) to a JSON specified by the dirName. The JSON will
+    contain the dict of category bitmaps, and if specified, dicts of label
+    references and category bitmap comparisons.
+    """
+    if not hasattr(self, "categoryBitmaps"):
+      raise TypeError("This model does not have category encodings compatible "
+                      "for logging.")
+
+    if not os.path.isdir(dirName):
+      raise ValueError("Invalid path to write file.")
+
+    with open(os.path.join(dirName, "category_distances.json"), "w") as f:
+      catDict = {
+        "categoryBitmaps":self.categoryBitmaps,
+        "labelRefs":dict(enumerate(labelRefs)) if labelRefs else None,
+        "comparisons":comparisons if comparisons else None
+      }
+      json.dump(
+        catDict,
+        f,
+        sort_keys=True,
+        indent=2,
+        separators=(",", ": "))
 
 
   def classifyRandomly(self, labels):
