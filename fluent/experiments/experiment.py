@@ -20,11 +20,8 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 """
-Experiment runner for classification survey question responses.
-
-TODO: after merging PlotNLP code, set the defualt plotting to 1.
+Script to run "incremental training" classification experiment.
 """
-
 
 import argparse
 import os
@@ -34,6 +31,7 @@ import time
 from fluent.experiments.runner import Runner
 from fluent.experiments.multi_runner import MultiRunner
 from fluent.experiments.htm_runner import HTMRunner
+
 
 
 def checkInputs(args):
@@ -107,7 +105,7 @@ def run(args):
   dataTime = time.time()
   runner.setupData(args.textPreprocess)
   print ("Data setup complete; elapsed time is {0:.2f} seconds.\nNow encoding "
-        "the data".format(time.time() - dataTime))
+         "the data".format(time.time() - dataTime))
 
   encodeTime = time.time()
   runner.encodeSamples()
@@ -136,11 +134,12 @@ if __name__ == "__main__":
 
   parser.add_argument("dataPath",
                       help="absolute path to data CSV or folder of CSVs.")
-  parser.add_argument("--test", default=None,
-                      help="path to data CSV to use for testing if provided.\
-                      Otherwise will test on \'dataPath\'")
+  parser.add_argument("--test",
+                      default=None,
+                      help="Path to data CSV to use for testing if provided. "
+                           "Otherwise will test on \'dataPath\'.")
   parser.add_argument("-e", "--experimentName",
-                      default="survey_baseline_example",
+                      default="incremental_training",
                       type=str,
                       help="Experiment name.")
   parser.add_argument("-m", "--modelName",
