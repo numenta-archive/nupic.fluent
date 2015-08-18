@@ -1,0 +1,4 @@
+# Program requirements
+enum==0.4.4
+pandas==0.15.0
+numpy==1.9.2
