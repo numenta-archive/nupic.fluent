@@ -21,7 +21,9 @@ The motivation here is we would like to move quickly in research while maintaini
 Requirements:
 
 - [NuPIC](https://github.com/numenta/nupic)
+- [NuPIC.research/classification](https://github.com/numenta/nupic.research/tree/master/classification)
 - [cortipy](https://github.com/numenta/cortipy)
+- Python modules [enum](https://pypi.python.org/pypi/enum34), [pandas](http://pandas.pydata.org/), and [numpy](http://www.numpy.org/)
 
 You must have a valid REST API key from [Cortical.io](http://www.cortical.io/developers.html).
 
