@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 import copy
+import cPickle as pkl
 import numpy
 import os
 import pandas
@@ -56,6 +57,37 @@ class ClassificationModel(object):
     self.w = w
     self.numLabels = numLabels
     self.verbosity = verbosity
+
+
+  def saveModel(self, modelPath):
+    """Save the serialized model."""
+    try:
+      if not os.path.exists(modelPath):
+        os.makedirs(modelPath)
+      with open(os.path.join(modelPath, "model.pkl"), "wb") as f:
+        pkl.dump(self, f)
+      print "Model saved to \'{}\' directory.".format(modelPath)
+    except IOError as e:
+      print "Could not save model to \'{}\'.".format(modelPath)
+      raise e
+
+
+  @staticmethod
+  def loadModel(modelPath):
+    """Load the serialized model."""
+    try:
+      with open(os.path.join(modelPath, "model.pkl"), "rb") as f:
+        model = pkl.load(f)
+      print "Model loaded from \'{}\'.".format(modelPath)
+      return model
+    except IOError as e:
+      print "Could not load model from \'{}\'.".format(modelPath)
+      raise e
+
+
+  def resetModel(self):
+    """Reset the model by clearing the classifier."""
+    self.classifier.clear()
 
 
   def encodeRandomly(self, sample):
@@ -354,10 +386,6 @@ class ClassificationModel(object):
       }
     Note: sample is a string, sparsity is float, and bitmapSDR is a numpy array.
     """
-    raise NotImplementedError
-
-
-  def resetModel(self):
     raise NotImplementedError
 
 

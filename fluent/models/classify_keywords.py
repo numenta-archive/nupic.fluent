@@ -93,11 +93,6 @@ class ClassificationModelKeywords(ClassificationModel):
       f.write(json.dumps(jsonPatterns, indent=1))
 
 
-  def resetModel(self):
-    """Reset the model by clearing the classifier."""
-    self.classifier.clear()
-
-
   def trainModel(self, samples, labels):
     """
     Train the classifier on the input sample and label. This model is unique in

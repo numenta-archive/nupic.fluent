@@ -91,11 +91,6 @@ class ClassificationModelFingerprint(ClassificationModel):
     return fp
 
 
-  def resetModel(self):
-    """Reset the model by clearing the classifier."""
-    self.classifier.clear()
-
-
   def trainModel(self, samples, labels):
     """
     Train the classifier on the input sample and labels.
