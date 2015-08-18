@@ -25,6 +25,7 @@ import os
 import shutil
 import unittest
 
+from fluent.encoders import EncoderTypes
 from fluent.experiments.htm_runner import HTMRunner
 from fluent.experiments.runner import Runner
 from fluent.utils.csv_helper import readCSV
@@ -112,7 +113,7 @@ class ClassificationModelsTest(unittest.TestCase):
       "Keywords model predicted classes other than what we expect.")
 
 
-  def testClassifyFingerprintsAsExpected(self):
+  def testClassifyDocumentFingerprintsAsExpected(self):
     """
     Tests ClassificationModelFingerprint (for encoder type 'document').
     
@@ -132,10 +133,43 @@ class ClassificationModelsTest(unittest.TestCase):
                     trainSize=[5],
                     verbosity=0)
     runner.initModel()
+    runner.model.encoder.fingerprintType = EncoderTypes.document
     self.runExperiment(runner)
 
     expectedClasses, resultClasses = self.getExpectedClassifications(runner,
-      os.path.join(DATA_DIR, "responses_expected_classes_fingerprint.csv"))
+      os.path.join(DATA_DIR,
+                   "responses_expected_classes_fingerprint_document.csv"))
+
+    [self.assertEqual(sorted(e), sorted(r),
+      "Fingerprint model predicted classes other than what we expect.")
+      for e, r in zip(expectedClasses, resultClasses)]
+
+
+  def testClassifyWordFingerprintsAsExpected(self):
+    """
+    Tests ClassificationModelFingerprint (for encoder type 'word').
+    
+    Training on the first five samples of the dataset, and testing on the rest,
+    the model's classifications should match those in the expected classes
+    data file.
+    """
+    runner = Runner(dataPath=os.path.join(DATA_DIR, "responses.csv"),
+                    resultsDir="",
+                    experimentName="fingerprints_test",
+                    load=False,
+                    modelName="ClassificationModelFingerprint",
+                    modelModuleName="fluent.models.classify_fingerprint",
+                    numClasses=3,
+                    plots=0,
+                    orderedSplit=True,
+                    trainSize=[5],
+                    verbosity=0)
+    runner.initModel()
+    runner.model.encoder.fingerprintType = EncoderTypes.word
+    self.runExperiment(runner)
+
+    expectedClasses, resultClasses = self.getExpectedClassifications(runner,
+      os.path.join(DATA_DIR, "responses_expected_classes_fingerprint_word.csv"))
 
     [self.assertEqual(sorted(e), sorted(r),
       "Fingerprint model predicted classes other than what we expect.")
