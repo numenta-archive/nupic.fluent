@@ -21,13 +21,14 @@
 
 import numpy
 import pandas
+import shutil
 import unittest
 
 from collections import OrderedDict
 from fluent.models.classification_model import ClassificationModel
 from fluent.models.classify_endpoint import ClassificationModelEndpoint
 from fluent.models.classify_fingerprint import ClassificationModelFingerprint
-from fluent.models.classify_random_sdr import ClassificationModelRandomSDR
+from fluent.models.classify_keywords import ClassificationModelKeywords
 
 
 
@@ -105,9 +106,9 @@ class ClassificationModelTest(unittest.TestCase):
     self.assertAlmostEqual(model.calculateAccuracy(classifications), float(2)/3)
 
 
-  def testClassifyRandomSDRSingleAndMultiClass(self):
-    """Tests simple classification with multiple labels for randomSDR model."""
-    model = ClassificationModelRandomSDR()
+  def testClassifyKeywordsSingleAndMultiClass(self):
+    """Tests simple classification with multiple labels for Keywords model."""
+    model = ClassificationModelKeywords()
 
     samples =[(["Pickachu"], numpy.array([0, 2, 2])),
               (["Eevee"], numpy.array([2])),
@@ -181,7 +182,35 @@ class ClassificationModelTest(unittest.TestCase):
         "Unexpected category comparison values for Euclidean metric.")
 
 
-## TODO: ClassificationModelEndpoint/Fingerprint tests (mock out encodings)
+  def testModelSaveAndLoad(self):
+    # Keywords model uses the base class implementations of save/load methods.
+    model = ClassificationModelKeywords()
+    
+    samples =[(["Pickachu"], numpy.array([0, 2, 2])),
+              (["Eevee"], numpy.array([2])),
+              (["Charmander"], numpy.array([0, 1, 1])),
+              (["Abra"], numpy.array([1])),
+              (["Squirtle"], numpy.array([1, 0, 1]))]
+
+    patterns = [{"pattern": model.encodePattern(s[0]),
+                 "labels": s[1]}
+                for s in samples]
+    for i in xrange(len(samples)):
+      model.trainModel([patterns[i]["pattern"]], [patterns[i]["labels"]])
+
+    output = [model.testModel(p["pattern"]) for p in patterns]
+
+    modelPath = "poke_model.pkl"
+    model.saveModel(modelPath)
+
+    loadedModel = ClassificationModel().loadModel(modelPath)
+    loadedModelOutput = [loadedModel.testModel(p["pattern"]) for p in patterns]
+    
+    for mClasses, lClasses in zip(output, loadedModelOutput):
+      self.assertSequenceEqual(mClasses.tolist(), lClasses.tolist(), "Output "
+          "classifcations from loaded model don't match original model's.")
+
+    shutil.rmtree(modelPath)
 
 
 if __name__ == "__main__":

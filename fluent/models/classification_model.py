@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 import copy
+import cPickle as pkl
 import numpy
 import os
 import pandas
@@ -61,6 +62,8 @@ class ClassificationModel(object):
   def saveModel(self, modelPath):
     """Save the serialized model."""
     try:
+      if not os.path.exists(modelPath):
+        os.makedirs(modelPath)
       with open(os.path.join(modelPath, "model.pkl"), "wb") as f:
         pkl.dump(self, f)
       print "Model saved to \'{}\' directory.".format(modelPath)
@@ -69,12 +72,14 @@ class ClassificationModel(object):
       raise e
 
 
-  def loadModel(self, modelPath):
+  @staticmethod
+  def loadModel(modelPath):
     """Load the serialized model."""
     try:
       with open(os.path.join(modelPath, "model.pkl"), "rb") as f:
-        self = pkl.load(f)
+        model = pkl.load(f)
       print "Model loaded from \'{}\'.".format(modelPath)
+      return model
     except IOError as e:
       print "Could not load model from \'{}\'.".format(modelPath)
       raise e
