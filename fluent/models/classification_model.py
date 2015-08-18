@@ -42,43 +42,48 @@ class ClassificationModel(object):
   below. The Model superclass mainly implements evaluation methods.
 
   Methods/properties that must be implemented by subclasses:
-    - encodePattern(); note the specified format in the docstring below.
-    - resetModel()
-    - trainModel()
-    - testModel()
+    TODO
 
   TODO: confusion matrices
   TODO: use nupic.bindings.math import Random
   """
 
-  def __init__(self, n=16384, w=328, verbosity=1, numLabels=3):
+  def __init__(self, n=16384, w=328, verbosity=1, numLabels=3,
+    modelDir="ClassificationModel"):
     """The SDR dimensions are standard for Cortical.io fingerprints."""
     self.n = n
     self.w = w
     self.numLabels = numLabels
     self.verbosity = verbosity
+    self.modelDir = modelDir
+    if not os.path.exists(self.modelDir):
+      os.makedirs(self.modelDir)
+    self.modelPath = None  # path to the serialized model file, set on save
 
 
-  def saveModel(self, modelPath):
+  def saveModel(self):
     """Save the serialized model."""
     try:
-      if not os.path.exists(modelPath):
-        os.makedirs(modelPath)
-      with open(os.path.join(modelPath, "model.pkl"), "wb") as f:
+      if not os.path.exists(self.modelDir):
+        os.makedirs(self.modelDir)
+      self.modelPath = os.path.join(self.modelDir, "model.pkl")
+      with open(self.modelPath, "wb") as f:
         pkl.dump(self, f)
-      print "Model saved to \'{}\' directory.".format(modelPath)
+      if self.verbosity > 0:
+        print "Model saved to \'{}\'.".format(self.modelPath)
     except IOError as e:
-      print "Could not save model to \'{}\'.".format(modelPath)
+      print "Could not save model to \'{}\'.".format(self.modelPath)
       raise e
 
 
-  @staticmethod
-  def loadModel(modelPath):
-    """Load the serialized model."""
+  def loadModel(self, modelDir):
+    """Load the serialized model, modelPath is path to a pickeled model file."""
+    modelPath = os.path.join(modelDir, "model.pkl")
     try:
-      with open(os.path.join(modelPath, "model.pkl"), "rb") as f:
+      with open(modelPath, "rb") as f:
         model = pkl.load(f)
-      print "Model loaded from \'{}\'.".format(modelPath)
+      if self.verbosity > 0:
+        print "Model loaded from \'{}\'.".format(modelPath)
       return model
     except IOError as e:
       print "Could not load model from \'{}\'.".format(modelPath)
@@ -96,18 +101,18 @@ class ClassificationModel(object):
     return numpy.sort(random.sample(xrange(self.n), self.w))
 
 
-  def writeOutEncodings(self, patterns, dirName):
+  def writeOutEncodings(self):
     """Log the encoding dictionaries to a txt file."""
-    if not os.path.isdir(dirName):
-      raise ValueError("Invalid path to write file.")
+    if not os.path.isdir(self.modelDir):
+      raise ValueError("Invalid path to write encodings file.")
 
     # Cast numpy arrays to list objects for serialization.
-    jsonPatterns = copy.deepcopy(patterns)
+    jsonPatterns = copy.deepcopy(self.patterns)
     for jp in jsonPatterns:
       jp["pattern"]["bitmap"] = jp["pattern"].get("bitmap", None).tolist()
       jp["labels"] = jp.get("labels", None).tolist()
 
-    with open(os.path.join(dirName, "encoding_log.json"), "w") as f:
+    with open(os.path.join(self.modelDir, "encoding_log.json"), "w") as f:
       json.dump(jsonPatterns, f, indent=2)
 
 
@@ -375,7 +380,17 @@ class ClassificationModel(object):
       print template.format(trainSize[i], a)
 
 
-  def encodePattern(self, pattern):
+  def encodeSamples(self, samples):
+    """
+    """
+    self.patterns = [{"pattern": self.encodeSample(s[0]),
+                     "labels": s[1]}
+                     for s in samples]
+    self.writeOutEncodings()
+    return self.patterns
+
+
+  def encodeSample(self, pattern):
     """
     The subclass implementations must return the encoding in the following
     format:

@@ -43,9 +43,10 @@ class ClassificationModelKeywords(ClassificationModel):
   TODO: use nupic.bindings.math import Random
   """
 
-  def __init__(self, n=100, w=20, verbosity=1, numLabels=3):
-    super(ClassificationModelKeywords, self).__init__(n, w, verbosity,
-                                                       numLabels)
+  def __init__(self, n=100, w=20, verbosity=1, numLabels=3,
+    modelDir="ClassificationModelKeywords"):
+    super(ClassificationModelKeywords, self).__init__(n, w, verbosity=verbosity,
+      numLabels=numLabels, modelDir=modelDir)
 
     self.classifier = KNNClassifier(exact=True,
                                     distanceMethod='rawOverlap',
@@ -53,7 +54,7 @@ class ClassificationModelKeywords(ClassificationModel):
                                     verbosity=verbosity-1)
 
 
-  def encodePattern(self, sample):
+  def encodeSample(self, sample):
     """
     Randomly encode an SDR of the input strings. We seed the random number
     generator such that a given string will yield the same SDR each time this
@@ -74,22 +75,22 @@ class ClassificationModelKeywords(ClassificationModel):
     return patterns
 
 
-  def writeOutEncodings(self, patterns, path):
+  def writeOutEncodings(self):
     """
     Log the encoding dictionaries to a txt file; overrides the superclass
     implementation.
     """
-    if not os.path.isdir(path):
+    if not os.path.isdir(self.modelDir):
       raise ValueError("Invalid path to write file.")
 
     # Cast numpy arrays to list objects for serialization.
-    jsonPatterns = copy.deepcopy(patterns)
+    jsonPatterns = copy.deepcopy(self.patterns)
     for jp in jsonPatterns:
       for tokenPattern in jp["pattern"]:
         tokenPattern["bitmap"] = tokenPattern.get("bitmap", None).tolist()
       jp["labels"] = jp.get("labels", None).tolist()
 
-    with open(os.path.join(path, "encoding_log.txt"), "w") as f:
+    with open(os.path.join(self.modelDir, "encoding_log.txt"), "w") as f:
       f.write(json.dumps(jsonPatterns, indent=1))
 
 

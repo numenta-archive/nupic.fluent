@@ -34,6 +34,11 @@ from fluent.models.classify_keywords import ClassificationModelKeywords
 
 class ClassificationModelTest(unittest.TestCase):
   """Test the functionality of the classification models."""
+  
+  def tearDown(self):
+    if self.modelDir:
+      shutil.rmtree(self.modelDir)
+
 
   def testWinningLabels(self):
     """
@@ -116,7 +121,7 @@ class ClassificationModelTest(unittest.TestCase):
               (["Abra"], numpy.array([1])),
               (["Squirtle"], numpy.array([1, 0, 1]))]
 
-    patterns = [{"pattern": model.encodePattern(s[0]),
+    patterns = [{"pattern": model.encodeSample(s[0]),
                  "labels": s[1]}
                 for s in samples]
     for i in xrange(len(samples)):
@@ -184,7 +189,8 @@ class ClassificationModelTest(unittest.TestCase):
 
   def testModelSaveAndLoad(self):
     # Keywords model uses the base class implementations of save/load methods.
-    model = ClassificationModelKeywords()
+    self.modelDir = "poke_model"
+    model = ClassificationModelKeywords(modelDir=self.modelDir, verbosity=0)
     
     samples =[(["Pickachu"], numpy.array([0, 2, 2])),
               (["Eevee"], numpy.array([2])),
@@ -192,7 +198,7 @@ class ClassificationModelTest(unittest.TestCase):
               (["Abra"], numpy.array([1])),
               (["Squirtle"], numpy.array([1, 0, 1]))]
 
-    patterns = [{"pattern": model.encodePattern(s[0]),
+    patterns = [{"pattern": model.encodeSample(s[0]),
                  "labels": s[1]}
                 for s in samples]
     for i in xrange(len(samples)):
@@ -200,17 +206,14 @@ class ClassificationModelTest(unittest.TestCase):
 
     output = [model.testModel(p["pattern"]) for p in patterns]
 
-    modelPath = "poke_model.pkl"
-    model.saveModel(modelPath)
+    model.saveModel()
 
-    loadedModel = ClassificationModel().loadModel(modelPath)
+    loadedModel = ClassificationModel().loadModel(self.modelDir)
     loadedModelOutput = [loadedModel.testModel(p["pattern"]) for p in patterns]
     
     for mClasses, lClasses in zip(output, loadedModelOutput):
       self.assertSequenceEqual(mClasses.tolist(), lClasses.tolist(), "Output "
           "classifcations from loaded model don't match original model's.")
-
-    shutil.rmtree(modelPath)
 
 
 if __name__ == "__main__":

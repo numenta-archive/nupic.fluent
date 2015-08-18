@@ -33,8 +33,10 @@ class ClassificationModelHTM(ClassificationModel):
   Class to run the survey response classification task with nupic network
   """
 
-  def __init__(self, inputFilePath, verbosity=1, numLabels=3, spTrainingSize=0,
-               tmTrainingSize=0, clsTrainingSize=0, classifierType="KNN"):
+  def __init__(self, inputFilePath, verbosity=1, numLabels=3,
+    modelDir="ClassificationModelHTM",
+    spTrainingSize=0, tmTrainingSize=0, clsTrainingSize=0,
+    classifierType="KNN"):
     """
     @param inputFilePath      (str)       Path to data formatted for network
                                           API
@@ -55,12 +57,13 @@ class ClassificationModelHTM(ClassificationModel):
     self.clsTrainingSize = clsTrainingSize
 
     super(ClassificationModelHTM, self).__init__(verbosity=verbosity,
-      numLabels=numLabels)
+      numLabels=numLabels, modelDir=modelDir)
 
     # Initialize Network
     self.classifierType = classifierType
     self.recordStream = FileRecordStream(streamID=inputFilePath)
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
+    self.network = None
     self._initModel()
 
 
@@ -101,7 +104,7 @@ class ClassificationModelHTM(ClassificationModel):
     self.lengthOfCurrentSequence = 0
 
 
-  def encodePattern(self, sample):
+  def encodeSample(self, sample):
     """
     Put each token in its own dictionary with its bitmap
     @param sample     (list)            Tokenized sample, where each item is a

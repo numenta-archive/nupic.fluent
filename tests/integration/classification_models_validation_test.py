@@ -54,7 +54,7 @@ class ClassificationModelsTest(unittest.TestCase):
       raise e
     finally:
       # Cleanup
-      shutil.rmtree(runner.modelPath.split("/")[0])
+      shutil.rmtree(runner.model.modelDir.split("/")[0])
   
   
   @staticmethod

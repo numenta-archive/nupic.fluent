@@ -36,11 +36,13 @@ class ClassificationModelEndpoint(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, verbosity=1, numLabels=3):
+  def __init__(self, verbosity=1, numLabels=3,
+    modelDir="ClassificationModelEndpoint"):
     """
     Initialize the encoder as CioEncoder; requires a valid API key.
     """
-    super(ClassificationModelEndpoint, self).__init__(verbosity, numLabels)
+    super(ClassificationModelEndpoint, self).__init__(verbosity=verbosity,
+      numLabels=numLabels, modelDir=modelDir)
 
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
     self.compareEncoder = LanguageEncoder()
@@ -53,7 +55,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.positives = defaultdict(list)
 
 
-  def encodePattern(self, sample):
+  def encodeSample(self, sample):
     """
     Encode an SDR of the input string by querying the Cortical.io API.
 

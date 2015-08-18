@@ -119,7 +119,7 @@ def run(args):
   runner.calculateResults()
 
   print "Saving..."
-  runner.save()
+  runner.model.save()
 
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 

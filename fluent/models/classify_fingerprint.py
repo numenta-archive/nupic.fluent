@@ -36,12 +36,12 @@ class ClassificationModelFingerprint(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self,
-               verbosity=1,
-               numLabels=3,
-               fingerprintType=EncoderTypes.document):
+  def __init__(self, verbosity=1, numLabels=3,
+    modelDir="ClassificationModelFingerprint",
+    fingerprintType=EncoderTypes.document):
 
-    super(ClassificationModelFingerprint, self).__init__(verbosity, numLabels)
+    super(ClassificationModelFingerprint, self).__init__(verbosity=verbosity,
+      numLabels=numLabels, modelDir=modelDir)
 
     # Init kNN classifier and Cortical.io encoder; need valid API key (see
     # CioEncoder init for details).
@@ -59,7 +59,7 @@ class ClassificationModelFingerprint(ClassificationModel):
     self.w = int((self.encoder.targetSparsity/100)*self.n)
 
 
-  def encodePattern(self, sample):
+  def encodeSample(self, sample):
     """
     Encode an SDR of the input string by querying the Cortical.io API. If the
     client returns None, we create a random SDR with the model's dimensions n

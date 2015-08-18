@@ -80,10 +80,10 @@ class Runner(object):
     self.trainSize = trainSize
     self.verbosity = verbosity
 
-    self.modelPath = os.path.join(
+    self.modelDir = os.path.join(
       self.resultsDir, self.experimentName, self.modelName)
-    if not os.path.exists(self.modelPath):
-      os.makedirs(self.modelPath)
+    if not os.path.exists(self.modelDir):
+      os.makedirs(self.modelDir)
 
     if self.plots:
       self.plotter = PlotNLP()
@@ -191,37 +191,41 @@ class Runner(object):
   def initModel(self):
     """Load or instantiate the classification model."""
     if self.load:
-      with open(os.path.join(self.modelPath, "model.pkl"), "rb") as f:
-        self.model = pkl.load(f)
-      print "Model loaded from \'{0}\'.".format(self.modelPath)
+      self.loadModel()
     else:
       try:
         module = __import__(self.modelModuleName, {}, {}, self.modelName)
         modelClass = getattr(module, self.modelName)
-        self.model = modelClass(verbosity=self.verbosity)
+        self.model = modelClass(verbosity=self.verbosity,
+          modelDir=self.modelDir)
       except ImportError:
         raise RuntimeError("Could not import model class \'{0}\'.".
                            format(self.modelName))
 
 
+  def loadModel(self):
+    """Load the serialized model."""
+    try:
+      with open(os.path.join(self.modelDir, "model.pkl"), "rb") as f:
+        model = pkl.load(f)
+      print "Model loaded from \'{}\'.".format(self.modelDir)
+      return model
+    except IOError as e:
+      print "Could not load model from \'{}\'.".format(self.modelDir)
+      raise e
+
+
   def resetModel(self, trial):
-    """Resets or initializes the model"""
-    if self.model is None:
-      self.initModel()
-    else:
-      self.model.resetModel()
+    # """Resets or initializes the model"""
+    # if self.model is None:
+    #   self.initModel() ################################### move initModel to init()
+    # else:
+    #   self.model.resetModel()
+    self.model.resetModel()
 
 
   def encodeSamples(self):
-    """
-    Encode the text samples into bitmap patterns, and log to txt file. The
-    encoded patterns are stored in a dict along with their corresponding class
-    labels.
-    """
-    self.patterns = [{"pattern": self.model.encodePattern(s[0]),
-                     "labels": s[1]}
-                     for s in self.samples]
-    self.model.writeOutEncodings(self.patterns, self.modelPath)
+    self.patterns = self.model.encodeSamples(self.samples)
 
 
   def runExperiment(self):
@@ -280,7 +284,7 @@ class Runner(object):
         actual = sorted([self.labelRefs[j] for j in self.results[trial][1][i]])
         resultsDict[sampleNum] = (sampleNum, sample, actual, pred)
 
-      resultsPath = os.path.join(self.modelPath,
+      resultsPath = os.path.join(self.model.modelDir,
                                  "results_trial" + str(trial) + ".csv")
       writeFromDict(resultsDict, headers, resultsPath)
 
@@ -311,15 +315,6 @@ class Runner(object):
         # Plot extra evaluation figures -- confusion matrix.
         self.plotter.plotConfusionMatrix(
             self.setupConfusionMatrices(resultCalcs))
-
-
-  def save(self):
-    """
-    Save the serialized model.
-
-    TODO: saving model logic doesn't need to be in Runner.
-    """
-    self.model.saveModel(self.modelPath)
 
 
   def partitionIndices(self, split, trial):
