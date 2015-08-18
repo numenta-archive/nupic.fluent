@@ -204,7 +204,7 @@ class Runner(object):
                            format(self.modelName))
 
 
-  def resetModel(self):
+  def resetModel(self, trial):
     """Resets or initializes the model"""
     if self.model is None:
       self.initModel()
@@ -229,7 +229,7 @@ class Runner(object):
     for i, size in enumerate(self.trainSize):
       self.partitions.append(self.partitionIndices(size, i))
 
-      self.resetModel()
+      self.resetModel(i)
       if self.verbosity > 0:
         print "\tTraining for run {0} of {1}.".format(
           i + 1, len(self.trainSize))
