@@ -21,7 +21,7 @@
 
 import numpy
 
-from classification.classification_network import createNetwork
+from classification_network import createNetwork
 from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
 from nupic.data.file_record_stream import FileRecordStream
