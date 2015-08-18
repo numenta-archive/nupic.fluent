@@ -194,21 +194,7 @@ class CioEncoder(LanguageEncoder):
         encoding = min([self.client.getBitmap(t) for t in tokens],
                        key=lambda x: x["df"])
       elif method == "keyword":
-        postions = self.sparseUnion(tokens)
-
-        # Populate encoding
-        encoding = {
-            "text": text,
-            "sparsity": len(positions) * 100 / float(self.n),
-            "df": 0.0,
-            "height": self.h,
-            "width": self.w,
-            "score": 0.0,
-            "fingerprint": {
-                "positions":sorted(positions)
-                },
-            "pos_types": []
-            }
+        encoding = self.getUnionEncoding(" ".join(text))
       else:
         raise ValueError("method must be either \'df\' or \'keyword\'")
     except UnsuccessfulEncodingError:
