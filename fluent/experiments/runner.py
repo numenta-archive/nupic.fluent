@@ -204,7 +204,7 @@ class Runner(object):
                            format(self.modelName))
 
 
-  def resetModel(self, trial):
+  def resetModel(self):
     """Resets or initializes the model"""
     if self.model is None:
       self.initModel()
@@ -229,7 +229,7 @@ class Runner(object):
     for i, size in enumerate(self.trainSize):
       self.partitions.append(self.partitionIndices(size, i))
 
-      self.resetModel(i)
+      self.resetModel()
       if self.verbosity > 0:
         print "\tTraining for run {0} of {1}.".format(
           i + 1, len(self.trainSize))
@@ -314,10 +314,12 @@ class Runner(object):
 
 
   def save(self):
-    """Save the serialized model."""
-    print "Saving model to \'{0}\' directory.".format(self.modelPath)
-    with open(os.path.join(self.modelPath, "model.pkl"), "wb") as f:
-      pkl.dump(self.model, f)
+    """
+    Save the serialized model.
+
+    TODO: saving model logic doesn't need to be in Runner.
+    """
+    self.model.saveModel(self.modelPath)
 
 
   def partitionIndices(self, split, trial):

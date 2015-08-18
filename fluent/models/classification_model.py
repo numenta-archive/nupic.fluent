@@ -58,6 +58,33 @@ class ClassificationModel(object):
     self.verbosity = verbosity
 
 
+  def saveModel(self, modelPath):
+    """Save the serialized model."""
+    try:
+      with open(os.path.join(modelPath, "model.pkl"), "wb") as f:
+        pkl.dump(self, f)
+      print "Model saved to \'{}\' directory.".format(modelPath)
+    except IOError as e:
+      print "Could not save model to \'{}\'.".format(modelPath)
+      raise e
+
+
+  def loadModel(self, modelPath):
+    """Load the serialized model."""
+    try:
+      with open(os.path.join(modelPath, "model.pkl"), "rb") as f:
+        self = pkl.load(f)
+      print "Model loaded from \'{}\'.".format(modelPath)
+    except IOError as e:
+      print "Could not load model from \'{}\'.".format(modelPath)
+      raise e
+
+
+  def resetModel(self):
+    """Reset the model by clearing the classifier."""
+    self.classifier.clear()
+
+
   def encodeRandomly(self, sample):
     """Return a random bitmap representation of the sample."""
     random.seed(sample)
@@ -354,10 +381,6 @@ class ClassificationModel(object):
       }
     Note: sample is a string, sparsity is float, and bitmapSDR is a numpy array.
     """
-    raise NotImplementedError
-
-
-  def resetModel(self):
     raise NotImplementedError
 
 
