@@ -194,7 +194,7 @@ class CioEncoder(LanguageEncoder):
         encoding = min([self.client.getBitmap(t) for t in tokens],
                        key=lambda x: x["df"])
       elif method == "keyword":
-        encoding = self.getUnionEncoding(" ".join(text))
+        encoding = self.getUnionEncoding(text)
       else:
         raise ValueError("method must be either \'df\' or \'keyword\'")
     except UnsuccessfulEncodingError:
