@@ -173,7 +173,7 @@ class LanguageEncoder(object):
 
   def sparseUnion(self, counts):
     """
-    Bits from the input patterns are unionizes and then sparsified.
+    Bits from the input patterns are unionized and then sparsified.
 
     @param counts     (Counter)   A count of the ON bits for the union bitmap.
 
