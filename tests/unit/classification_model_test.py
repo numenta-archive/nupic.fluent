@@ -35,6 +35,10 @@ from fluent.models.classify_keywords import ClassificationModelKeywords
 class ClassificationModelTest(unittest.TestCase):
   """Test the functionality of the classification models."""
   
+  def setUp(self):
+    self.modelDir = None
+
+
   def tearDown(self):
     if self.modelDir:
       shutil.rmtree(self.modelDir)
@@ -208,7 +212,7 @@ class ClassificationModelTest(unittest.TestCase):
 
     model.saveModel()
 
-    loadedModel = ClassificationModel().loadModel(self.modelDir)
+    loadedModel = ClassificationModel(verbosity=0).loadModel(self.modelDir)
     loadedModelOutput = [loadedModel.testModel(p["pattern"]) for p in patterns]
     
     for mClasses, lClasses in zip(output, loadedModelOutput):

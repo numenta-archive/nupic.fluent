@@ -77,7 +77,7 @@ class ClassificationModel(object):
 
 
   def loadModel(self, modelDir):
-    """Load the serialized model, modelPath is path to a pickeled model file."""
+    """Return the serialized model."""
     modelPath = os.path.join(modelDir, "model.pkl")
     try:
       with open(modelPath, "rb") as f:
