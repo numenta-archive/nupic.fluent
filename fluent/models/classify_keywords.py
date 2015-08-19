@@ -94,7 +94,7 @@ class ClassificationModelKeywords(ClassificationModel):
       f.write(json.dumps(jsonPatterns, indent=1))
 
 
-  def trainModel(self, samples, labels):
+  def trainModel(self, i):
     """
     Train the classifier on the input sample and label. This model is unique in
     that a single sample contains multiple encoded patterns.
@@ -107,6 +107,8 @@ class ClassificationModelKeywords(ClassificationModel):
     """
     # This experiment classifies individual tokens w/in each sample. Train the
     # classifier on each token.
+    samples = [self.patterns[i]["pattern"]]
+    labels = [self.patterns[i]["labels"]]
     for sample, sample_labels in zip(samples, labels):
       for token in sample:
         if not token: continue
@@ -114,7 +116,7 @@ class ClassificationModelKeywords(ClassificationModel):
           self.classifier.learn(token["bitmap"], label, isSparse=self.n)
 
 
-  def testModel(self, sample, numLabels=3):
+  def testModel(self, i, numLabels=3):
     """
     Test the classifier on the input sample. Returns the classifications
     most frequent amongst the classifications of the sample's individual tokens.
@@ -128,11 +130,11 @@ class ClassificationModelKeywords(ClassificationModel):
                                             samples; values are int or empty.
     """
     totalInferenceResult = None
-    for idx, s in enumerate(sample):
-      if not s: continue
+    for idx, pattern in enumerate(self.patterns[i]["pattern"]):
+      if not pattern: continue
 
       (_, inferenceResult, _, _) = self.classifier.infer(
-        self._densifyPattern(s["bitmap"]))
+        self._densifyPattern(pattern["bitmap"]))
 
       if totalInferenceResult is None:
         totalInferenceResult = inferenceResult

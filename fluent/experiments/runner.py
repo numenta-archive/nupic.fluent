@@ -254,8 +254,7 @@ class Runner(object):
         format(self.partitions[trial][0]))
 
     for i in self.partitions[trial][0]:
-      self.model.trainModel([self.patterns[i]["pattern"]],
-                            [self.patterns[i]["labels"]])
+      self.model.trainModel(i)
 
 
   def testing(self, trial):
@@ -265,7 +264,7 @@ class Runner(object):
 
     results = ([], [])
     for i in self.partitions[trial][1]:
-      predicted = self.model.testModel(self.patterns[i]["pattern"])
+      predicted = self.model.testModel(i)
       results[0].append(predicted)
       results[1].append(self.patterns[i]["labels"])
 

@@ -91,7 +91,7 @@ class ClassificationModelFingerprint(ClassificationModel):
     return fp
 
 
-  def trainModel(self, samples, labels):
+  def trainModel(self, i):
     """
     Train the classifier on the input sample and labels.
 
@@ -101,13 +101,15 @@ class ClassificationModelFingerprint(ClassificationModel):
                                       reference indices for the classifications
                                       of each sample.
     """
+    samples = [self.patterns[i]["pattern"]]
+    labels = [self.patterns[i]["labels"]]
     for sample, sample_labels in zip(samples, labels):
       if sample["bitmap"].any():
         for label in sample_labels:
           self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
 
 
-  def testModel(self, sample, numLabels=3):
+  def testModel(self, i, numLabels=3):
     """
     Test the kNN classifier on the input sample. Returns the classification most
     frequent amongst the classifications of the sample's individual tokens.
@@ -121,5 +123,5 @@ class ClassificationModelFingerprint(ClassificationModel):
                                           values are int or empty.
     """
     (_, inferenceResult, _, _) = self.classifier.infer(
-      self._densifyPattern(sample["bitmap"]))
+      self._densifyPattern(self.patterns[i]["pattern"]["bitmap"]))
     return self.getWinningLabels(inferenceResult, numLabels)

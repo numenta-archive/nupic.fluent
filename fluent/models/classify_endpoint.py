@@ -92,7 +92,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.categoryBitmaps.clear()
 
 
-  def trainModel(self, samples, labels, negatives=None):
+  def trainModel(self, i, negatives=None):
     """
     Train the classifier on the input sample and label. Use Cortical.io's
     createClassification to make a bitmap that represents the class
@@ -106,6 +106,8 @@ class ClassificationModelEndpoint(ClassificationModel):
                                         text, sparsity and bitmap for the
                                         negative samples.
     """
+    samples = [self.patterns[i]["pattern"]]
+    labels = [self.patterns[i]["labels"]]
     labelsToUpdateBitmaps = set()
     for sample, sampleLabels in zip(samples, labels):
       for label in sampleLabels:
@@ -128,7 +130,7 @@ class ClassificationModelEndpoint(ClassificationModel):
           self.negatives[label])["positions"]
 
 
-  def testModel(self, sample, numLabels=3, metric="overlappingAll"):
+  def testModel(self, i, numLabels=3, metric="overlappingAll"):
     """
     Test the Cortical.io classifier on the input sample. Returns a dictionary
     containing various distance metrics between the sample and the classes.
@@ -138,7 +140,7 @@ class ClassificationModelEndpoint(ClassificationModel):
                                       specified metric. The number of items
                                       returned will be <= numLabels.
     """
-    sampleBitmap = sample["bitmap"].tolist()
+    sampleBitmap = self.patterns[i]["pattern"]["bitmap"].tolist()
 
     distances = defaultdict(list)
     for cat, catBitmap in self.categoryBitmaps.iteritems():

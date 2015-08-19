@@ -125,13 +125,11 @@ class ClassificationModelTest(unittest.TestCase):
               (["Abra"], numpy.array([1])),
               (["Squirtle"], numpy.array([1, 0, 1]))]
 
-    patterns = [{"pattern": model.encodeSample(s[0]),
-                 "labels": s[1]}
-                for s in samples]
+    patterns = model.encodeSamples(samples)
     for i in xrange(len(samples)):
-      model.trainModel([patterns[i]["pattern"]], [patterns[i]["labels"]])
+      model.trainModel(i)
 
-    output = [model.testModel(p["pattern"]) for p in patterns]
+    output = [model.testModel(i) for i in xrange(len(patterns))]
 
     self.assertSequenceEqual(output[0].tolist(), [2, 0],
                              "Incorrect output for first sample.")
@@ -202,18 +200,17 @@ class ClassificationModelTest(unittest.TestCase):
               (["Abra"], numpy.array([1])),
               (["Squirtle"], numpy.array([1, 0, 1]))]
 
-    patterns = [{"pattern": model.encodeSample(s[0]),
-                 "labels": s[1]}
-                for s in samples]
+    patterns = model.encodeSamples(samples)
     for i in xrange(len(samples)):
-      model.trainModel([patterns[i]["pattern"]], [patterns[i]["labels"]])
+      model.trainModel(i)
 
-    output = [model.testModel(p["pattern"]) for p in patterns]
+    output = [model.testModel(i) for i in xrange(len(patterns))]
 
     model.saveModel()
 
     loadedModel = ClassificationModel(verbosity=0).loadModel(self.modelDir)
-    loadedModelOutput = [loadedModel.testModel(p["pattern"]) for p in patterns]
+    loadedModelOutput = [loadedModel.testModel(i)
+                         for i in xrange(len(patterns))]
     
     for mClasses, lClasses in zip(output, loadedModelOutput):
       self.assertSequenceEqual(mClasses.tolist(), lClasses.tolist(), "Output "
