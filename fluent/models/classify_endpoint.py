@@ -236,9 +236,9 @@ class ClassificationModelEndpoint(ClassificationModel):
 
   @staticmethod
   def query():
-    print "The Classifciation Endpoint model doesn't support this method."
+    print "The Classification Endpoint model doesn't support this method."
 
 
   @staticmethod
   def infer():
-    print "The Classifciation Endpoint model doesn't support this method."
+    print "The Classification Endpoint model doesn't support this method."
