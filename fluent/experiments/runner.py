@@ -216,11 +216,6 @@ class Runner(object):
 
 
   def resetModel(self, trial):
-    # """Resets or initializes the model"""
-    # if self.model is None:
-    #   self.initModel() ################################### move initModel to init()
-    # else:
-    #   self.model.resetModel()
     self.model.resetModel()
 
 

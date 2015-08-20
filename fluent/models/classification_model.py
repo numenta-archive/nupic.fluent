@@ -410,7 +410,8 @@ class ClassificationModel(object):
 
   def infer(self, pattern):
     """
-    Get the  (NuPIC KNN) classifier output for a single input pattern.
+    Get the classifier output for a single input pattern; assumes classifier
+    has an infer() method (as specified in NuPIC kNN implementation).
 
     @return dist    (numpy.array)       Each entry is the distance from the
         input pattern to that prototype (pattern in the classifier). All
