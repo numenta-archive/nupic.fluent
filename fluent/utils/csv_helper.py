@@ -36,7 +36,6 @@ def readCSV(csvFile, sampleIdx, numLabels):
     - one column of samples, followed by column(s) of labels
 
   @param csvFile         (str)          File name for the input CSV.
-  @param sampleIdx       (int)          Column number of the text samples.
   @param numLabels       (int)          Number of columns of category labels.
   @return                (OrderedDict)  Keys are samples, values are lists of
                                         corresponding category labels (strings).
@@ -44,15 +43,22 @@ def readCSV(csvFile, sampleIdx, numLabels):
   try:
     with open(csvFile, "rb") as f:
       reader = csv.reader(f)
-      next(reader, None)
-      
-      dataDict = OrderedDict()
+      headers = next(reader, None)
+      try:
+        sampleIdx = headers.index("Sample")
+        idIdx = headers.index("ID")
+      except ValueError as e:
+        print "Could not find \'ID\' and/or \'Sample\' columns, so assuming 
+              "they are 0 and 2, respectively."
+        sampleIdx = 2
+        idIdx = 0
       labelIdx = range(sampleIdx + 1, sampleIdx + 1 + numLabels)
 
+      dataDict = OrderedDict()
       for line in reader:
-        dataDict[line[0]] = (line[sampleIdx],
+        dataDict[line[idIdx]] = (line[sampleIdx],
                              [line[i] for i in labelIdx if line[i]])
-    
+      
       return dataDict
 
   except IOError as e:
