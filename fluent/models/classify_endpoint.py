@@ -128,6 +128,7 @@ class ClassificationModelEndpoint(ClassificationModel):
           str(label),
           self.positives[label],
           self.negatives[label])["positions"]
+      self.sampleReference.append(i)
 
 
   def testModel(self, i, numLabels=3, metric="overlappingAll"):
@@ -231,3 +232,11 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     return numpy.array(
         [distances.keys()[catIdx] for catIdx in sortedIdx[:numLabels]])
+
+
+  def query(self):
+    print "The Classifciation Endpoint model doesn't support this method."
+
+
+  def infer(self):
+    print "The Classifciation Endpoint model doesn't support this method."

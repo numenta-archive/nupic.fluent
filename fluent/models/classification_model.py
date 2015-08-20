@@ -25,8 +25,9 @@ import numpy
 import os
 import pandas
 import random
-
 from collections import Counter
+
+from fluent.utils.text_preprocess import TextPreprocess
 
 try:
   import simplejson as json
@@ -59,6 +60,8 @@ class ClassificationModel(object):
     if not os.path.exists(self.modelDir):
       os.makedirs(self.modelDir)
     self.modelPath = None  # path to the serialized model file, set on save
+
+    self.sampleReference = []  # each time a sample is trained on, its index is appended
 
 
   def saveModel(self):
@@ -380,8 +383,46 @@ class ClassificationModel(object):
       print template.format(trainSize[i], a)
 
 
+  def queryModel(self, query, preprocess):
+    """
+    Preprocesses the query, encodes it into a pattern, then queries the
+    classifier to infer distances to trained-on samples.
+
+    @return distances   (numpy.array)   (see infer() docstring)
+    """
+    if preprocess:
+      sample = TextPreprocess().tokenize(query,
+                                         ignoreCommon=100,
+                                         removeStrings=["[identifier deleted]"],
+                                         correctSpell=True)
+    else:
+      sample = TextPreprocess().tokenize(query)
+
+    allDistances = self.infer(self.encodeSample(sample))
+
+    # Model trains multiple times for multi-label samples, so remove repeats.
+    # note: numpy.unique() auto sorts least to greatest
+    uniqueDistances, indices = numpy.unique(allDistances, return_index=True)
+    uniqueSampleRefs = [self.sampleReference[i] for i in indices]
+
+    return uniqueSampleRefs, uniqueDistances
+
+
+  def infer(self, pattern):
+    """
+    Get the  (NuPIC KNN) classifier output for a single input pattern.
+
+    @return dist    (numpy.array)       Each entry is the distance from the
+        input pattern to that prototype (pattern in the classifier). All
+        distances are between 0.0 and 1.0
+    """
+    (_, _, dist, _) = self.classifier.infer(self._densifyPattern(pattern["bitmap"]))
+    return dist
+
+
   def encodeSamples(self, samples):
     """
+    Encode samples and store in self.patterns, write out encodings to a file.
     """
     self.patterns = [{"pattern": self.encodeSample(s[0]),
                      "labels": s[1]}
@@ -390,7 +431,7 @@ class ClassificationModel(object):
     return self.patterns
 
 
-  def encodeSample(self, pattern):
+  def encodeSample(self, sample):
     """
     The subclass implementations must return the encoding in the following
     format:

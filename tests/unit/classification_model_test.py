@@ -217,5 +217,32 @@ class ClassificationModelTest(unittest.TestCase):
           "classifcations from loaded model don't match original model's.")
 
 
+  def testQueryMethods(self):
+    """Tests the queryModel() and infer() methods in ClassifactionModel base."""
+    model = ClassificationModelFingerprint(verbosity=0)
+
+    samples =[(["Pickachu"], numpy.array([0, 2, 2])),
+              (["Eevee"], numpy.array([2])),
+              (["Charmander"], numpy.array([0, 1, 1])),
+              (["Abra"], numpy.array([1])),
+              (["Squirtle"], numpy.array([1, 0, 1]))]
+
+    patterns = model.encodeSamples(samples)
+    for i in xrange(len(samples)):
+      model.trainModel(i)
+
+    self.assertSequenceEqual([0, 0, 0, 1, 2, 2, 2, 3, 4, 4, 4],
+        model.sampleReference, "List of indices for samples trained on does "
+        "not match the expected.")
+
+    ind, dist = model.queryModel("Bulbasaur", False)
+
+    self.assertSequenceEqual([4, 2, 1, 0], ind,
+        "Query results are not the expected list of sample indices.")
+    self.assertSequenceEqual(
+        [0.4736842215061188, 0.5, 0.8157894611358643, 0.9736841917037964],
+        dist.tolist(), "Query results are not the expected list of distances.")
+
+
 if __name__ == "__main__":
   unittest.main()

@@ -216,7 +216,7 @@ class ClassificationModelsTest(unittest.TestCase):
     """
     runner = HTMRunner(dataPath=os.path.join(DATA_DIR, "responses_network.csv"),
                        resultsDir="",
-                       experimentName="fingerprints_test",
+                       experimentName="htm_test",
                        load=False,
                        modelName="ClassificationModelHTM",
                        modelModuleName="fluent.models.classify_htm",

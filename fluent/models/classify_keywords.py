@@ -114,6 +114,7 @@ class ClassificationModelKeywords(ClassificationModel):
         if not token: continue
         for label in sample_labels:
           self.classifier.learn(token["bitmap"], label, isSparse=self.n)
+          self.sampleReference.append(i)
 
 
   def testModel(self, i, numLabels=3):

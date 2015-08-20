@@ -107,6 +107,7 @@ class ClassificationModelFingerprint(ClassificationModel):
       if sample["bitmap"].any():
         for label in sample_labels:
           self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
+          self.sampleReference.append(i)
 
 
   def testModel(self, i, numLabels=3):
