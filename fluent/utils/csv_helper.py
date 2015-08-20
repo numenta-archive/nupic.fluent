@@ -28,7 +28,7 @@ import os
 from collections import defaultdict, OrderedDict
 
 
-def readCSV(csvFile, sampleIdx, numLabels):
+def readCSV(csvFile, numLabels):
   """
   Read in a CSV file w/ the following formatting:
     - one header row
@@ -48,8 +48,8 @@ def readCSV(csvFile, sampleIdx, numLabels):
         sampleIdx = headers.index("Sample")
         idIdx = headers.index("ID")
       except ValueError as e:
-        print "Could not find \'ID\' and/or \'Sample\' columns, so assuming 
-              "they are 0 and 2, respectively."
+        print ("Could not find \'ID\' and/or \'Sample\' columns, so assuming "
+               "they are 0 and 2, respectively.")
         sampleIdx = 2
         idIdx = 0
       labelIdx = range(sampleIdx + 1, sampleIdx + 1 + numLabels)
@@ -65,13 +65,12 @@ def readCSV(csvFile, sampleIdx, numLabels):
     print e
 
 
-def readDir(dirPath, sampleIdx, numLabels, modify=False):
+def readDir(dirPath, numLabels, modify=False):
   """
   Reads in data from a directory of CSV files; assumes the directory only
   contains CSV files.
   
   @param dirPath            (str)          Path to the directory.
-  @param sampleIdx          (int)          Column number of the text samples.
   @param numLabels          (int)          Number of columns of category labels.
   @param modify             (bool)         Map the unix friendly category names
                                            to the actual names. 0 -> /, _ -> " "
@@ -88,7 +87,7 @@ def readDir(dirPath, sampleIdx, numLabels, modify=False):
         if modify:
           category = category.replace("0", "/")
           category = category.replace("_", " ")
-        samplesDict[category] = readCSV(os.path.join(dirPath, f), sampleIdx, numLabels)
+        samplesDict[category] = readCSV(os.path.join(dirPath, f), numLabels)
 
   return samplesDict
 

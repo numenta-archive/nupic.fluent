@@ -69,18 +69,17 @@ class NetworkDataGenerator(object):
     self.categoryToId = defaultdict(lambda: len(self.categoryToId))
 
 
-  def split(self, filename, sampleIdx, numLabels, textPreprocess, abbrCSV="",
+  def split(self, filename, numLabels, textPreprocess, abbrCSV="",
       contrCSV="", ignoreCommon=100, removeStrings="[identifier deleted]",
       correctSpell=True, **kwargs):
     """
     Split all the comments in a file into tokens. Preprocess if necessary.
     @param filename        (str)    Path to csv file
-    @param sampleIdx       (int)    Column number of the text sample
     @param numLabels       (int)    Number of columns of category labels.
     @param textPreprocess  (bool)   True will preprocess text while tokenizing.
     Please see TextPreprocess tokenize() for the other parameters
     """
-    dataDict = readCSV(filename, sampleIdx, numLabels)
+    dataDict = readCSV(filename, numLabels)
     if dataDict is None:
       raise Exception("Could not read CSV.")
 
@@ -313,10 +312,6 @@ if __name__ == "__main__":
                       type=str,
                       default="network_experiment/categories.json",
                       help="File to write the categories to ID mapping.")
-  parser.add_argument("--sampleIdx",
-                      type=int,
-                      default=2,
-                      help="Column number of the text sample.")
   parser.add_argument("--numLabels",
                       type=int,
                       default=3,

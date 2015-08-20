@@ -107,17 +107,15 @@ class NetworkDataGeneratorTest(unittest.TestCase):
 
   def testSplitNoPreprocess(self):
     ndg = NetworkDataGenerator()
-    filename = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample.csv")
+    filename = os.path.join(self.dirName, "test_data/multi_sample.csv")
 
-    ndg.split(filename, 2, 3, False)
+    ndg.split(filename, 3, False)
     self.assertRecordsEqual(ndg.records, self.expected)
 
   
   def testSplitPreprocess(self):
     ndg = NetworkDataGenerator()
-    filename = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample.csv")
+    filename = os.path.join(self.dirName, "test_data/multi_sample.csv")
 
     expected = [[{"_category0": "0",
                   "_category1": "1",
@@ -153,23 +151,22 @@ class NetworkDataGeneratorTest(unittest.TestCase):
                   "token": "care",
                   "_reset": "0"}]]
 
-    ndg.split(filename, 2, 3, True, ignoreCommon=100, correctSpell=True)
+    ndg.split(filename, 3, True, ignoreCommon=100, correctSpell=True)
     self.assertRecordsEqual(ndg.records, expected)
 
 
   def testRandomize(self):
     ndg = NetworkDataGenerator()
-    filename = (self.dirName +
-        "/../../../data/sample_reviews_multi/sample_reviews_data_training.csv")
-    ndg.split(filename, 2, 3, False)
+    filename = os.path.join(self.dirName, "test_data/multi_sample.csv")
+    ndg.split(filename, 3, False)
 
     random.seed(1)
     ndg.randomizeData()
 
-    dataOutputFile = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample_split.csv")
-    categoriesOutputFile = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample_categories.json")
+    dataOutputFile = os.path.join(
+        self.dirName, "test_data/multi_sample_split.csv")
+    categoriesOutputFile = os.path.join(
+        self.dirName, "data_test/multi_sample_categories.json")
     success = ndg.saveData(dataOutputFile, categoriesOutputFile)
 
     randomizedIDs = []
@@ -185,13 +182,12 @@ class NetworkDataGeneratorTest(unittest.TestCase):
 
   def testSaveData(self):
     ndg = NetworkDataGenerator()
-    filename = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample.csv")
-    ndg.split(filename, 2, 3, False)
-    dataOutputFile = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample_split.csv")
-    categoriesOutputFile = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample_categories.json")
+    filename = os.path.join(self.dirName, "test_data/multi_sample.csv")
+    ndg.split(filename, 3, False)
+    dataOutputFile = os.path.join(
+        self.dirName, "test_data/multi_sample_split.csv")
+    categoriesOutputFile = os.path.join(
+        self.dirName, "data_test/multi_sample_categories.json")
     success = ndg.saveData(dataOutputFile, categoriesOutputFile)
     self.assertTrue(success)
 
@@ -233,13 +229,12 @@ class NetworkDataGeneratorTest(unittest.TestCase):
 
   def testSaveDataIncorrectType(self):
     ndg = NetworkDataGenerator()
-    filename = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample.csv")
-    dataOutputFile = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample_split.csv")
-    categoriesOutputFile = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample_categories.csv")
-    ndg.split(filename, 2, 3, False)
+    filename = os.path.join(self.dirName, "test_data/multi_sample.csv")
+    dataOutputFile = os.path.join(
+        self.dirName, "test_data/multi_sample_split.csv")
+    categoriesOutputFile = os.path.join(
+        self.dirName, "test_data/multi_sample_categories.csv")
+    ndg.split(filename, 3, False)
 
     with self.assertRaises(TypeError):
       ndg.saveData(dataOutputFile, categoriesOutputFile)
@@ -247,13 +242,12 @@ class NetworkDataGeneratorTest(unittest.TestCase):
 
   def testFileRecordStreamReadData(self):
     ndg = NetworkDataGenerator()
-    filename = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample.csv")
-    ndg.split(filename, 2, 3, False)
-    dataOutputFile = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample_split.csv")
-    categoriesOutputFile = (self.dirName +
-        "/../../../data/network_data_generator/multi_sample_categories.json")
+    filename = os.path.join(self.dirName, "test_data/multi_sample.csv")
+    ndg.split(filename, 3, False)
+    dataOutputFile = os.path.join(
+        self.dirName, "data_test/multi_sample_split.csv")
+    categoriesOutputFile = os.path.join(
+        self.dirName, "data_test/multi_sample_categories.json")
     ndg.saveData(dataOutputFile, categoriesOutputFile)
 
     # If no error is raised, then the data is in the correct format

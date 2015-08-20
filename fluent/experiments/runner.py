@@ -162,17 +162,18 @@ class Runner(object):
       self.samples = [(texter.tokenize(data[0]), data[1])
                       for _, data in self.dataDict.iteritems()]
 
+    ## GET THE IDS, USE IN MODELS' sampleReference structure
 
-  def setupData(self, preprocess=False, sampleIdx=2):
+
+  def setupData(self, preprocess=False):
     """
     Get the data from CSV and preprocess if specified.
     One index in labelIdx implies the model will train on a single
     classification per sample.
     @param preprocess   (bool)    Whether or not to preprocess the data when
                                   generating the files
-    @param sampleIdx    (int)     Column number of the text samples in the csv
     """
-    self.dataDict = readCSV(self.dataPath, sampleIdx, self.numClasses)
+    self.dataDict = readCSV(self.dataPath, self.numClasses)
 
     if (not isinstance(self.trainSize, list) or not
         all([0 <= size <= len(self.dataDict) for size in self.trainSize])):
@@ -330,7 +331,7 @@ class Runner(object):
 
   def validateExperiment(self, expectationFilePath):
     """Returns accuracy of predicted labels against expected labels."""
-    dataDict = readCSV(expectationFilePath, 2, self.numClasses)
+    dataDict = readCSV(expectationFilePath, self.numClasses)
 
     accuracies = numpy.zeros((len(self.results)))
     for i, trial in enumerate(self.results):
