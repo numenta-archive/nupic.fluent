@@ -25,7 +25,6 @@ import numpy
 import os
 import pandas
 import random
-from collections import Counter
 
 from fluent.utils.text_preprocess import TextPreprocess
 
@@ -49,8 +48,12 @@ class ClassificationModel(object):
   TODO: use nupic.bindings.math import Random
   """
 
-  def __init__(self, n=16384, w=328, verbosity=1, numLabels=3,
-    modelDir="ClassificationModel"):
+  def __init__(self,
+               n=16384,
+               w=328,
+               verbosity=1,
+               numLabels=3,
+               modelDir="ClassificationModel"):
     """The SDR dimensions are standard for Cortical.io fingerprints."""
     self.n = n
     self.w = w
@@ -59,9 +62,12 @@ class ClassificationModel(object):
     self.modelDir = modelDir
     if not os.path.exists(self.modelDir):
       os.makedirs(self.modelDir)
-    self.modelPath = None  # path to the serialized model file, set on save
+    self.modelPath = None
 
-    self.sampleReference = []  # each time a sample is trained on, its index is appended
+    # each time a sample is trained on, its index is appended
+    self.sampleReference = []
+
+    self.patterns = []
 
 
   def saveModel(self):
@@ -134,20 +140,18 @@ class ClassificationModel(object):
       raise ValueError("Invalid path to write file.")
 
     with open(os.path.join(dirName, "category_distances.json"), "w") as f:
-      catDict = {
-        "categoryBitmaps":self.categoryBitmaps,
-        "labelRefs":dict(enumerate(labelRefs)) if labelRefs else None,
-        "comparisons":comparisons if comparisons else None
-      }
-      json.dump(
-        catDict,
-        f,
-        sort_keys=True,
-        indent=2,
-        separators=(",", ": "))
+      catDict = {"categoryBitmaps":self.categoryBitmaps,
+                 "labelRefs":dict(enumerate(labelRefs)) if labelRefs else None,
+                 "comparisons":comparisons if comparisons else None}
+      json.dump(catDict,
+                f,
+                sort_keys=True,
+                indent=2,
+                separators=(",", ": "))
 
 
-  def classifyRandomly(self, labels):
+  @staticmethod
+  def classifyRandomly(labels):
     """Return accuracy of random classifications for the labels."""
     randomLabels = numpy.random.randint(0, labels.max(), labels.shape)
     return (randomLabels == labels).sum() / float(labels.shape[0])
@@ -192,7 +196,8 @@ class ClassificationModel(object):
     return numpy.array([i for i in winners if labelFreq[i] > 0])
 
 
-  def calculateClassificationResults(self, classifications):
+  @staticmethod
+  def calculateClassificationResults(classifications):
     """
     Calculate the classification accuracy for each category.
 
@@ -211,12 +216,12 @@ class ClassificationModel(object):
     # Get all possible labels
     labels = list(set([l for actual in classifications[1] for l in actual]))
 
-    labels_to_idx = {l: i for i,l in enumerate(labels)}
+    labelsToIdx = {l: i for i,l in enumerate(labels)}
     correctClassifications = numpy.zeros(len(labels))
     totalClassifications = numpy.zeros(len(labels))
     for actual, predicted in zip(classifications[1], classifications[0]):
       for a in actual:
-        idx = labels_to_idx[a]
+        idx = labelsToIdx[a]
         totalClassifications[idx] += 1
         if a in predicted:
           correctClassifications[idx] += 1
@@ -325,10 +330,9 @@ class ClassificationModel(object):
     cm = numpy.vstack((cm, numpy.sum(cm, axis=0)))
     cm = numpy.hstack((cm, numpy.sum(cm, axis=1).reshape(total+1,1)))
 
-    cm = pandas.DataFrame(
-      data=cm,
-      columns=references+["(none)"]+["Actual Totals"],
-      index=references+["Prediction Totals"])
+    cm = pandas.DataFrame(data=cm,
+                          columns=references+["(none)"]+["Actual Totals"],
+                          index=references+["Prediction Totals"])
 
     return cm
 
@@ -365,7 +369,8 @@ class ClassificationModel(object):
     print "---------- RESULTS ----------"
     print "max, mean, min accuracies = "
     print "{0:.3f}, {1:.3f}, {2:.3f}".format(
-    results["max_accuracy"], results["mean_accuracy"], results["min_accuracy"])
+        results["max_accuracy"], results["mean_accuracy"],
+        results["min_accuracy"])
     print "total confusion matrix =\n", results["total_cm"]
 
 
@@ -417,7 +422,8 @@ class ClassificationModel(object):
         input pattern to that prototype (pattern in the classifier). All
         distances are between 0.0 and 1.0
     """
-    (_, _, dist, _) = self.classifier.infer(self._densifyPattern(pattern["bitmap"]))
+    (_, _, dist, _) = self.classifier.infer(
+        self._densifyPattern(pattern["bitmap"]))
     return dist
 
 
@@ -426,7 +432,7 @@ class ClassificationModel(object):
     Encode samples and store in self.patterns, write out encodings to a file.
     """
     self.patterns = [{"pattern": self.encodeSample(s[0]),
-                     "labels": s[1]}
+                      "labels": s[1]}
                      for s in samples]
     self.writeOutEncodings()
     return self.patterns
@@ -446,9 +452,9 @@ class ClassificationModel(object):
     raise NotImplementedError
 
 
-  def trainModel(self, samples, labels):
+  def trainModel(self, index):
     raise NotImplementedError
 
 
-  def testModel(self, sample, numLabels):
+  def testModel(self, index, numLabels):
     raise NotImplementedError

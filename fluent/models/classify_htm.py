@@ -33,10 +33,15 @@ class ClassificationModelHTM(ClassificationModel):
   Class to run the survey response classification task with nupic network
   """
 
-  def __init__(self, inputFilePath, verbosity=1, numLabels=3,
-    modelDir="ClassificationModelHTM",
-    spTrainingSize=0, tmTrainingSize=0, clsTrainingSize=0,
-    classifierType="KNN"):
+  def __init__(self,
+               inputFilePath,
+               verbosity=1,
+               numLabels=3,
+               modelDir="ClassificationModelHTM",
+               spTrainingSize=0,
+               tmTrainingSize=0,
+               clsTrainingSize=0,
+               classifierType="KNN"):
     """
     @param inputFilePath      (str)       Path to data formatted for network
                                           API
@@ -56,38 +61,37 @@ class ClassificationModelHTM(ClassificationModel):
     self.tmTrainingSize = tmTrainingSize
     self.clsTrainingSize = clsTrainingSize
 
-    super(ClassificationModelHTM, self).__init__(verbosity=verbosity,
-      numLabels=numLabels, modelDir=modelDir)
+    super(ClassificationModelHTM, self).__init__(
+        verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     # Initialize Network
     self.classifierType = classifierType
     self.recordStream = FileRecordStream(streamID=inputFilePath)
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
     self.network = None
+    self.numTrained = 0
+    self.oldClassifications = None
+    self.lengthOfCurrentSequence = 0
     self._initModel()
 
 
   def _initModel(self):
     """Initialize the network and related variables"""
     if self.classifierType == "CLA":
-      classifier_params = {
-        "steps": "1",
-        "implementation": "py",
-        "clVerbosity": self.verbosity
-      }
+      classifierParams = {"steps": "1",
+                          "implementation": "py",
+                          "clVerbosity": self.verbosity}
     elif self.classifierType == "KNN":
-      classifier_params = {
-        "k": self.numLabels,
-        "distThreshold": 0,
-        "maxCategoryCount": self.numLabels
-      }
+      classifierParams = {"k": self.numLabels,
+                          "distThreshold": 0,
+                          "maxCategoryCount": self.numLabels}
     else:
       raise ValueError("Classifier type {} is not supported.".format(
-        self.classifierType))
+          self.classifierType))
 
     self.network = createNetwork(
-      self.recordStream, "py.LanguageSensor", self.encoder, self.numLabels,
-      "py.{}ClassifierRegion".format(self.classifierType), classifier_params)
+        self.recordStream, "py.LanguageSensor", self.encoder, self.numLabels,
+        "py.{}ClassifierRegion".format(self.classifierType), classifierParams)
 
     self.network.initialize()
 
@@ -98,10 +102,6 @@ class ClassificationModelHTM(ClassificationModel):
     spatialPoolerRegion.setParameter("learningMode", False)
     temporalMemoryRegion.setParameter("learningMode", False)
     classifierRegion.setParameter("learningMode", False)
-
-    self.numTrained = 0
-    self.oldClassifications = None
-    self.lengthOfCurrentSequence = 0
 
 
   def encodeSample(self, sample):
@@ -191,8 +191,8 @@ class ClassificationModelHTM(ClassificationModel):
       activeCells = temporalMemoryRegion.getOutputData("bottomUpOut")
       patternNZ = activeCells.nonzero()[0]
       clResults = classifierRegion.getSelf().customCompute(
-        recordNum=self.numTrained, patternNZ=patternNZ,
-        classification=classificationIn)
+          recordNum=self.numTrained, patternNZ=patternNZ,
+          classification=classificationIn)
 
       return clResults[int(classifierRegion.getParameter("steps"))]
 
@@ -229,8 +229,8 @@ class ClassificationModelHTM(ClassificationModel):
       self.lengthOfCurrentSequence += 1
       self.oldClassifications += (numpy.array(inferredValue) * i)
 
-    orderedInferredValues = sorted(enumerate(self.oldClassifications),
-      key=lambda x: x[1], reverse=True)
+    orderedInferredValues = sorted(enumerate(
+        self.oldClassifications), key=lambda x: x[1], reverse=True)
 
     labels = zip(*orderedInferredValues)[0]
     return numpy.array(labels[:numLabels])

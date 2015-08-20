@@ -19,7 +19,6 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import collections
 import cPickle as pkl
 import itertools
 import numpy
@@ -81,7 +80,7 @@ class Runner(object):
     self.verbosity = verbosity
 
     self.modelDir = os.path.join(
-      self.resultsDir, self.experimentName, self.modelName)
+        self.resultsDir, self.experimentName, self.modelName)
     if not os.path.exists(self.modelDir):
       os.makedirs(self.modelDir)
 
@@ -101,20 +100,19 @@ class Runner(object):
   def _calculateTrialAccuracies(self):
     """
     @return trialAccuracies     (defaultdict)   Items are defaultdicts, one for
-        each size of the training set. Inner defaultdicts keys are classification
+        each size of the training set. Inner defaultdicts keys are
         categories, with numpy array values that contain one accuracy value for
         each trial.
     """
     # To handle multiple trials of the same size:
     # trialSize -> (category -> list of accuracies)
-    trialAccuracies = defaultdict(lambda: defaultdict(lambda:
-        numpy.ndarray(0)))
+    trialAccuracies = defaultdict(lambda: defaultdict(lambda: numpy.ndarray(0)))
     for i, size in enumerate(self.trainSize):
       accuracies = self.model.calculateClassificationResults(self.results[i])
       for label, acc in accuracies:
         category = self.labelRefs[label]
-        acc_list = trialAccuracies[size][category]
-        trialAccuracies[size][category] = numpy.append(acc_list, acc)
+        accList = trialAccuracies[size][category]
+        trialAccuracies[size][category] = numpy.append(accList, acc)
 
     return trialAccuracies
 
@@ -143,11 +141,11 @@ class Runner(object):
 
   def _mapLabelRefs(self):
     """Replace the label strings in self.dataDict with corresponding ints."""
-    self.labelRefs = list(set(
-      itertools.chain.from_iterable(map(lambda x:x[1], self.dataDict.values()))))
+    self.labelRefs = [label for label in set(
+        itertools.chain.from_iterable([x[1] for x in self.dataDict.values()]))]
 
-    for id, data in self.dataDict.iteritems():
-      self.dataDict[id] = (data[0], numpy.array(
+    for uniqueID, data in self.dataDict.iteritems():
+      self.dataDict[uniqueID] = (data[0], numpy.array(
           [self.labelRefs.index(label) for label in data[1]]))
 
 
@@ -159,10 +157,10 @@ class Runner(object):
                                        ignoreCommon=100,
                                        removeStrings=["[identifier deleted]"],
                                        correctSpell=True),
-                      data[1]) for id, data in self.dataDict.iteritems()]
+                       data[1]) for _, data in self.dataDict.iteritems()]
     else:
       self.samples = [(texter.tokenize(data[0]), data[1])
-                      for id, data in self.dataDict.iteritems()]
+                      for _, data in self.dataDict.iteritems()]
 
 
   def setupData(self, preprocess=False, sampleIdx=2):
@@ -185,7 +183,8 @@ class Runner(object):
     self._preprocess(preprocess)
 
     if self.verbosity > 1:
-      for i, s in enumerate(self.samples): print i, s
+      for i, s in enumerate(self.samples):
+        print i, s
 
 
   def initModel(self):
@@ -196,8 +195,8 @@ class Runner(object):
       try:
         module = __import__(self.modelModuleName, {}, {}, self.modelName)
         modelClass = getattr(module, self.modelName)
-        self.model = modelClass(verbosity=self.verbosity,
-          modelDir=self.modelDir)
+        self.model = modelClass(
+            verbosity=self.verbosity, modelDir=self.modelDir)
       except ImportError:
         raise RuntimeError("Could not import model class \'{0}\'.".
                            format(self.modelName))
@@ -231,7 +230,7 @@ class Runner(object):
       self.resetModel(i)
       if self.verbosity > 0:
         print "\tTraining for run {0} of {1}.".format(
-          i + 1, len(self.trainSize))
+            i + 1, len(self.trainSize))
       self.training(i)
       if self.verbosity > 0:
         print "\tTesting for this run."
@@ -245,8 +244,8 @@ class Runner(object):
     to be in a list.
     """
     if self.verbosity > 0:
-      print ("\tRunner selects to train on sample(s) {}".
-        format(self.partitions[trial][0]))
+      print ("\tRunner selects to train on sample(s) {}".format(
+          self.partitions[trial][0]))
 
     for i in self.partitions[trial][0]:
       self.model.trainModel(i)
@@ -254,8 +253,8 @@ class Runner(object):
 
   def testing(self, trial):
     if self.verbosity > 0:
-      print ("\tRunner selects to test on sample(s) {}".
-        format(self.partitions[trial][1]))
+      print ("\tRunner selects to test on sample(s) {}".format(
+          self.partitions[trial][1]))
 
     results = ([], [])
     for i in self.partitions[trial][1]:
@@ -269,7 +268,7 @@ class Runner(object):
   def writeOutClassifications(self):
     """Write the samples, actual, and predicted classes to a CSV."""
     headers = ("Tokenized sample", "Actual", "Predicted")
-    for trial, size in enumerate(self.trainSize):
+    for trial, _ in enumerate(self.trainSize):
       resultsDict = defaultdict(list)
       for i, sampleNum in enumerate(self.partitions[trial][1]):
         # Loop through the indices in the test set of this trial.
@@ -302,8 +301,8 @@ class Runner(object):
           trialAccuracies)
 
       self.plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
-      self.plotter.plotCumulativeAccuracies(classificationAccuracies,
-          self.trainSize)
+      self.plotter.plotCumulativeAccuracies(
+          classificationAccuracies, self.trainSize)
 
       if self.plots > 1:
         # Plot extra evaluation figures -- confusion matrix.

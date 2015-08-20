@@ -20,7 +20,6 @@
 # ----------------------------------------------------------------------
 
 import numpy
-import pandas
 import shutil
 import unittest
 
@@ -227,7 +226,7 @@ class ClassificationModelTest(unittest.TestCase):
               (["Abra"], numpy.array([1])),
               (["Squirtle"], numpy.array([1, 0, 1]))]
 
-    patterns = model.encodeSamples(samples)
+    model.encodeSamples(samples)
     for i in xrange(len(samples)):
       model.trainModel(i)
 

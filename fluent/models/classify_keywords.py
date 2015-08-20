@@ -20,9 +20,7 @@
 # ----------------------------------------------------------------------
 
 import copy
-import numpy
 import os
-import random
 
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
@@ -43,10 +41,15 @@ class ClassificationModelKeywords(ClassificationModel):
   TODO: use nupic.bindings.math import Random
   """
 
-  def __init__(self, n=100, w=20, verbosity=1, numLabels=3,
-    modelDir="ClassificationModelKeywords"):
-    super(ClassificationModelKeywords, self).__init__(n, w, verbosity=verbosity,
-      numLabels=numLabels, modelDir=modelDir)
+  def __init__(self,
+               n=100,
+               w=20,
+               verbosity=1,
+               numLabels=3,
+               modelDir="ClassificationModelKeywords"):
+
+    super(ClassificationModelKeywords, self).__init__(
+        n, w, verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     self.classifier = KNNClassifier(exact=True,
                                     distanceMethod='rawOverlap',
@@ -67,11 +70,9 @@ class ClassificationModelKeywords(ClassificationModel):
     """
     patterns = []
     for token in sample:
-      patterns.append({
-                        "text":token,
-                        "sparsity":float(self.w)/self.n,
-                        "bitmap":self.encodeRandomly(token)
-                        })
+      patterns.append({"text":token,
+                       "sparsity":float(self.w)/self.n,
+                       "bitmap":self.encodeRandomly(token)})
     return patterns
 
 
@@ -109,10 +110,11 @@ class ClassificationModelKeywords(ClassificationModel):
     # classifier on each token.
     samples = [self.patterns[i]["pattern"]]
     labels = [self.patterns[i]["labels"]]
-    for sample, sample_labels in zip(samples, labels):
+    for sample, sampleLabels in zip(samples, labels):
       for token in sample:
-        if not token: continue
-        for label in sample_labels:
+        if not token:
+          continue
+        for label in sampleLabels:
           self.classifier.learn(token["bitmap"], label, isSparse=self.n)
           self.sampleReference.append(i)
 
@@ -131,11 +133,12 @@ class ClassificationModelKeywords(ClassificationModel):
                                             samples; values are int or empty.
     """
     totalInferenceResult = None
-    for idx, pattern in enumerate(self.patterns[i]["pattern"]):
-      if not pattern: continue
+    for pattern in self.patterns[i]["pattern"]:
+      if not pattern:
+        continue
 
       (_, inferenceResult, _, _) = self.classifier.infer(
-        self._densifyPattern(pattern["bitmap"]))
+          self._densifyPattern(pattern["bitmap"]))
 
       if totalInferenceResult is None:
         totalInferenceResult = inferenceResult

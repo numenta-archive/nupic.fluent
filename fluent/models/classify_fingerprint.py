@@ -36,12 +36,14 @@ class ClassificationModelFingerprint(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, verbosity=1, numLabels=3,
-    modelDir="ClassificationModelFingerprint",
-    fingerprintType=EncoderTypes.document):
+  def __init__(self,
+               verbosity=1,
+               numLabels=3,
+               modelDir="ClassificationModelFingerprint",
+               fingerprintType=EncoderTypes.document):
 
-    super(ClassificationModelFingerprint, self).__init__(verbosity=verbosity,
-      numLabels=numLabels, modelDir=modelDir)
+    super(ClassificationModelFingerprint, self).__init__(
+        verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     # Init kNN classifier and Cortical.io encoder; need valid API key (see
     # CioEncoder init for details).
@@ -80,13 +82,11 @@ class ClassificationModelFingerprint(ClassificationModel):
     if fpInfo:
       fp = {"text":fpInfo["text"] if "text" in fpInfo else fpInfo["term"],
             "sparsity":fpInfo["sparsity"],
-            "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])
-            }
+            "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])}
     else:
       fp = {"text":sample,
             "sparsity":float(self.w)/self.n,
-            "bitmap":self.encodeRandomly(sample)
-            }
+            "bitmap":self.encodeRandomly(sample)}
 
     return fp
 
@@ -103,9 +103,9 @@ class ClassificationModelFingerprint(ClassificationModel):
     """
     samples = [self.patterns[i]["pattern"]]
     labels = [self.patterns[i]["labels"]]
-    for sample, sample_labels in zip(samples, labels):
+    for sample, sampleLabels in zip(samples, labels):
       if sample["bitmap"].any():
-        for label in sample_labels:
+        for label in sampleLabels:
           self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
           self.sampleReference.append(i)
 
@@ -124,5 +124,5 @@ class ClassificationModelFingerprint(ClassificationModel):
                                           values are int or empty.
     """
     (_, inferenceResult, _, _) = self.classifier.infer(
-      self._densifyPattern(self.patterns[i]["pattern"]["bitmap"]))
+        self._densifyPattern(self.patterns[i]["pattern"]["bitmap"]))
     return self.getWinningLabels(inferenceResult, numLabels)

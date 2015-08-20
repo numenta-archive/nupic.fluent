@@ -36,13 +36,15 @@ class ClassificationModelEndpoint(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, verbosity=1, numLabels=3,
-    modelDir="ClassificationModelEndpoint"):
+  def __init__(self,
+               verbosity=1,
+               numLabels=3,
+               modelDir="ClassificationModelEndpoint"):
     """
-    Initialize the encoder as CioEncoder; requires a valid API key.
+    Initializes the encoder as CioEncoder; requires a valid API key.
     """
-    super(ClassificationModelEndpoint, self).__init__(verbosity=verbosity,
-      numLabels=numLabels, modelDir=modelDir)
+    super(ClassificationModelEndpoint, self).__init__(
+        verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
     self.compareEncoder = LanguageEncoder()
@@ -74,13 +76,11 @@ class ClassificationModelEndpoint(ClassificationModel):
     if fpInfo:
       fp = {"text":fpInfo["text"] if "text" in fpInfo else fpInfo["term"],
             "sparsity":fpInfo["sparsity"],
-            "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])
-            }
+            "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])}
     else:
       fp = {"text":sample,
             "sparsity":float(self.w)/self.n,
-            "bitmap":self.encodeRandomly(sample)
-            }
+            "bitmap":self.encodeRandomly(sample)}
 
     return fp
 
@@ -234,9 +234,11 @@ class ClassificationModelEndpoint(ClassificationModel):
         [distances.keys()[catIdx] for catIdx in sortedIdx[:numLabels]])
 
 
-  def query(self):
+  @staticmethod
+  def query():
     print "The Classifciation Endpoint model doesn't support this method."
 
 
-  def infer(self):
+  @staticmethod
+  def infer():
     print "The Classifciation Endpoint model doesn't support this method."
