@@ -5,15 +5,15 @@
 # following terms and conditions apply:
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 3 as
+# it under the terms of the GNU Affero Public License version 3 as
 # published by the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU General Public License for more details.
+# See the GNU Affero Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Affero Public License
 # along with this program.  If not, see http://www.gnu.org/licenses.
 #
 # http://numenta.org/licenses/
@@ -194,21 +194,7 @@ class CioEncoder(LanguageEncoder):
         encoding = min([self.client.getBitmap(t) for t in tokens],
                        key=lambda x: x["df"])
       elif method == "keyword":
-        postions = self.sparseUnion(tokens)
-
-        # Populate encoding
-        encoding = {
-            "text": text,
-            "sparsity": len(positions) * 100 / float(self.n),
-            "df": 0.0,
-            "height": self.h,
-            "width": self.w,
-            "score": 0.0,
-            "fingerprint": {
-                "positions":sorted(positions)
-                },
-            "pos_types": []
-            }
+        encoding = self.getUnionEncoding(text)
       else:
         raise ValueError("method must be either \'df\' or \'keyword\'")
     except UnsuccessfulEncodingError:

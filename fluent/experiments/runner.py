@@ -5,21 +5,20 @@
 # following terms and conditions apply:
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 3 as
+# it under the terms of the GNU Affero Public License version 3 as
 # published by the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU General Public License for more details.
+# See the GNU Affero Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Affero Public License
 # along with this program.  If not, see http://www.gnu.org/licenses.
 #
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
-import collections
 import cPickle as pkl
 import itertools
 import numpy
@@ -80,10 +79,10 @@ class Runner(object):
     self.trainSize = trainSize
     self.verbosity = verbosity
 
-    self.modelPath = os.path.join(
-      self.resultsDir, self.experimentName, self.modelName)
-    if not os.path.exists(self.modelPath):
-      os.makedirs(self.modelPath)
+    self.modelDir = os.path.join(
+        self.resultsDir, self.experimentName, self.modelName)
+    if not os.path.exists(self.modelDir):
+      os.makedirs(self.modelDir)
 
     if self.plots:
       self.plotter = PlotNLP()
@@ -101,20 +100,19 @@ class Runner(object):
   def _calculateTrialAccuracies(self):
     """
     @return trialAccuracies     (defaultdict)   Items are defaultdicts, one for
-        each size of the training set. Inner defaultdicts keys are classification
+        each size of the training set. Inner defaultdicts keys are
         categories, with numpy array values that contain one accuracy value for
         each trial.
     """
     # To handle multiple trials of the same size:
     # trialSize -> (category -> list of accuracies)
-    trialAccuracies = defaultdict(lambda: defaultdict(lambda:
-        numpy.ndarray(0)))
+    trialAccuracies = defaultdict(lambda: defaultdict(lambda: numpy.ndarray(0)))
     for i, size in enumerate(self.trainSize):
       accuracies = self.model.calculateClassificationResults(self.results[i])
       for label, acc in accuracies:
         category = self.labelRefs[label]
-        acc_list = trialAccuracies[size][category]
-        trialAccuracies[size][category] = numpy.append(acc_list, acc)
+        accList = trialAccuracies[size][category]
+        trialAccuracies[size][category] = numpy.append(accList, acc)
 
     return trialAccuracies
 
@@ -143,11 +141,11 @@ class Runner(object):
 
   def _mapLabelRefs(self):
     """Replace the label strings in self.dataDict with corresponding ints."""
-    self.labelRefs = list(set(
-      itertools.chain.from_iterable(map(lambda x:x[1], self.dataDict.values()))))
+    self.labelRefs = [label for label in set(
+        itertools.chain.from_iterable([x[1] for x in self.dataDict.values()]))]
 
-    for id, data in self.dataDict.iteritems():
-      self.dataDict[id] = (data[0], numpy.array(
+    for uniqueID, data in self.dataDict.iteritems():
+      self.dataDict[uniqueID] = (data[0], numpy.array(
           [self.labelRefs.index(label) for label in data[1]]))
 
 
@@ -159,10 +157,10 @@ class Runner(object):
                                        ignoreCommon=100,
                                        removeStrings=["[identifier deleted]"],
                                        correctSpell=True),
-                      data[1]) for id, data in self.dataDict.iteritems()]
+                       data[1]) for _, data in self.dataDict.iteritems()]
     else:
       self.samples = [(texter.tokenize(data[0]), data[1])
-                      for id, data in self.dataDict.iteritems()]
+                      for _, data in self.dataDict.iteritems()]
 
 
   def setupData(self, preprocess=False, sampleIdx=2):
@@ -185,43 +183,43 @@ class Runner(object):
     self._preprocess(preprocess)
 
     if self.verbosity > 1:
-      for i, s in enumerate(self.samples): print i, s
+      for i, s in enumerate(self.samples):
+        print i, s
 
 
   def initModel(self):
     """Load or instantiate the classification model."""
     if self.load:
-      with open(os.path.join(self.modelPath, "model.pkl"), "rb") as f:
-        self.model = pkl.load(f)
-      print "Model loaded from \'{0}\'.".format(self.modelPath)
+      self.loadModel()
     else:
       try:
         module = __import__(self.modelModuleName, {}, {}, self.modelName)
         modelClass = getattr(module, self.modelName)
-        self.model = modelClass(verbosity=self.verbosity)
+        self.model = modelClass(
+            verbosity=self.verbosity, modelDir=self.modelDir)
       except ImportError:
         raise RuntimeError("Could not import model class \'{0}\'.".
                            format(self.modelName))
 
 
+  def loadModel(self):
+    """Load the serialized model."""
+    try:
+      with open(os.path.join(self.modelDir, "model.pkl"), "rb") as f:
+        model = pkl.load(f)
+      print "Model loaded from \'{}\'.".format(self.modelDir)
+      return model
+    except IOError as e:
+      print "Could not load model from \'{}\'.".format(self.modelDir)
+      raise e
+
+
   def resetModel(self, trial):
-    """Resets or initializes the model"""
-    if self.model is None:
-      self.initModel()
-    else:
-      self.model.resetModel()
+    self.model.resetModel()
 
 
   def encodeSamples(self):
-    """
-    Encode the text samples into bitmap patterns, and log to txt file. The
-    encoded patterns are stored in a dict along with their corresponding class
-    labels.
-    """
-    self.patterns = [{"pattern": self.model.encodePattern(s[0]),
-                     "labels": s[1]}
-                     for s in self.samples]
-    self.model.writeOutEncodings(self.patterns, self.modelPath)
+    self.patterns = self.model.encodeSamples(self.samples)
 
 
   def runExperiment(self):
@@ -232,7 +230,7 @@ class Runner(object):
       self.resetModel(i)
       if self.verbosity > 0:
         print "\tTraining for run {0} of {1}.".format(
-          i + 1, len(self.trainSize))
+            i + 1, len(self.trainSize))
       self.training(i)
       if self.verbosity > 0:
         print "\tTesting for this run."
@@ -246,22 +244,21 @@ class Runner(object):
     to be in a list.
     """
     if self.verbosity > 0:
-      print ("\tRunner selects to train on sample(s) {}".
-        format(self.partitions[trial][0]))
+      print ("\tRunner selects to train on sample(s) {}".format(
+          self.partitions[trial][0]))
 
     for i in self.partitions[trial][0]:
-      self.model.trainModel([self.patterns[i]["pattern"]],
-                            [self.patterns[i]["labels"]])
+      self.model.trainModel(i)
 
 
   def testing(self, trial):
     if self.verbosity > 0:
-      print ("\tRunner selects to test on sample(s) {}".
-        format(self.partitions[trial][1]))
+      print ("\tRunner selects to test on sample(s) {}".format(
+          self.partitions[trial][1]))
 
     results = ([], [])
     for i in self.partitions[trial][1]:
-      predicted = self.model.testModel(self.patterns[i]["pattern"])
+      predicted = self.model.testModel(i)
       results[0].append(predicted)
       results[1].append(self.patterns[i]["labels"])
 
@@ -271,7 +268,7 @@ class Runner(object):
   def writeOutClassifications(self):
     """Write the samples, actual, and predicted classes to a CSV."""
     headers = ("Tokenized sample", "Actual", "Predicted")
-    for trial, size in enumerate(self.trainSize):
+    for trial, _ in enumerate(self.trainSize):
       resultsDict = defaultdict(list)
       for i, sampleNum in enumerate(self.partitions[trial][1]):
         # Loop through the indices in the test set of this trial.
@@ -280,7 +277,7 @@ class Runner(object):
         actual = sorted([self.labelRefs[j] for j in self.results[trial][1][i]])
         resultsDict[sampleNum] = (sampleNum, sample, actual, pred)
 
-      resultsPath = os.path.join(self.modelPath,
+      resultsPath = os.path.join(self.model.modelDir,
                                  "results_trial" + str(trial) + ".csv")
       writeFromDict(resultsDict, headers, resultsPath)
 
@@ -304,20 +301,13 @@ class Runner(object):
           trialAccuracies)
 
       self.plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
-      self.plotter.plotCumulativeAccuracies(classificationAccuracies,
-          self.trainSize)
+      self.plotter.plotCumulativeAccuracies(
+          classificationAccuracies, self.trainSize)
 
       if self.plots > 1:
         # Plot extra evaluation figures -- confusion matrix.
         self.plotter.plotConfusionMatrix(
             self.setupConfusionMatrices(resultCalcs))
-
-
-  def save(self):
-    """Save the serialized model."""
-    print "Saving model to \'{0}\' directory.".format(self.modelPath)
-    with open(os.path.join(self.modelPath, "model.pkl"), "wb") as f:
-      pkl.dump(self.model, f)
 
 
   def partitionIndices(self, split, trial):

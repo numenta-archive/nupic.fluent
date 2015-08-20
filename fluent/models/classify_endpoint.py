@@ -5,15 +5,15 @@
 # following terms and conditions apply:
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 3 as
+# it under the terms of the GNU Affero Public License version 3 as
 # published by the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU General Public License for more details.
+# See the GNU Affero Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Affero Public License
 # along with this program.  If not, see http://www.gnu.org/licenses.
 #
 # http://numenta.org/licenses/
@@ -36,11 +36,15 @@ class ClassificationModelEndpoint(ClassificationModel):
   From the experiment runner, the methods expect to be fed one sample at a time.
   """
 
-  def __init__(self, verbosity=1, numLabels=3):
+  def __init__(self,
+               verbosity=1,
+               numLabels=3,
+               modelDir="ClassificationModelEndpoint"):
     """
-    Initialize the encoder as CioEncoder; requires a valid API key.
+    Initializes the encoder as CioEncoder; requires a valid API key.
     """
-    super(ClassificationModelEndpoint, self).__init__(verbosity, numLabels)
+    super(ClassificationModelEndpoint, self).__init__(
+        verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
     self.compareEncoder = LanguageEncoder()
@@ -53,7 +57,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.positives = defaultdict(list)
 
 
-  def encodePattern(self, sample):
+  def encodeSample(self, sample):
     """
     Encode an SDR of the input string by querying the Cortical.io API.
 
@@ -72,13 +76,11 @@ class ClassificationModelEndpoint(ClassificationModel):
     if fpInfo:
       fp = {"text":fpInfo["text"] if "text" in fpInfo else fpInfo["term"],
             "sparsity":fpInfo["sparsity"],
-            "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])
-            }
+            "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])}
     else:
       fp = {"text":sample,
             "sparsity":float(self.w)/self.n,
-            "bitmap":self.encodeRandomly(sample)
-            }
+            "bitmap":self.encodeRandomly(sample)}
 
     return fp
 
@@ -90,7 +92,7 @@ class ClassificationModelEndpoint(ClassificationModel):
     self.categoryBitmaps.clear()
 
 
-  def trainModel(self, samples, labels, negatives=None):
+  def trainModel(self, i, negatives=None):
     """
     Train the classifier on the input sample and label. Use Cortical.io's
     createClassification to make a bitmap that represents the class
@@ -104,6 +106,8 @@ class ClassificationModelEndpoint(ClassificationModel):
                                         text, sparsity and bitmap for the
                                         negative samples.
     """
+    samples = [self.patterns[i]["pattern"]]
+    labels = [self.patterns[i]["labels"]]
     labelsToUpdateBitmaps = set()
     for sample, sampleLabels in zip(samples, labels):
       for label in sampleLabels:
@@ -124,9 +128,10 @@ class ClassificationModelEndpoint(ClassificationModel):
           str(label),
           self.positives[label],
           self.negatives[label])["positions"]
+      self.sampleReference.append(i)
 
 
-  def testModel(self, sample, numLabels=3, metric="overlappingAll"):
+  def testModel(self, i, numLabels=3, metric="overlappingAll"):
     """
     Test the Cortical.io classifier on the input sample. Returns a dictionary
     containing various distance metrics between the sample and the classes.
@@ -136,7 +141,7 @@ class ClassificationModelEndpoint(ClassificationModel):
                                       specified metric. The number of items
                                       returned will be <= numLabels.
     """
-    sampleBitmap = sample["bitmap"].tolist()
+    sampleBitmap = self.patterns[i]["pattern"]["bitmap"].tolist()
 
     distances = defaultdict(list)
     for cat, catBitmap in self.categoryBitmaps.iteritems():
@@ -227,3 +232,13 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     return numpy.array(
         [distances.keys()[catIdx] for catIdx in sortedIdx[:numLabels]])
+
+
+  @staticmethod
+  def query():
+    print "The Classification Endpoint model doesn't support this method."
+
+
+  @staticmethod
+  def infer():
+    print "The Classification Endpoint model doesn't support this method."

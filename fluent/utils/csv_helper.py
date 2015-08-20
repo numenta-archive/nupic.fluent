@@ -5,15 +5,15 @@
 # following terms and conditions apply:
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 3 as
+# it under the terms of the GNU Affero Public License version 3 as
 # published by the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU General Public License for more details.
+# See the GNU Affero Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Affero Public License
 # along with this program.  If not, see http://www.gnu.org/licenses.
 #
 # http://numenta.org/licenses/
@@ -50,8 +50,8 @@ def readCSV(csvFile, sampleIdx, numLabels):
       labelIdx = range(sampleIdx + 1, sampleIdx + 1 + numLabels)
 
       for line in reader:
-        dataDict[int(line[0]) - 1] = (line[sampleIdx],
-                                      [line[i] for i in labelIdx if line[i]])
+        dataDict[line[0]] = (line[sampleIdx],
+                             [line[i] for i in labelIdx if line[i]])
     
       return dataDict
 
