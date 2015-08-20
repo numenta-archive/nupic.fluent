@@ -20,7 +20,6 @@
 # ----------------------------------------------------------------------
 
 import numpy
-import pandas
 import shutil
 import unittest
 
@@ -34,6 +33,15 @@ from fluent.models.classify_keywords import ClassificationModelKeywords
 
 class ClassificationModelTest(unittest.TestCase):
   """Test the functionality of the classification models."""
+  
+  def setUp(self):
+    self.modelDir = None
+
+
+  def tearDown(self):
+    if self.modelDir:
+      shutil.rmtree(self.modelDir)
+
 
   def testWinningLabels(self):
     """
@@ -116,13 +124,11 @@ class ClassificationModelTest(unittest.TestCase):
               (["Abra"], numpy.array([1])),
               (["Squirtle"], numpy.array([1, 0, 1]))]
 
-    patterns = [{"pattern": model.encodePattern(s[0]),
-                 "labels": s[1]}
-                for s in samples]
+    patterns = model.encodeSamples(samples)
     for i in xrange(len(samples)):
-      model.trainModel([patterns[i]["pattern"]], [patterns[i]["labels"]])
+      model.trainModel(i)
 
-    output = [model.testModel(p["pattern"]) for p in patterns]
+    output = [model.testModel(i) for i in xrange(len(patterns))]
 
     self.assertSequenceEqual(output[0].tolist(), [2, 0],
                              "Incorrect output for first sample.")
@@ -184,7 +190,8 @@ class ClassificationModelTest(unittest.TestCase):
 
   def testModelSaveAndLoad(self):
     # Keywords model uses the base class implementations of save/load methods.
-    model = ClassificationModelKeywords()
+    self.modelDir = "poke_model"
+    model = ClassificationModelKeywords(modelDir=self.modelDir, verbosity=0)
     
     samples =[(["Pickachu"], numpy.array([0, 2, 2])),
               (["Eevee"], numpy.array([2])),
@@ -192,25 +199,48 @@ class ClassificationModelTest(unittest.TestCase):
               (["Abra"], numpy.array([1])),
               (["Squirtle"], numpy.array([1, 0, 1]))]
 
-    patterns = [{"pattern": model.encodePattern(s[0]),
-                 "labels": s[1]}
-                for s in samples]
+    patterns = model.encodeSamples(samples)
     for i in xrange(len(samples)):
-      model.trainModel([patterns[i]["pattern"]], [patterns[i]["labels"]])
+      model.trainModel(i)
 
-    output = [model.testModel(p["pattern"]) for p in patterns]
+    output = [model.testModel(i) for i in xrange(len(patterns))]
 
-    modelPath = "poke_model.pkl"
-    model.saveModel(modelPath)
+    model.saveModel()
 
-    loadedModel = ClassificationModel().loadModel(modelPath)
-    loadedModelOutput = [loadedModel.testModel(p["pattern"]) for p in patterns]
+    loadedModel = ClassificationModel(verbosity=0).loadModel(self.modelDir)
+    loadedModelOutput = [loadedModel.testModel(i)
+                         for i in xrange(len(patterns))]
     
     for mClasses, lClasses in zip(output, loadedModelOutput):
       self.assertSequenceEqual(mClasses.tolist(), lClasses.tolist(), "Output "
           "classifcations from loaded model don't match original model's.")
 
-    shutil.rmtree(modelPath)
+
+  def testQueryMethods(self):
+    """Tests the queryModel() and infer() methods in ClassifactionModel base."""
+    model = ClassificationModelFingerprint(verbosity=0)
+
+    samples =[(["Pickachu"], numpy.array([0, 2, 2])),
+              (["Eevee"], numpy.array([2])),
+              (["Charmander"], numpy.array([0, 1, 1])),
+              (["Abra"], numpy.array([1])),
+              (["Squirtle"], numpy.array([1, 0, 1]))]
+
+    model.encodeSamples(samples)
+    for i in xrange(len(samples)):
+      model.trainModel(i)
+
+    self.assertSequenceEqual([0, 0, 0, 1, 2, 2, 2, 3, 4, 4, 4],
+        model.sampleReference, "List of indices for samples trained on does "
+        "not match the expected.")
+
+    ind, dist = model.queryModel("Bulbasaur", False)
+
+    self.assertSequenceEqual([4, 2, 1, 0], ind,
+        "Query results are not the expected list of sample indices.")
+    self.assertSequenceEqual(
+        [0.4736842215061188, 0.5, 0.8157894611358643, 0.9736841917037964],
+        dist.tolist(), "Query results are not the expected list of distances.")
 
 
 if __name__ == "__main__":

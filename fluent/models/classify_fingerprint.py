@@ -39,9 +39,11 @@ class ClassificationModelFingerprint(ClassificationModel):
   def __init__(self,
                verbosity=1,
                numLabels=3,
+               modelDir="ClassificationModelFingerprint",
                fingerprintType=EncoderTypes.document):
 
-    super(ClassificationModelFingerprint, self).__init__(verbosity, numLabels)
+    super(ClassificationModelFingerprint, self).__init__(
+        verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     # Init kNN classifier and Cortical.io encoder; need valid API key (see
     # CioEncoder init for details).
@@ -59,7 +61,7 @@ class ClassificationModelFingerprint(ClassificationModel):
     self.w = int((self.encoder.targetSparsity/100)*self.n)
 
 
-  def encodePattern(self, sample):
+  def encodeSample(self, sample):
     """
     Encode an SDR of the input string by querying the Cortical.io API. If the
     client returns None, we create a random SDR with the model's dimensions n
@@ -80,18 +82,16 @@ class ClassificationModelFingerprint(ClassificationModel):
     if fpInfo:
       fp = {"text":fpInfo["text"] if "text" in fpInfo else fpInfo["term"],
             "sparsity":fpInfo["sparsity"],
-            "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])
-            }
+            "bitmap":numpy.array(fpInfo["fingerprint"]["positions"])}
     else:
       fp = {"text":sample,
             "sparsity":float(self.w)/self.n,
-            "bitmap":self.encodeRandomly(sample)
-            }
+            "bitmap":self.encodeRandomly(sample)}
 
     return fp
 
 
-  def trainModel(self, samples, labels):
+  def trainModel(self, i):
     """
     Train the classifier on the input sample and labels.
 
@@ -101,13 +101,16 @@ class ClassificationModelFingerprint(ClassificationModel):
                                       reference indices for the classifications
                                       of each sample.
     """
-    for sample, sample_labels in zip(samples, labels):
+    samples = [self.patterns[i]["pattern"]]
+    labels = [self.patterns[i]["labels"]]
+    for sample, sampleLabels in zip(samples, labels):
       if sample["bitmap"].any():
-        for label in sample_labels:
+        for label in sampleLabels:
           self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
+          self.sampleReference.append(i)
 
 
-  def testModel(self, sample, numLabels=3):
+  def testModel(self, i, numLabels=3):
     """
     Test the kNN classifier on the input sample. Returns the classification most
     frequent amongst the classifications of the sample's individual tokens.
@@ -121,5 +124,5 @@ class ClassificationModelFingerprint(ClassificationModel):
                                           values are int or empty.
     """
     (_, inferenceResult, _, _) = self.classifier.infer(
-      self._densifyPattern(sample["bitmap"]))
+        self._densifyPattern(self.patterns[i]["pattern"]["bitmap"]))
     return self.getWinningLabels(inferenceResult, numLabels)
