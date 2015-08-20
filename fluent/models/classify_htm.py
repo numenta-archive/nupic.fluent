@@ -5,15 +5,15 @@
 # following terms and conditions apply:
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 3 as
+# it under the terms of the GNU Affero Public License version 3 as
 # published by the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU General Public License for more details.
+# See the GNU Affero Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Affero Public License
 # along with this program.  If not, see http://www.gnu.org/licenses.
 #
 # http://numenta.org/licenses/
@@ -21,7 +21,7 @@
 
 import numpy
 
-from classification.classification_network import createNetwork
+from classification_network import createNetwork
 from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
 from nupic.data.file_record_stream import FileRecordStream
@@ -33,8 +33,15 @@ class ClassificationModelHTM(ClassificationModel):
   Class to run the survey response classification task with nupic network
   """
 
-  def __init__(self, inputFilePath, verbosity=1, numLabels=3, spTrainingSize=0,
-               tmTrainingSize=0, clsTrainingSize=0, classifierType="KNN"):
+  def __init__(self,
+               inputFilePath,
+               verbosity=1,
+               numLabels=3,
+               modelDir="ClassificationModelHTM",
+               spTrainingSize=0,
+               tmTrainingSize=0,
+               clsTrainingSize=0,
+               classifierType="KNN"):
     """
     @param inputFilePath      (str)       Path to data formatted for network
                                           API
@@ -54,37 +61,37 @@ class ClassificationModelHTM(ClassificationModel):
     self.tmTrainingSize = tmTrainingSize
     self.clsTrainingSize = clsTrainingSize
 
-    super(ClassificationModelHTM, self).__init__(verbosity=verbosity,
-      numLabels=numLabels)
+    super(ClassificationModelHTM, self).__init__(
+        verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     # Initialize Network
     self.classifierType = classifierType
     self.recordStream = FileRecordStream(streamID=inputFilePath)
     self.encoder = CioEncoder(cacheDir="./experiments/cache")
+    self.network = None
+    self.numTrained = 0
+    self.oldClassifications = None
+    self.lengthOfCurrentSequence = 0
     self._initModel()
 
 
   def _initModel(self):
     """Initialize the network and related variables"""
     if self.classifierType == "CLA":
-      classifier_params = {
-        "steps": "1",
-        "implementation": "py",
-        "clVerbosity": self.verbosity
-      }
+      classifierParams = {"steps": "1",
+                          "implementation": "py",
+                          "clVerbosity": self.verbosity}
     elif self.classifierType == "KNN":
-      classifier_params = {
-        "k": self.numLabels,
-        "distThreshold": 0,
-        "maxCategoryCount": self.numLabels
-      }
+      classifierParams = {"k": self.numLabels,
+                          "distThreshold": 0,
+                          "maxCategoryCount": self.numLabels}
     else:
       raise ValueError("Classifier type {} is not supported.".format(
-        self.classifierType))
+          self.classifierType))
 
     self.network = createNetwork(
-      self.recordStream, "py.LanguageSensor", self.encoder, self.numLabels,
-      "py.{}ClassifierRegion".format(self.classifierType), classifier_params)
+        self.recordStream, "py.LanguageSensor", self.encoder, self.numLabels,
+        "py.{}ClassifierRegion".format(self.classifierType), classifierParams)
 
     self.network.initialize()
 
@@ -96,12 +103,8 @@ class ClassificationModelHTM(ClassificationModel):
     temporalMemoryRegion.setParameter("learningMode", False)
     classifierRegion.setParameter("learningMode", False)
 
-    self.numTrained = 0
-    self.oldClassifications = None
-    self.lengthOfCurrentSequence = 0
 
-
-  def encodePattern(self, sample):
+  def encodeSample(self, sample):
     """
     Put each token in its own dictionary with its bitmap
     @param sample     (list)            Tokenized sample, where each item is a
@@ -188,8 +191,8 @@ class ClassificationModelHTM(ClassificationModel):
       activeCells = temporalMemoryRegion.getOutputData("bottomUpOut")
       patternNZ = activeCells.nonzero()[0]
       clResults = classifierRegion.getSelf().customCompute(
-        recordNum=self.numTrained, patternNZ=patternNZ,
-        classification=classificationIn)
+          recordNum=self.numTrained, patternNZ=patternNZ,
+          classification=classificationIn)
 
       return clResults[int(classifierRegion.getParameter("steps"))]
 
@@ -226,8 +229,8 @@ class ClassificationModelHTM(ClassificationModel):
       self.lengthOfCurrentSequence += 1
       self.oldClassifications += (numpy.array(inferredValue) * i)
 
-    orderedInferredValues = sorted(enumerate(self.oldClassifications),
-      key=lambda x: x[1], reverse=True)
+    orderedInferredValues = sorted(enumerate(
+        self.oldClassifications), key=lambda x: x[1], reverse=True)
 
     labels = zip(*orderedInferredValues)[0]
     return numpy.array(labels[:numLabels])

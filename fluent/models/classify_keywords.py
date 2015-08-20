@@ -5,24 +5,22 @@
 # following terms and conditions apply:
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License version 3 as
+# it under the terms of the GNU Affero Public License version 3 as
 # published by the Free Software Foundation.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU General Public License for more details.
+# See the GNU Affero Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Affero Public License
 # along with this program.  If not, see http://www.gnu.org/licenses.
 #
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
 import copy
-import numpy
 import os
-import random
 
 from fluent.models.classification_model import ClassificationModel
 from nupic.algorithms.KNNClassifier import KNNClassifier
@@ -43,9 +41,15 @@ class ClassificationModelKeywords(ClassificationModel):
   TODO: use nupic.bindings.math import Random
   """
 
-  def __init__(self, n=100, w=20, verbosity=1, numLabels=3):
-    super(ClassificationModelKeywords, self).__init__(n, w, verbosity,
-                                                       numLabels)
+  def __init__(self,
+               n=100,
+               w=20,
+               verbosity=1,
+               numLabels=3,
+               modelDir="ClassificationModelKeywords"):
+
+    super(ClassificationModelKeywords, self).__init__(
+        n, w, verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     self.classifier = KNNClassifier(exact=True,
                                     distanceMethod='rawOverlap',
@@ -53,7 +57,7 @@ class ClassificationModelKeywords(ClassificationModel):
                                     verbosity=verbosity-1)
 
 
-  def encodePattern(self, sample):
+  def encodeSample(self, sample):
     """
     Randomly encode an SDR of the input strings. We seed the random number
     generator such that a given string will yield the same SDR each time this
@@ -66,39 +70,32 @@ class ClassificationModelKeywords(ClassificationModel):
     """
     patterns = []
     for token in sample:
-      patterns.append({
-                        "text":token,
-                        "sparsity":float(self.w)/self.n,
-                        "bitmap":self.encodeRandomly(token)
-                        })
+      patterns.append({"text":token,
+                       "sparsity":float(self.w)/self.n,
+                       "bitmap":self.encodeRandomly(token)})
     return patterns
 
 
-  def writeOutEncodings(self, patterns, path):
+  def writeOutEncodings(self):
     """
     Log the encoding dictionaries to a txt file; overrides the superclass
     implementation.
     """
-    if not os.path.isdir(path):
+    if not os.path.isdir(self.modelDir):
       raise ValueError("Invalid path to write file.")
 
     # Cast numpy arrays to list objects for serialization.
-    jsonPatterns = copy.deepcopy(patterns)
+    jsonPatterns = copy.deepcopy(self.patterns)
     for jp in jsonPatterns:
       for tokenPattern in jp["pattern"]:
         tokenPattern["bitmap"] = tokenPattern.get("bitmap", None).tolist()
       jp["labels"] = jp.get("labels", None).tolist()
 
-    with open(os.path.join(path, "encoding_log.txt"), "w") as f:
+    with open(os.path.join(self.modelDir, "encoding_log.txt"), "w") as f:
       f.write(json.dumps(jsonPatterns, indent=1))
 
 
-  def resetModel(self):
-    """Reset the model by clearing the classifier."""
-    self.classifier.clear()
-
-
-  def trainModel(self, samples, labels):
+  def trainModel(self, i):
     """
     Train the classifier on the input sample and label. This model is unique in
     that a single sample contains multiple encoded patterns.
@@ -111,14 +108,18 @@ class ClassificationModelKeywords(ClassificationModel):
     """
     # This experiment classifies individual tokens w/in each sample. Train the
     # classifier on each token.
-    for sample, sample_labels in zip(samples, labels):
+    samples = [self.patterns[i]["pattern"]]
+    labels = [self.patterns[i]["labels"]]
+    for sample, sampleLabels in zip(samples, labels):
       for token in sample:
-        if not token: continue
-        for label in sample_labels:
+        if not token:
+          continue
+        for label in sampleLabels:
           self.classifier.learn(token["bitmap"], label, isSparse=self.n)
+          self.sampleReference.append(i)
 
 
-  def testModel(self, sample, numLabels=3):
+  def testModel(self, i, numLabels=3):
     """
     Test the classifier on the input sample. Returns the classifications
     most frequent amongst the classifications of the sample's individual tokens.
@@ -132,11 +133,12 @@ class ClassificationModelKeywords(ClassificationModel):
                                             samples; values are int or empty.
     """
     totalInferenceResult = None
-    for idx, s in enumerate(sample):
-      if not s: continue
+    for pattern in self.patterns[i]["pattern"]:
+      if not pattern:
+        continue
 
       (_, inferenceResult, _, _) = self.classifier.infer(
-        self._densifyPattern(s["bitmap"]))
+          self._densifyPattern(pattern["bitmap"]))
 
       if totalInferenceResult is None:
         totalInferenceResult = inferenceResult
