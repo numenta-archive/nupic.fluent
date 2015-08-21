@@ -31,7 +31,8 @@ import pprint
 import random
 import string
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
+
 from fluent.utils.csv_helper import readCSV
 from fluent.utils.text_preprocess import TextPreprocess
 
@@ -54,11 +55,12 @@ class NetworkDataGenerator(object):
     Note: a reset marks the first item of a new sequence.
     """
     self.records = []
-    self.fieldNames = ["_token", "_categories", "_sequenceID", "_reset"]
+    self.fieldNames = ["_token", "_categories", "_sequenceID", "_reset", "ID"]
     self.types = {"_token": "string",
                   "_categories": "list",
                   "_sequenceID": "int",
-                  "_reset": "int"}
+                  "_reset": "int",
+                  "ID": "string"}
     self.specials = {"_token": "",
                      "_categories": "C",
                      "_sequenceID": "S",
@@ -87,8 +89,8 @@ class NetworkDataGenerator(object):
     expandAbbr = (abbrCSV != "")
     expandContr = (contrCSV != "")
 
-    for i, idx in enumerate(dataDict.keys()):
-      comment, categories = dataDict[idx]
+    for i, uniqueID in enumerate(dataDict.keys()):
+      comment, categories = dataDict[uniqueID]
       # Convert the categories to a string of their IDs
       categories = string.join([str(self.categoryToId[c]) for c in categories])
 
@@ -107,6 +109,7 @@ class NetworkDataGenerator(object):
         tokenRecord = record.copy()
         tokenRecord["_token"] = t
         tokenRecord["_reset"] = reset
+        tokenRecord["ID"] = uniqueID
         reset = 0
         data.append(tokenRecord)
 
@@ -142,7 +145,7 @@ class NetworkDataGenerator(object):
     if not os.path.exists(categoriesOutputDirectory):
       os.makedirs(categoriesOutputDirectory)
 
-    with open(dataOutputFile, 'w') as f:
+    with open(dataOutputFile, "w") as f:
       # Header
       writer = csv.DictWriter(f, fieldnames=self.fieldNames)
       writer.writeheader()
@@ -157,21 +160,22 @@ class NetworkDataGenerator(object):
         for record in data:
           writer.writerow(record)
 
-    with open(categoriesOutputFile, 'w') as f:
+    with open(categoriesOutputFile, "w") as f:
       f.write(json.dumps(self.categoryToId,
                          sort_keys=True,
                          indent=4,
-                         separators=(',', ': ')))
+                         separators=(",", ": ")))
 
     return dataOutputFile
 
 
   def reset(self):
     self.records = []
-    self.fieldNames = ["token", "_sequenceID", "_reset"]
+    self.fieldNames = ["token", "_sequenceID", "_reset", "ID"]
     self.types = {"token": "string",
                   "_sequenceID": "int",
-                  "_reset": "int"}
+                  "_reset": "int",
+                  "ID": "string"}
     self.specials = {"token": "",
                      "_sequenceID": "S",
                      "_reset": "R"}
@@ -182,10 +186,10 @@ class NetworkDataGenerator(object):
   @staticmethod
   def getSamples(networkDataFile):
     """
-    Returns the a list of samples joined at reset points
+    Returns samples joined at reset points.
     @param networkDataFile  (str)     Path to file in the FileRecordStream
                                       format
-    @return                 (list)    list of list of strings
+    @return
     """
     try:
       with open(networkDataFile) as f:
@@ -194,17 +198,22 @@ class NetworkDataGenerator(object):
         next(reader, None)
         resetIdx = next(reader).index("R")
         tokenIdx = header.index("_token")
+        catIdx = header.index("_categories")
+        idIdx = header.index("ID")
 
         currentSample = []
-        samples = []
+        samples = OrderedDict()
         for i, line in enumerate(reader):
           if int(line[resetIdx]) == 1:
             if len(currentSample) != 0:
-              samples.append([" ".join(currentSample)])
+              samples[line[idIdx]] = ([" ".join(currentSample)],
+                                      [int(c) for c in line[catIdx].split(" ")])
             currentSample = [line[tokenIdx]]
           else:
             currentSample.append(line[tokenIdx])
-        samples.append([" ".join(currentSample)])
+        samples[line[idIdx]] = ([" ".join(currentSample)],
+                                [int(c) for c in line[catIdx].split(" ")])
+
         return samples
 
     except IOError as e:

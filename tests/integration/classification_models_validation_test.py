@@ -208,7 +208,7 @@ class ClassificationModelsTest(unittest.TestCase):
     the model's classifications should match those in the expected classes
     data file.
     """
-    runner = HTMRunner(dataPath=os.path.join(DATA_DIR, "responses_network.csv"),
+    runner = HTMRunner(dataPath=os.path.join(DATA_DIR, "responses.csv"),
                        resultsDir="",
                        experimentName="htm_test",
                        load=False,
@@ -219,7 +219,7 @@ class ClassificationModelsTest(unittest.TestCase):
                        orderedSplit=True,
                        trainSize=[5],
                        verbosity=0,
-                       generateData=False,
+                       generateData=True,
                        votingMethod="last",
                        classificationFile=os.path.join(
                          DATA_DIR, "responses_classifications.json"),

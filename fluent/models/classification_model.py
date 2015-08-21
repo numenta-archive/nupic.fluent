@@ -430,10 +430,14 @@ class ClassificationModel(object):
   def encodeSamples(self, samples):
     """
     Encode samples and store in self.patterns, write out encodings to a file.
+
+    @param samples    (dict)      Keys are sample IDs, values are two-tuples:
+                                  list of tokens (str) and list of labels (int).
     """
-    self.patterns = [{"pattern": self.encodeSample(s[0]),
+    self.patterns = [{"ID": i,
+                      "pattern": self.encodeSample(s[0]),
                       "labels": s[1]}
-                     for s in samples]
+                     for i, s in samples.iteritems()]
     self.writeOutEncodings()
     return self.patterns
 

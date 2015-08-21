@@ -25,7 +25,7 @@ import numpy
 import os
 import random
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from fluent.utils.csv_helper import readCSV, writeFromDict
 from fluent.utils.plotting import PlotNLP
 
@@ -91,7 +91,7 @@ class Runner(object):
     self.labels = None
     self.labelRefs = None
     self.partitions = []
-    self.samples = None
+    self.samples = OrderedDict()
     self.patterns = None
     self.results = []
     self.model = None
@@ -150,18 +150,16 @@ class Runner(object):
 
 
   def _preprocess(self, preprocess):
-    """Tokenize the samples, with or without preprocessing."""
+    """Tokenize the samples with or without preprocessing."""
     texter = TextPreprocess()
     if preprocess:
-      self.samples = [(texter.tokenize(data[0],
-                                       ignoreCommon=100,
-                                       removeStrings=["[identifier deleted]"],
-                                       correctSpell=True),
-                       data[1]) for _, data in self.dataDict.iteritems()]
+      for uniqueID, data in self.dataDict.iteritems():
+        self.samples[uniqueID] = (texter.tokenize(
+            data[0], ignoreCommon=100, removeStrings=["[identifier deleted]"],
+            correctSpell=True), data[1])
     else:
-      self.samples = [(texter.tokenize(data[0]), data[1])
-                      for _, data in self.dataDict.iteritems()]
-
+      for uniqueID, data in self.dataDict.iteritems():
+        self.samples[uniqueID] = (texter.tokenize(data[0]), data[1])
     ## GET THE IDS, USE IN MODELS' sampleReference structure
 
 
@@ -184,7 +182,7 @@ class Runner(object):
     self._preprocess(preprocess)
 
     if self.verbosity > 1:
-      for i, s in enumerate(self.samples):
+      for i, s in self.samples.iteritems():
         print i, s
 
 
@@ -273,7 +271,7 @@ class Runner(object):
       resultsDict = defaultdict(list)
       for i, sampleNum in enumerate(self.partitions[trial][1]):
         # Loop through the indices in the test set of this trial.
-        sample = self.samples[sampleNum][0]
+        sample = self.samples.values()[sampleNum][0]
         pred = sorted([self.labelRefs[j] for j in self.results[trial][0][i]])
         actual = sorted([self.labelRefs[j] for j in self.results[trial][1][i]])
         resultsDict[sampleNum] = (sampleNum, sample, actual, pred)

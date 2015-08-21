@@ -67,9 +67,8 @@ class ClassificationModelFingerprint(ClassificationModel):
     client returns None, we create a random SDR with the model's dimensions n
     and w.
 
-    @param sample     (list)            Tokenized sample, where each item is a
-                                        string token.
-    @return fp        (dict)            The sample text, sparsity, and bitmap.
+    @param sample     (list)        Tokenized sample, where each item is a str.
+    @return fp        (dict)        The sample text, sparsity, and bitmap.
     Example return dict:
       {
         "text": "Example text",
@@ -93,35 +92,26 @@ class ClassificationModelFingerprint(ClassificationModel):
 
   def trainModel(self, i):
     """
-    Train the classifier on the input sample and labels.
+    Train the classifier on the sample and labels for record i. The list
+    sampleReference is populated to correlate classifier prototypes to sample
+    IDs.
 
-    @param samples    (list)          List of dictionaries containing the
-                                      sample text, sparsity, and bitmap.
-    @param labels     (list)          List of numpy arrays containing the
-                                      reference indices for the classifications
-                                      of each sample.
+    TODO: add batch training, where i is a list
     """
-    samples = [self.patterns[i]["pattern"]]
-    labels = [self.patterns[i]["labels"]]
-    for sample, sampleLabels in zip(samples, labels):
-      if sample["bitmap"].any():
-        for label in sampleLabels:
-          self.classifier.learn(sample["bitmap"], label, isSparse=self.n)
-          self.sampleReference.append(i)
+    bitmap = self.patterns[i]["pattern"]["bitmap"]
+    if bitmap.any():
+      for label in self.patterns[i]["labels"]:
+        self.classifier.learn(bitmap, label, isSparse=self.n)
+        self.sampleReference.append(self.patterns[i]["ID"])
 
 
   def testModel(self, i, numLabels=3):
     """
-    Test the kNN classifier on the input sample. Returns the classification most
-    frequent amongst the classifications of the sample's individual tokens.
-    We ignore the terms that are unclassified, picking the most frequent
-    classification among those that are detected.
+    Test the model on record i.
 
-    @param sample         (dict)          The sample text, sparsity, and bitmap.
-    @param numLabels      (int)           Number of predicted classifications.
-    @return               (numpy array)   The numLabels most-frequent
-                                          classifications for the data samples;
-                                          values are int or empty.
+    @param numLabels  (int)           Number of classification predictions.
+    @return           (numpy array)   numLabels most-frequent classifications
+                                      for the data samples; int or empty.
     """
     (_, inferenceResult, _, _) = self.classifier.infer(
         self._densifyPattern(self.patterns[i]["pattern"]["bitmap"]))
