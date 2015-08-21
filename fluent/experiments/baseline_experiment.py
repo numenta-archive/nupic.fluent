@@ -70,8 +70,9 @@ def runExperiment(model, patterns, idxSplits, batch):
   @return                             Return same as testing().
   """
   model.resetModel()
-  training(model, [patterns[i] for i in idxSplits[0]], batch)
-  return testing(model, [patterns[i] for i in idxSplits[1]])
+  model.patterns = patterns
+  training(model, idxSplits[0], batch)
+  return testing(model, idxSplits[1])
 
 
 def training(model, trainSet, batch):
@@ -81,13 +82,8 @@ def training(model, trainSet, batch):
   @param batch          (bool)        Whether or not to train on all the data
                                       in a batch
   """
-  if batch:
-    samples = [s["pattern"] for s in trainSet]
-    labels = [s["labels"] for s in trainSet]
-    model.trainModel(samples, labels)
-  else:
-    for sample in trainSet:
-      model.trainModel([sample["pattern"]], [sample["labels"]])
+  for i in trainSet:
+    model.trainModel(i)
 
 
 def testing(model, evalSet):
@@ -100,10 +96,10 @@ def testing(model, evalSet):
       actual classifications.
   """
   trialResults = ([], [])
-  for sample in evalSet:
-    predicted = model.testModel(sample["pattern"])
+  for i in evalSet:
+    predicted = model.testModel(i)
     trialResults[0].append(predicted)
-    trialResults[1].append(sample["labels"])
+    trialResults[1].append(model.patterns[i]["labels"])
   return trialResults
 
 
@@ -229,20 +225,22 @@ def run(args):
 
   print "Encoding the data."
   encodeTime = time.time()
-  patterns = [{"pattern": model.encodePattern(s[0]),
+  patterns = [{"pattern": model.encodeSample(s[0]),
               "labels": s[1]}
               for s in samples]
 
   print("Done encoding; elapsed time is {0:.2f} seconds.".
         format(time.time() - encodeTime))
-  model.writeOutEncodings(patterns, modelPath)
+  model.writeOutEncodings()
 
   # Either we train on all the data, test on all the data, or run k-fold CV.
   if args.train:
-    training(model, patterns, args.batch)
+    model.patterns = patterns
+    training(model, range(len(patterns)), args.batch)
 
   if args.test:
-    results = testing(model, patterns)
+    model.patterns = patterns
+    results = testing(model, range(len(patterns)))
     resultMetrics = calculateResults(
       model, results, labelReference, xrange(len(samples)),
       os.path.join(modelPath, "test_results.csv"))
