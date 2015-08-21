@@ -21,12 +21,26 @@
 
 from setuptools import setup
 
+
+def findRequirements():
+  """
+  Read the requirements.txt file and parse into requirements for setup's
+  install_requirements option.
+  """
+  return [
+    line.strip()
+    for line in open("requirements.txt").readlines()
+    if not line.startswith("#")
+  ]
+
+
 setup(name='Fluent',
       version='0.2',
       description=('A platform for building language / NLP-based '
-                   'applications using NuPIC and cortical.io REST.'),
+                   'applications using NuPIC and Cortical.io\'s API.'),
       author='Alexander Lavin',
       author_email='alavin@numenta.com',
       url='https://github.com/numenta/nupic.fluent',
       packages=['fluent'],
+      install_requires=findRequirements(),
      )

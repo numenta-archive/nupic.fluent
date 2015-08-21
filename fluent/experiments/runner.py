@@ -27,7 +27,6 @@ import random
 
 from collections import defaultdict, OrderedDict
 from fluent.utils.csv_helper import readCSV, writeFromDict
-from fluent.utils.plotting import PlotNLP
 
 from fluent.utils.text_preprocess import TextPreprocess
 
@@ -85,6 +84,7 @@ class Runner(object):
       os.makedirs(self.modelDir)
 
     if self.plots:
+      from fluent.utils.plotting import PlotNLP
       self.plotter = PlotNLP()
 
     self.dataDict = None

@@ -21,7 +21,9 @@ The motivation here is we would like to move quickly in research while maintaini
 Requirements:
 
 - [NuPIC](https://github.com/numenta/nupic)
+- [NuPIC.research/classification](https://github.com/numenta/nupic.research/tree/master/classification); this repo does not have a setup.py, so it should be included on your Python path (see command below).
 - [cortipy](https://github.com/numenta/cortipy)
+- Python modules [enum](https://pypi.python.org/pypi/enum34), [pandas](http://pandas.pydata.org/), and [numpy](http://www.numpy.org/); included in the setup script below.
 
 You must have a valid REST API key from [Cortical.io](http://www.cortical.io/developers.html).
 
@@ -29,9 +31,13 @@ To install, run:
 
     python setup.py install
 
-Then, set up the following environment variables with your REST API credentials:
+Then, set up the following environment variables with your Cortical.io REST API credentials:
 
     export CORTICAL_API_KEY=api_key
+
+Add nupic.research/classification to your Python path:
+
+	export PYTHONPATH=$PYTHONPATH:/<path_to_nupic.research/classification>
 
 ## Usage
 
