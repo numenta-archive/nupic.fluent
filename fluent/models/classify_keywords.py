@@ -52,7 +52,7 @@ class ClassificationModelKeywords(ClassificationModel):
         n, w, verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     self.classifier = KNNClassifier(exact=True,
-                                    distanceMethod='rawOverlap',
+                                    distanceMethod="rawOverlap",
                                     k=numLabels,
                                     verbosity=verbosity-1)
 
@@ -97,40 +97,30 @@ class ClassificationModelKeywords(ClassificationModel):
 
   def trainModel(self, i):
     """
-    Train the classifier on the input sample and label. This model is unique in
-    that a single sample contains multiple encoded patterns.
+    Train the classifier on the sample and labels for record i. The list
+    sampleReference is populated to correlate classifier prototypes to sample
+    IDs. This model is unique in that a single sample contains multiple encoded
+    patterns.
 
-    @param samples    (list)          List of list of dicts, each representing
-                                      the encoding of one token in a sample.
-    @param labels     (list)          List of numpy arrays containing the
-                                      reference indices for the classifications
-                                      of each sample.
+    TODO: add batch training, where i is a list
     """
-    # This experiment classifies individual tokens w/in each sample. Train the
-    # classifier on each token.
-    samples = [self.patterns[i]["pattern"]]
-    labels = [self.patterns[i]["labels"]]
-    for sample, sampleLabels in zip(samples, labels):
-      for token in sample:
-        if not token:
-          continue
-        for label in sampleLabels:
+    for token in self.patterns[i]["pattern"]:
+      if token["bitmap"].any():
+        for label in self.patterns[i]["labels"]:
           self.classifier.learn(token["bitmap"], label, isSparse=self.n)
-          self.sampleReference.append(i)
+          self.sampleReference.append(self.patterns[i]["ID"])
 
 
   def testModel(self, i, numLabels=3):
     """
-    Test the classifier on the input sample. Returns the classifications
+    Test the model on record i.  Returns the classifications
     most frequent amongst the classifications of the sample's individual tokens.
     We ignore the terms that are unclassified, picking the most frequent
     classifications among those that are detected.
-    @param sample           (list)          List of dict encodings, one for each
-                                            token in the sample.
-    @param numLabels        (int)           Number of predicted classifications.
-    @return                 (numpy array)   The numLabels most-frequent
-                                            classifications for the data
-                                            samples; values are int or empty.
+
+    @param numLabels  (int)           Number of classification predictions.
+    @return           (numpy array)   numLabels most-frequent classifications
+                                      for the data samples; int or empty.
     """
     totalInferenceResult = None
     for pattern in self.patterns[i]["pattern"]:

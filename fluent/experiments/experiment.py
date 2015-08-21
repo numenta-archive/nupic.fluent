@@ -133,7 +133,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
   parser.add_argument("dataPath",
-                      help="absolute path to data CSV or folder of CSVs.")
+                      help="path to data CSV or folder of CSVs.")
   parser.add_argument("--test",
                       default=None,
                       help="Path to data CSV to use for testing if provided. "

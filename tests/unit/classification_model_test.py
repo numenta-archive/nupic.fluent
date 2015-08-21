@@ -118,11 +118,11 @@ class ClassificationModelTest(unittest.TestCase):
     """Tests simple classification with multiple labels for Keywords model."""
     model = ClassificationModelKeywords()
 
-    samples =[(["Pickachu"], numpy.array([0, 2, 2])),
-              (["Eevee"], numpy.array([2])),
-              (["Charmander"], numpy.array([0, 1, 1])),
-              (["Abra"], numpy.array([1])),
-              (["Squirtle"], numpy.array([1, 0, 1]))]
+    samples = {0: (["Pickachu"], numpy.array([0, 2, 2])),
+               1: (["Eevee"], numpy.array([2])),
+               2: (["Charmander"], numpy.array([0, 1, 1])),
+               3: (["Abra"], numpy.array([1])),
+               4: (["Squirtle"], numpy.array([1, 0, 1]))}
 
     patterns = model.encodeSamples(samples)
     for i in xrange(len(samples)):
@@ -193,11 +193,11 @@ class ClassificationModelTest(unittest.TestCase):
     self.modelDir = "poke_model"
     model = ClassificationModelKeywords(modelDir=self.modelDir, verbosity=0)
     
-    samples =[(["Pickachu"], numpy.array([0, 2, 2])),
-              (["Eevee"], numpy.array([2])),
-              (["Charmander"], numpy.array([0, 1, 1])),
-              (["Abra"], numpy.array([1])),
-              (["Squirtle"], numpy.array([1, 0, 1]))]
+    samples = {0: (["Pickachu"], numpy.array([0, 2, 2])),
+               1: (["Eevee"], numpy.array([2])),
+               2: (["Charmander"], numpy.array([0, 1, 1])),
+               3: (["Abra"], numpy.array([1])),
+               4: (["Squirtle"], numpy.array([1, 0, 1]))}
 
     patterns = model.encodeSamples(samples)
     for i in xrange(len(samples)):
@@ -220,11 +220,11 @@ class ClassificationModelTest(unittest.TestCase):
     """Tests the queryModel() and infer() methods in ClassifactionModel base."""
     model = ClassificationModelFingerprint(verbosity=0)
 
-    samples =[(["Pickachu"], numpy.array([0, 2, 2])),
-              (["Eevee"], numpy.array([2])),
-              (["Charmander"], numpy.array([0, 1, 1])),
-              (["Abra"], numpy.array([1])),
-              (["Squirtle"], numpy.array([1, 0, 1]))]
+    samples = {0: (["Pickachu"], numpy.array([0, 2, 2])),
+               1: (["Eevee"], numpy.array([2])),
+               2: (["Charmander"], numpy.array([0, 1, 1])),
+               3: (["Abra"], numpy.array([1])),
+               4: (["Squirtle"], numpy.array([1, 0, 1]))}
 
     model.encodeSamples(samples)
     for i in xrange(len(samples)):

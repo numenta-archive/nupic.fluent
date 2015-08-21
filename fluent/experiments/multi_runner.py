@@ -120,16 +120,16 @@ class MultiRunner(Runner):
                             for idx, data in self.testDict.iteritems()]
 
 
-  def setupData(self, preprocess=False, sampleIdx=2):
+  def setupData(self, preprocess=False):
     """
     Get the data from a directory and preprocess if specified.
     One index in labelIdx implies the model will train on a single
     classification per sample.
     """
-    self.dataDict = readDir(self.dataPath, sampleIdx, self.numClasses, True)
+    self.dataDict = readDir(self.dataPath, self.numClasses, True)
 
     if self.test:
-      self.testDict = readCSV(self.test, sampleIdx, self.numClasses)
+      self.testDict = readCSV(self.test, self.numClasses)
 
     minCategorySize = min(map(len, self.dataDict.values()))
     if not (isinstance(self.trainSize, list) or

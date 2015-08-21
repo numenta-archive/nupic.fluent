@@ -94,34 +94,28 @@ class ClassificationModelEndpoint(ClassificationModel):
 
   def trainModel(self, i, negatives=None):
     """
-    Train the classifier on the input sample and label. Use Cortical.io's
-    createClassification to make a bitmap that represents the class
+    Train the classifier on the sample and labels for record i. Use
+    Cortical.io's createClassification() to make a bitmap that represents the
+    class. The list sampleReference is populated to correlate classifier
+    prototypes to sample IDs.
 
-    @param samples    (list)            List of dictionaries containing the
-                                        sample text, sparsity, and bitmap.
-    @param labels     (list)            List of numpy arrays containing the
-                                        reference indices for the
-                                        classifications of each sample.
-    @param negatives  (list)            Each item is the dictionary containing
+    @param negative   (list)            Each item is the dictionary containing
                                         text, sparsity and bitmap for the
                                         negative samples.
-    """
-    samples = [self.patterns[i]["pattern"]]
-    labels = [self.patterns[i]["labels"]]
-    labelsToUpdateBitmaps = set()
-    for sample, sampleLabels in zip(samples, labels):
-      for label in sampleLabels:
-        fpInfo = self.encoder.encode(sample["text"])
-        if sample["text"] and fpInfo:
-          self.positives[label].append(sample["text"])
 
-          # Only add negatives when training on one sample so we know which
-          # labels to use
-          if negatives and len(samples) == 1:
-            for neg in negatives:
-              if neg["text"]:
-                self.negatives[label].append(neg["text"])
-          labelsToUpdateBitmaps.add(label)
+    TODO: add batch training, where i is a list; note we should only add
+          negatives when training on one sample so we know which labels to use.
+    """
+    record = self.patterns[i]
+    labelsToUpdateBitmaps = set()
+    for label in record["labels"]:
+      if record["pattern"]["text"] and record["pattern"]["bitmap"].any():
+        self.positives[label].append(record["pattern"]["text"])
+        if negatives:
+          for neg in negatives:
+            if neg["text"]:
+              self.negatives[label].append(neg["text"])
+        labelsToUpdateBitmaps.add(label)
 
     for label in labelsToUpdateBitmaps:
       self.categoryBitmaps[label] = self.encoder.createCategory(
@@ -133,13 +127,13 @@ class ClassificationModelEndpoint(ClassificationModel):
 
   def testModel(self, i, numLabels=3, metric="overlappingAll"):
     """
-    Test the Cortical.io classifier on the input sample. Returns a dictionary
+    Test on record i. The Cortical.io classifier returns a dictionary
     containing various distance metrics between the sample and the classes.
 
-    @param sample         (dict)      The sample text, sparsity, and bitmap.
-    @return               (list)      Winning classifications based on the
-                                      specified metric. The number of items
-                                      returned will be <= numLabels.
+    @param numLabels  (int)           Number of classification predictions.
+    @param metric     (str)           Distance metric use by classifier.
+    @return           (numpy array)   numLabels most-frequent classifications
+                                      for the data samples; int or empty.
     """
     sampleBitmap = self.patterns[i]["pattern"]["bitmap"].tolist()
 

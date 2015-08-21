@@ -202,9 +202,9 @@ class ClassificationModelHTM(ClassificationModel):
   def testModel(self, numLabels=3):
     """
     Test the KNN/CLA classifier on the input sample.
-    @param numLabels      (int)           Number of predicted classifications.
-    @return               (numpy array)   The numLabels most-frequent
-                                          classifications for the data sample
+    @param numLabels  (int)           Number of classification predictions.
+    @return           (numpy array)   numLabels most-frequent classifications
+                                      for the data samples; int or empty.
     """
     sensorRegion = self.network.regions["sensor"]
     spatialPoolerRegion = self.network.regions["SP"]
