@@ -40,7 +40,7 @@ class ClassificationModelFingerprint(ClassificationModel):
                verbosity=1,
                numLabels=3,
                modelDir="ClassificationModelFingerprint",
-               fingerprintType=EncoderTypes.document):
+               fingerprintType=EncoderTypes.word):
 
     super(ClassificationModelFingerprint, self).__init__(
         verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)

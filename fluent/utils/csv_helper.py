@@ -57,8 +57,8 @@ def readCSV(csvFile, numLabels):
       dataDict = OrderedDict()
       for line in reader:
         dataDict[line[idIdx]] = (line[sampleIdx],
-                             [line[i] for i in labelIdx if line[i]])
-      
+                                 [line[i] for i in labelIdx if line[i]])
+
       return dataDict
 
   except IOError as e:
@@ -69,12 +69,12 @@ def readDir(dirPath, numLabels, modify=False):
   """
   Reads in data from a directory of CSV files; assumes the directory only
   contains CSV files.
-  
+
   @param dirPath            (str)          Path to the directory.
   @param numLabels          (int)          Number of columns of category labels.
   @param modify             (bool)         Map the unix friendly category names
                                            to the actual names. 0 -> /, _ -> " "
-  
+
   @return samplesDict       (defaultdict)  Keys are CSV names, values are
       OrderedDicts, where the keys/values are as specified in readCSV().
   """

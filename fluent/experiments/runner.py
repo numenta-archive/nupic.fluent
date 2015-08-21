@@ -160,7 +160,6 @@ class Runner(object):
     else:
       for uniqueID, data in self.dataDict.iteritems():
         self.samples[uniqueID] = (texter.tokenize(data[0]), data[1])
-    ## GET THE IDS, USE IN MODELS' sampleReference structure
 
 
   def setupData(self, preprocess=False):

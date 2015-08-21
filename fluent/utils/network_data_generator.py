@@ -72,8 +72,8 @@ class NetworkDataGenerator(object):
 
 
   def split(self, filename, numLabels, textPreprocess, abbrCSV="",
-      contrCSV="", ignoreCommon=100, removeStrings="[identifier deleted]",
-      correctSpell=True, **kwargs):
+            contrCSV="", ignoreCommon=100, removeStrings="[identifier deleted]",
+            correctSpell=True):
     """
     Split all the comments in a file into tokens. Preprocess if necessary.
     @param filename        (str)    Path to csv file
@@ -95,8 +95,9 @@ class NetworkDataGenerator(object):
       categories = string.join([str(self.categoryToId[c]) for c in categories])
 
       if textPreprocess:
-        tokens = preprocessor.tokenize(comment, ignoreCommon, removeStrings,
-            correctSpell, expandAbbr, expandContr)
+        tokens = preprocessor.tokenize(
+            comment, ignoreCommon, removeStrings, correctSpell, expandAbbr,
+            expandContr)
       else:
         tokens = preprocessor.tokenize(comment)
 
@@ -120,7 +121,7 @@ class NetworkDataGenerator(object):
     random.shuffle(self.records)
 
 
-  def saveData(self, dataOutputFile, categoriesOutputFile, **kwargs):
+  def saveData(self, dataOutputFile, categoriesOutputFile):
     """
     Save the processed data and the associated category mapping.
     @param dataOutputFile       (str)   Location to save data
@@ -203,7 +204,7 @@ class NetworkDataGenerator(object):
 
         currentSample = []
         samples = OrderedDict()
-        for i, line in enumerate(reader):
+        for line in reader:
           if int(line[resetIdx]) == 1:
             if len(currentSample) != 0:
               samples[line[idIdx]] = ([" ".join(currentSample)],
@@ -242,7 +243,7 @@ class NetworkDataGenerator(object):
         classIdx = specials.index("C")
 
         classifications = []
-        for i, line in enumerate(reader):
+        for line in reader:
           if int(line[resetIdx]) == 1:
             classifications.append(line[classIdx])
         return classifications
@@ -269,7 +270,7 @@ class NetworkDataGenerator(object):
 
         count = 0
         numTokens = []
-        for i, line in enumerate(reader):
+        for line in reader:
           if int(line[resetIdx]) == 1:
             if count != 0:
               numTokens.append(count)
