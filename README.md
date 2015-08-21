@@ -37,7 +37,7 @@ Then, set up the following environment variables with your Cortical.io REST API 
 
 Add nupic.research/classification to your Python path:
 
-	export PYTHONPATH=$PYTHONPATH:/<path_to_nupic.research>
+	export PYTHONPATH=$PYTHONPATH:/<path_to_nupic.research/classification>
 
 ## Usage
 
