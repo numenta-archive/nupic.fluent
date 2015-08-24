@@ -93,7 +93,7 @@ class HTMRunner(Runner):
       raise e
 
 
-  def setupData(self, preprocess=False, sampleIdx=2, **kwargs):
+  def setupData(self, preprocess=False, **kwargs):
     """
     Generate the data in network API format if necessary. self.dataFiles is
     populated with the paths of network data files, one for each trial
@@ -103,8 +103,7 @@ class HTMRunner(Runner):
     """
     if self.generateData:
       ndg = NetworkDataGenerator()
-      ndg.split(self.dataPath, sampleIdx, self.numClasses, preprocess,
-        **kwargs)
+      ndg.split(self.dataPath, self.numClasses, preprocess, **kwargs)
 
       filename, ext = os.path.splitext(self.dataPath)
       self.classificationFile = "{}-classifications.json".format(filename)

@@ -115,12 +115,12 @@ def calculateResults(model, results, refs, indices, fileName):
   return result
 
 
-def computeExpectedAccuracy(predictedLabels, dataPath):
+def computeExpectedAccuracy(predictedLabels, dataPath, numLabels):
   """
   Compute the accuracy of the models predictions against what we expect it to
   predict; considers only single classification.
   """
-  dataDict = readCSV(dataPath, 2, [3])
+  dataDict = readCSV(dataPath, numLabels)
   expectedLabels = [data[1] for _, data in dataDict.iteritems()]
 
   if len(expectedLabels) != len(predictedLabels):
@@ -141,7 +141,7 @@ def setupData(args):
       the list of all possible labels, and the fourth is the labels per example
       in the data.
   """
-  dataDict = readCSV(args.dataPath, 2, args.numLabels)
+  dataDict = readCSV(args.dataPath, args.numLabels)
 
   # Collect each possible label string into a list, where the indices will be
   # their references throughout the experiment.
@@ -289,8 +289,10 @@ def run(args):
     # TODO: csv writing broken until ClassificationModel confusion matrix is fixed
     # results["total_cm"].to_csv(os.path.join(modelPath, "evaluation_totals.csv"))
     if args.expectationDataPath:
-      computeExpectedAccuracy(list(itertools.chain.from_iterable(predictions)),
-        os.path.abspath(os.path.join(root, '../..', args.expectationDataPath)))
+      computeExpectedAccuracy(
+          list(itertools.chain.from_iterable(predictions)),
+          os.path.abspath(os.path.join(root, "../..", args.expectationDataPath)),
+          args.numLabels)
 
   ## TODO:
   # print "Calculating random classifier results for comparison."
