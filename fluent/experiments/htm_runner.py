@@ -50,7 +50,7 @@ class HTMRunner(Runner):
                numClasses,
                plots,
                orderedSplit,
-               trainSize,
+               trainSizes,
                verbosity,
                generateData=True,
                votingMethod="last",
@@ -78,7 +78,7 @@ class HTMRunner(Runner):
 
     super(HTMRunner, self).__init__(dataPath, resultsDir, experimentName, load,
                                     modelName, modelModuleName, numClasses,
-                                    plots, orderedSplit, trainSize, verbosity)
+                                    plots, orderedSplit, trainSizes, verbosity)
 
 
   def _mapLabelRefs(self):
@@ -107,7 +107,7 @@ class HTMRunner(Runner):
 
       filename, ext = os.path.splitext(self.dataPath)
       self.classificationFile = "{}-classifications.json".format(filename)
-      for i in xrange(len(self.trainSize)):
+      for i in xrange(len(self.trainSizes)):
         if not self.orderedSplit:
           ndg.randomizeData()
         dataFile = "{}-{}{}".format(filename, i, ext)
@@ -120,10 +120,10 @@ class HTMRunner(Runner):
         print "Classification json is at: {}".format(self.classificationFile)
     else:
       # Does an orderedSplit
-      self.dataFiles = [self.dataPath] * len(self.trainSize)
+      self.dataFiles = [self.dataPath] * len(self.trainSizes)
 
     self.actualLabels = [self._getClassifications(size, i)
-      for i, size in enumerate(self.trainSize)]
+      for i, size in enumerate(self.trainSizes)]
 
     self._mapLabelRefs()
 
@@ -141,8 +141,8 @@ class HTMRunner(Runner):
       try:
         module = __import__(self.modelModuleName, {}, {}, self.modelName)
         modelClass = getattr(module, self.modelName)
-        tmTrainingSize = self.trainSize[trial] / 3.0
-        clsTrainingSize = 2 * self.trainSize[trial] / 3.0
+        tmTrainingSize = self.trainSizes[trial] / 3.0
+        clsTrainingSize = 2 * self.trainSizes[trial] / 3.0
         # import pdb; pdb.set_trace()
         self.model = modelClass(self.dataFiles[trial],
                                 verbosity=self.verbosity,
@@ -185,8 +185,8 @@ class HTMRunner(Runner):
       for numTokens in self.partitions[trial][0]:
         indices.append(i)
         i += numTokens
-      print "\tRunner selects to train on sample(s) {}".format(indices)
-
+      print ("\tRunner selects to train on sequences starting at indices {}.".
+            format(indices))
     for numTokens in self.partitions[trial][0]:
       for _ in xrange(numTokens):
         self.model.trainModel()

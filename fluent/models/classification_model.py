@@ -375,7 +375,7 @@ class ClassificationModel(object):
 
 
   @staticmethod
-  def printFinalReport(trainSize, accuracies):
+  def printFinalReport(trainSizes, accuracies):
     """
     Prints result accuracies.
 
@@ -385,7 +385,7 @@ class ClassificationModel(object):
     print "Evaluation results for this experiment:"
     print template.format("Size of training set", "Accuracy")
     for i, a in enumerate(accuracies):
-      print template.format(trainSize[i], a)
+      print template.format(trainSizes[i], a)
 
 
   def queryModel(self, query, preprocess):
