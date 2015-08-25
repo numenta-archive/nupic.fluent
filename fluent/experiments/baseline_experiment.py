@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # ----------------------------------------------------------------------
 # Numenta Platform for Intelligent Computing (NuPIC)
 # Copyright (C) 2015, Numenta, Inc.  Unless you have purchased from
@@ -36,13 +37,9 @@ Notes:
 
 
 import argparse
-import cPickle as pkl
-import itertools
-import numpy
 import os
 import pprint
 import time
-from collections import defaultdict
 
 from fluent.experiments.runner import Runner
 #from fluent.experiments.multi_runner import MultiRunner
@@ -108,11 +105,11 @@ def run(args):
   if args.modelName != "ClassificationModelHTM":
     # The data isn't ready yet to initialize an htm model
     runner.initModel()
-    
+
   print "Reading in data and preprocessing."
   dataTime = time.time()
   runner.setupData(args.textPreprocess)
-  
+
   # TODO: move kfolds splitting to Runner
   random = False if args.orderedSplit else True
   runner.partitions = KFolds(args.kFolds).split(
@@ -128,10 +125,10 @@ def run(args):
 
   runner.runExperiment()
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
-  
+
   resultCalcs = runner.calculateResults()
   _ = runner.model.evaluateCumulativeResults(resultCalcs)
-  
+
   print "Saving..."
   runner.model.saveModel()
 

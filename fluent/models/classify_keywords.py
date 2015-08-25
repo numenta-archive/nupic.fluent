@@ -128,7 +128,7 @@ class ClassificationModelKeywords(ClassificationModel):
         continue
 
       (_, inferenceResult, _, _) = self.classifier.infer(
-          self._densifyPattern(pattern["bitmap"]))
+          self._sparsifyPattern(pattern["bitmap"]))
 
       if totalInferenceResult is None:
         totalInferenceResult = inferenceResult

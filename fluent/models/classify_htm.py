@@ -155,6 +155,7 @@ class ClassificationModelHTM(ClassificationModel):
       classifierRegion.setParameter("learningMode", True)
 
     self.network.run(1)
+    # self.sampleReference doesn't get populated b/c in a network model there's a 1-to-1 mapping of training samples
 
     # TODO: delete after Marion's PR is merged
     # https://github.com/numenta/nupic/pull/2415
@@ -214,9 +215,9 @@ class ClassificationModelHTM(ClassificationModel):
     spatialPoolerRegion.setParameter("learningMode", False)
     temporalMemoryRegion.setParameter("learningMode", False)
     classifierRegion.setParameter("learningMode", False)
-
+    # import pdb; pdb.set_trace()
     self.network.run(1)
-
+    # import pdb; pdb.set_trace()
     inferredValue = self._classify()
     reset = sensorRegion.getOutputData("resetOut")[0]
 
@@ -234,3 +235,9 @@ class ClassificationModelHTM(ClassificationModel):
 
     labels = zip(*orderedInferredValues)[0]
     return numpy.array(labels[:numLabels])
+
+
+  def infer(self, pattern):
+    """
+    """
+    import pdb; pdb.set_trace()

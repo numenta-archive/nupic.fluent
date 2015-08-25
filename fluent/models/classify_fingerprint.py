@@ -99,6 +99,7 @@ class ClassificationModelFingerprint(ClassificationModel):
     TODO: add batch training, where i is a list
     """
     bitmap = self.patterns[i]["pattern"]["bitmap"]
+    import pdb; pdb.set_trace()
     if bitmap.any():
       for label in self.patterns[i]["labels"]:
         self.classifier.learn(bitmap, label, isSparse=self.n)
@@ -114,5 +115,5 @@ class ClassificationModelFingerprint(ClassificationModel):
                                       for the data samples; int or empty.
     """
     (_, inferenceResult, _, _) = self.classifier.infer(
-        self._densifyPattern(self.patterns[i]["pattern"]["bitmap"]))
+        self._sparsifyPattern(self.patterns[i]["pattern"]["bitmap"]))
     return self.getWinningLabels(inferenceResult, numLabels)

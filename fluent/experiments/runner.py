@@ -163,6 +163,12 @@ class Runner(object):
         self.samples[uniqueID] = (texter.tokenize(data[0]), data[1])
 
 
+  # def _populateLabels(self):
+  #   """Fill in labels for the purpose of training on the samples."""
+  #   for uniqueID, data in self.dataDict.iteritems():
+  #     self.dataDict[uniqueID] = (data[0], [0])
+
+
   def setupData(self, preprocess=False):
     """
     Get the data from CSV and preprocess if specified. The call to readCSV()
@@ -180,6 +186,11 @@ class Runner(object):
     self._mapLabelRefs()
 
     self._preprocess(preprocess)
+
+    # import pdb; pdb.set_trace()
+    # if self.numClasses == 0:
+    #   # Data samples are not labeled
+    #   self._populateLabels()
 
     if self.verbosity > 1:
       for i, s in self.samples.iteritems():
@@ -233,14 +244,14 @@ class Runner(object):
       if self.verbosity > 0:
         print "\tTraining for run {0} of {1}.".format(
             i + 1, len(self.trainSizes))
-      self.training(i)
+      self._training(i)
 
       if self.verbosity > 0:
         print "\tTesting for this run."
-      self.testing(i)
+      self._testing(i)
 
 
-  def training(self, trial):
+  def _training(self, trial):
     """
     Train the model one-by-one on each pattern specified in this trials
     partition of indices. Models' training methods require the sample and label
@@ -254,7 +265,7 @@ class Runner(object):
       self.model.trainModel(i)
 
 
-  def testing(self, trial):
+  def _testing(self, trial):
     if self.verbosity > 0:
       print ("\tRunner selects to test on sample(s) {}".format(
           self.partitions[trial][1]))
