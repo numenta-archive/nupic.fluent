@@ -243,11 +243,5 @@ class ClassificationModelTest(unittest.TestCase):
         dist.tolist(), "Query results are not the expected list of distances.")
 
 
-#  def testQueryHTMModel(self):
-#    model = ClassifactionModelHTM(verbosity=0)
-#
-#    pass
-
-
 if __name__ == "__main__":
   unittest.main()

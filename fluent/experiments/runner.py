@@ -45,11 +45,11 @@ class Runner(object):
                load,
                modelName,
                modelModuleName,
-               numClasses,
-               plots,
-               orderedSplit,
-               trainSizes,
-               verbosity):
+               numClasses=3,
+               plots=0,
+               orderedSplit=False,
+               trainSizes=None,
+               verbosity=0):
     """
     @param dataPath         (str)     Path to raw data file for the experiment.
     @param resultsDir       (str)     Directory where for the results metrics.
@@ -76,7 +76,7 @@ class Runner(object):
     self.numClasses = numClasses
     self.plots = plots
     self.orderedSplit = orderedSplit
-    self.trainSizes = trainSizes
+    self.trainSizes = trainSizes if trainSizes else []
     self.verbosity = verbosity
 
     self.modelDir = os.path.join(
