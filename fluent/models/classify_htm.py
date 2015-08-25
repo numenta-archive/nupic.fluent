@@ -155,6 +155,7 @@ class ClassificationModelHTM(ClassificationModel):
       classifierRegion.setParameter("learningMode", True)
 
     self.network.run(1)
+    # self.sampleReference doesn't get populated b/c in a network model there's a 1-to-1 mapping of training samples
 
     # TODO: delete after Marion's PR is merged
     # https://github.com/numenta/nupic/pull/2415

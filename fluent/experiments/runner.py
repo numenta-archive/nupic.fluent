@@ -45,11 +45,11 @@ class Runner(object):
                load,
                modelName,
                modelModuleName,
-               numClasses,
-               plots,
-               orderedSplit,
-               trainSizes,
-               verbosity):
+               numClasses=3,
+               plots=0,
+               orderedSplit=False,
+               trainSizes=None,
+               verbosity=0):
     """
     @param dataPath         (str)     Path to raw data file for the experiment.
     @param resultsDir       (str)     Directory where for the results metrics.
@@ -76,7 +76,7 @@ class Runner(object):
     self.numClasses = numClasses
     self.plots = plots
     self.orderedSplit = orderedSplit
-    self.trainSizes = trainSizes
+    self.trainSizes = trainSizes if trainSizes else []
     self.verbosity = verbosity
 
     self.modelDir = os.path.join(
@@ -233,14 +233,14 @@ class Runner(object):
       if self.verbosity > 0:
         print "\tTraining for run {0} of {1}.".format(
             i + 1, len(self.trainSizes))
-      self.training(i)
+      self._training(i)
 
       if self.verbosity > 0:
         print "\tTesting for this run."
-      self.testing(i)
+      self._testing(i)
 
 
-  def training(self, trial):
+  def _training(self, trial):
     """
     Train the model one-by-one on each pattern specified in this trials
     partition of indices. Models' training methods require the sample and label
@@ -254,7 +254,7 @@ class Runner(object):
       self.model.trainModel(i)
 
 
-  def testing(self, trial):
+  def _testing(self, trial):
     if self.verbosity > 0:
       print ("\tRunner selects to test on sample(s) {}".format(
           self.partitions[trial][1]))

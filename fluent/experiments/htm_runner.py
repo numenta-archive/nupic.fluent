@@ -47,11 +47,11 @@ class HTMRunner(Runner):
                load,
                modelName,
                modelModuleName,
-               numClasses,
-               plots,
-               orderedSplit,
-               trainSizes,
-               verbosity,
+               numClasses=3,
+               plots=0,
+               orderedSplit=False,
+               trainSizes=None,
+               verbosity=0,
                generateData=True,
                votingMethod="last",
                classificationFile="",
@@ -122,10 +122,11 @@ class HTMRunner(Runner):
       # Does an orderedSplit
       self.dataFiles = [self.dataPath] * len(self.trainSizes)
 
-    self.actualLabels = [self._getClassifications(size, i)
-      for i, size in enumerate(self.trainSizes)]
-
-    self._mapLabelRefs()
+    if self.numClasses > 0:
+      # Setup labels data objects
+      self.actualLabels = [self._getClassifications(size, i)
+        for i, size in enumerate(self.trainSizes)]
+      self._mapLabelRefs()
 
 
   def resetModel(self, trial):
@@ -143,7 +144,7 @@ class HTMRunner(Runner):
         modelClass = getattr(module, self.modelName)
         tmTrainingSize = self.trainSizes[trial] / 3.0
         clsTrainingSize = 2 * self.trainSizes[trial] / 3.0
-        # import pdb; pdb.set_trace()
+
         self.model = modelClass(self.dataFiles[trial],
                                 verbosity=self.verbosity,
                                 tmTrainingSize=tmTrainingSize,
@@ -173,7 +174,7 @@ class HTMRunner(Runner):
              for classes in classifications][split:]
 
 
-  def training(self, trial):
+  def _training(self, trial):
     """
     Train the network on all the tokens in the training set for a particular
     trial
@@ -211,7 +212,7 @@ class HTMRunner(Runner):
       raise ValueError("voting method must be either \'last\' or \'most\'")
 
 
-  def testing(self, trial):
+  def _testing(self, trial):
     """
     Test the network on the test set for a particular trial and store the
     results

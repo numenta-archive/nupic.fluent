@@ -157,12 +157,12 @@ class ClassificationModel(object):
     return (randomLabels == labels).sum() / float(labels.shape[0])
 
 
-  def _densifyPattern(self, bitmap):
+  def _sparsifyPattern(self, bitmap):
     """Return a numpy array of 0s and 1s to represent the input bitmap."""
-    densePattern = numpy.zeros(self.n)
+    sparsePattern = numpy.zeros(self.n)
     for i in bitmap:
-      densePattern[i] = 1.0
-    return densePattern
+      sparsePattern[i] = 1.0
+    return sparsePattern
 
 
   @staticmethod
@@ -423,7 +423,7 @@ class ClassificationModel(object):
         distances are between 0.0 and 1.0
     """
     (_, _, dist, _) = self.classifier.infer(
-        self._densifyPattern(pattern["bitmap"]))
+        self._sparsifyPattern(pattern["bitmap"]))
     return dist
 
 
