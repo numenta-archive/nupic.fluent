@@ -215,9 +215,9 @@ class ClassificationModelHTM(ClassificationModel):
     spatialPoolerRegion.setParameter("learningMode", False)
     temporalMemoryRegion.setParameter("learningMode", False)
     classifierRegion.setParameter("learningMode", False)
-    # import pdb; pdb.set_trace()
+
     self.network.run(1)
-    # import pdb; pdb.set_trace()
+
     inferredValue = self._classify()
     reset = sensorRegion.getOutputData("resetOut")[0]
 
@@ -235,9 +235,3 @@ class ClassificationModelHTM(ClassificationModel):
 
     labels = zip(*orderedInferredValues)[0]
     return numpy.array(labels[:numLabels])
-
-
-  def infer(self, pattern):
-    """
-    """
-    import pdb; pdb.set_trace()
