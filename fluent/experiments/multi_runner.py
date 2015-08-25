@@ -45,7 +45,7 @@ class MultiRunner(Runner):
                numClasses,
                plots,
                orderedSplit,
-               trainSize,
+               trainSizes,
                verbosity,
                test=None):
     """
@@ -60,7 +60,8 @@ class MultiRunner(Runner):
     @param plots            (int)     Specifies plotting of evaluation metrics.
     @param orderedSplit     (bool)    Indicates method for splitting train/test
                                       samples; False is random, True is ordered.
-    @param trainSize        (str)     Number of samples to use in training.
+    @param trainSizes       (list)    Number of samples to use in training, per
+                                      trial.
     @param verbosity        (int)     Greater value prints out more progress.
     @param test             (str)     Path to raw data file for testing or None
 
@@ -73,7 +74,7 @@ class MultiRunner(Runner):
 
     super(MultiRunner, self).__init__(dataPath, resultsDir, experimentName, load,
                                       modelName, modelModuleName, numClasses, plots,
-                                      orderedSplit, trainSize, verbosity)
+                                      orderedSplit, trainSizes, verbosity)
 
     
   def _mapLabelRefs(self):
@@ -132,8 +133,8 @@ class MultiRunner(Runner):
       self.testDict = readCSV(self.test, self.numClasses)
 
     minCategorySize = min(map(len, self.dataDict.values()))
-    if not (isinstance(self.trainSize, list) or
-        all([0 <= size <= minCategorySize for size in self.trainSize])):
+    if not (isinstance(self.trainSizes, list) or
+        all([0 <= size <= minCategorySize for size in self.trainSizes])):
       raise ValueError("Invalid size(s) for training set.")
 
     self._mapLabelRefs()

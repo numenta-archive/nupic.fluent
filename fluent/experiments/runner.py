@@ -48,7 +48,7 @@ class Runner(object):
                numClasses,
                plots,
                orderedSplit,
-               trainSize,
+               trainSizes,
                verbosity):
     """
     @param dataPath         (str)     Path to raw data file for the experiment.
@@ -62,7 +62,8 @@ class Runner(object):
     @param plots            (int)     Specifies plotting of evaluation metrics.
     @param orderedSplit     (bool)    Indicates method for splitting train/test
                                       samples; False is random, True is ordered.
-    @param trainSize        (str)     Number of samples to use in training.
+    @param trainSizes       (list)    Number of samples to use in training, per
+                                      trial.
     @param verbosity        (int)     Greater value prints out more progress.
 
     """
@@ -75,7 +76,7 @@ class Runner(object):
     self.numClasses = numClasses
     self.plots = plots
     self.orderedSplit = orderedSplit
-    self.trainSize = trainSize
+    self.trainSizes = trainSizes
     self.verbosity = verbosity
 
     self.modelDir = os.path.join(
@@ -107,7 +108,7 @@ class Runner(object):
     # To handle multiple trials of the same size:
     # trialSize -> (category -> list of accuracies)
     trialAccuracies = defaultdict(lambda: defaultdict(lambda: numpy.ndarray(0)))
-    for i, size in enumerate(self.trainSize):
+    for i, size in enumerate(self.trainSizes):
       accuracies = self.model.calculateClassificationResults(self.results[i])
       for label, acc in accuracies:
         category = self.labelRefs[label]
@@ -128,7 +129,7 @@ class Runner(object):
         size.
     """
     # Need the accuracies to be ordered for the plot
-    trials = sorted(set(self.trainSize))
+    trials = sorted(set(self.trainSizes))
     # category -> list of list of accuracies
     classificationAccuracies = defaultdict(list)
     for trial in trials:
@@ -164,16 +165,16 @@ class Runner(object):
 
   def setupData(self, preprocess=False):
     """
-    Get the data from CSV and preprocess if specified.
-    One index in labelIdx implies the model will train on a single
-    classification per sample.
+    Get the data from CSV and preprocess if specified. The call to readCSV()
+    assumes a specific CSV format, detailed in its docstring.
+
     @param preprocess   (bool)    Whether or not to preprocess the data when
-                                  generating the files
+                                  reading in samples.
     """
     self.dataDict = readCSV(self.dataPath, self.numClasses)
 
-    if (not isinstance(self.trainSize, list) or not
-        all([0 <= size <= len(self.dataDict) for size in self.trainSize])):
+    if (not isinstance(self.trainSizes, list) or not
+        all([0 <= size <= len(self.dataDict) for size in self.trainSizes])):
       raise ValueError("Invalid size(s) for training set.")
 
     self._mapLabelRefs()
@@ -221,15 +222,19 @@ class Runner(object):
 
 
   def runExperiment(self):
-    """Train and test the model for each trial specified by self.trainSize."""
-    for i, size in enumerate(self.trainSize):
-      self.partitions.append(self.partitionIndices(size, i))
+    """Train and test the model for each trial specified by self.trainSizes."""
+    if not self.partitions:
+      # An experiment (e.g. k-folds) may do this elsewhere
+      self.partitionIndices()
 
+    for i, size in enumerate(self.trainSizes):
       self.resetModel(i)
+
       if self.verbosity > 0:
         print "\tTraining for run {0} of {1}.".format(
-            i + 1, len(self.trainSize))
+            i + 1, len(self.trainSizes))
       self.training(i)
+
       if self.verbosity > 0:
         print "\tTesting for this run."
       self.testing(i)
@@ -266,7 +271,7 @@ class Runner(object):
   def writeOutClassifications(self):
     """Write the samples, actual, and predicted classes to a CSV."""
     headers = ("Tokenized sample", "Actual", "Predicted")
-    for trial, _ in enumerate(self.trainSize):
+    for trial, _ in enumerate(self.trainSizes):
       resultsDict = defaultdict(list)
       for i, sampleNum in enumerate(self.partitions[trial][1]):
         # Loop through the indices in the test set of this trial.
@@ -289,41 +294,45 @@ class Runner(object):
     resultCalcs = [self.model.evaluateResults(self.results[i],
                                               self.labelRefs,
                                               self.partitions[i][1])
-                   for i in xrange(len(self.trainSize))]
+                   for i in xrange(len(self.partitions))]
 
-    self.model.printFinalReport(self.trainSize, [r[0] for r in resultCalcs])
+    self.model.printFinalReport(self.trainSizes, [r[0] for r in resultCalcs])
 
     if self.plots:
       trialAccuracies = self._calculateTrialAccuracies()
       classificationAccuracies = self._calculateClassificationAccuracies(
           trialAccuracies)
 
-      self.plotter.plotCategoryAccuracies(trialAccuracies, self.trainSize)
+      self.plotter.plotCategoryAccuracies(trialAccuracies, self.trainSizes)
       self.plotter.plotCumulativeAccuracies(
-          classificationAccuracies, self.trainSize)
+          classificationAccuracies, self.trainSizes)
 
       if self.plots > 1:
         # Plot extra evaluation figures -- confusion matrix.
         self.plotter.plotConfusionMatrix(
             self.setupConfusionMatrices(resultCalcs))
 
+    return resultCalcs
 
-  def partitionIndices(self, split, trial):
+
+  def partitionIndices(self):
     """
-    Returns train and test indices.
+    Partitions list of two-tuples of train and test indices for each trial.
 
     TODO: use StandardSplit in data_split.py
     """
     length = len(self.samples)
     if self.orderedSplit:
-      trainIdx = range(split)
-      testIdx = range(split, length)
+      for split in self.trainSizes:
+        trainIndices = range(split)
+        testIndices = range(split, length)
+        self.partitions.append((trainIndices, testIndices))
     else:
       # Randomly sampled, not repeated
-      trainIdx = random.sample(xrange(length), split)
-      testIdx = [i for i in xrange(length) if i not in trainIdx]
-
-    return (trainIdx, testIdx)
+      for split in self.trainSizes:
+        trainIndices = random.sample(xrange(length), split)
+        testIndices = [i for i in xrange(length) if i not in trainIndices]
+        self.partitions.append((trainIndices, testIndices))
 
 
   def validateExperiment(self, expectationFilePath):
@@ -336,7 +345,7 @@ class Runner(object):
         predictions = [self.labelRefs[p] for p in predictionList]
         if predictions == []:
           predictions = ["(none)"]
-        expected = dataDict.items()[j+self.trainSize[i]][1]
+        expected = dataDict.items()[j+self.trainSizes[i]][1]
 
         accuracies[i] += (float(len(set(predictions) & set(expected[1])))
                           / len(expected[1]))

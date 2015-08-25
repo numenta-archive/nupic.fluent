@@ -67,7 +67,7 @@ class ClassificationModelsTest(unittest.TestCase):
         if predictions == []:
           predictions = ["(none)"]
         resultClasses.append(predictions)
-        expectedClasses.append(dataDict.items()[j+runner.trainSize[i]][1][1])
+        expectedClasses.append(dataDict.items()[j+runner.trainSizes[i]][1][1])
 
     return expectedClasses, resultClasses
 
@@ -89,7 +89,7 @@ class ClassificationModelsTest(unittest.TestCase):
                     numClasses=3,
                     plots=0,
                     orderedSplit=True,
-                    trainSize=[5],
+                    trainSizes=[5],
                     verbosity=0)
     runner.initModel()
     self.runExperiment(runner)
@@ -124,7 +124,7 @@ class ClassificationModelsTest(unittest.TestCase):
                     numClasses=3,
                     plots=0,
                     orderedSplit=True,
-                    trainSize=[5],
+                    trainSizes=[5],
                     verbosity=0)
     runner.initModel()
     runner.model.encoder.fingerprintType = EncoderTypes.document
@@ -156,7 +156,7 @@ class ClassificationModelsTest(unittest.TestCase):
                     numClasses=3,
                     plots=0,
                     orderedSplit=True,
-                    trainSize=[5],
+                    trainSizes=[5],
                     verbosity=0)
     runner.initModel()
     runner.model.encoder.fingerprintType = EncoderTypes.word
@@ -187,7 +187,7 @@ class ClassificationModelsTest(unittest.TestCase):
                     numClasses=3,
                     plots=0,
                     orderedSplit=True,
-                    trainSize=[5],
+                    trainSizes=[5],
                     verbosity=0)
     runner.initModel()
     self.runExperiment(runner)
@@ -208,7 +208,7 @@ class ClassificationModelsTest(unittest.TestCase):
     the model's classifications should match those in the expected classes
     data file.
     """
-    runner = HTMRunner(dataPath=os.path.join(DATA_DIR, "responses.csv"),
+    runner = HTMRunner(dataPath=os.path.join(DATA_DIR, "responses_network.csv"),
                        resultsDir="",
                        experimentName="htm_test",
                        load=False,
@@ -217,9 +217,9 @@ class ClassificationModelsTest(unittest.TestCase):
                        numClasses=3,
                        plots=0,
                        orderedSplit=True,
-                       trainSize=[5],
+                       trainSizes=[5],
                        verbosity=0,
-                       generateData=True,
+                       generateData=False,
                        votingMethod="last",
                        classificationFile=os.path.join(
                          DATA_DIR, "responses_classifications.json"),

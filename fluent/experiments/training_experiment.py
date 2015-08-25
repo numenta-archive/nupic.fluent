@@ -65,7 +65,7 @@ def run(args):
                          numClasses=args.numClasses,
                          plots=args.plots,
                          orderedSplit=args.orderedSplit,
-                         trainSize=args.trainSize,
+                         trainSizes=args.trainSizes,
                          verbosity=args.verbosity,
                          test=args.test)
   elif args.modelName == "ClassificationModelHTM":
@@ -78,7 +78,7 @@ def run(args):
                        numClasses=args.numClasses,
                        plots=args.plots,
                        orderedSplit=args.orderedSplit,
-                       trainSize=args.trainSize,
+                       trainSizes=args.trainSizes,
                        verbosity=args.verbosity,
                        generateData=args.generateData,
                        votingMethod=args.votingMethod,
@@ -94,7 +94,7 @@ def run(args):
                     numClasses=args.numClasses,
                     plots=args.plots,
                     orderedSplit=args.orderedSplit,
-                    trainSize=args.trainSize,
+                    trainSizes=args.trainSizes,
                     verbosity=args.verbosity)
 
   if args.modelName != "ClassificationModelHTM":
@@ -119,7 +119,7 @@ def run(args):
   runner.calculateResults()
 
   print "Saving..."
-  runner.model.save()
+  runner.model.saveModel()
 
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 

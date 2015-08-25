@@ -150,7 +150,7 @@ class PlotNLP():
     print "Confusion matrix URL: ", plot_url
 
 
-  def plotCategoryAccuracies(self, trialAccuracies, trainSize):
+  def plotCategoryAccuracies(self, trialAccuracies, trainSizes):
     """
     Shows the accuracy for the categories at a certain training size
     
@@ -158,9 +158,9 @@ class PlotNLP():
         train size, there is a dictionary that maps a category to a list of 
         accuracies for that category.
     
-    @param trainSize          (list)    Size of training set for each trial.
+    @param trainSizes         (list)    Size of training set for each trial.
     """
-    sizes = sorted(set(trainSize))
+    sizes = sorted(set(trainSizes))
     size_sqrt = math.sqrt(len(sizes))
     subplotDimension = int(math.ceil(size_sqrt))
 
@@ -219,7 +219,7 @@ class PlotNLP():
     print "Category Accuracies URL: ", plot_url
 
 
-  def plotCumulativeAccuracies(self, classificationAccuracies, trainSize):
+  def plotCumulativeAccuracies(self, classificationAccuracies, trainSizes):
     """
     Creates scatter plots that show the accuracy for each category at a
     certain training size
@@ -228,14 +228,14 @@ class PlotNLP():
         lists of accuracies. Each item in the key is a list of accuracies for
         a specific training size, ordered by increasing training size.
         
-    @param trainSize                (list)    Sizes of training sets for trials.
+    @param trainSizes                (list)    Sizes of training sets for trials.
     """
     # Convert list of list of accuracies to list of means
     classificationSummaries = [(label, map(numpy.mean, acc))
         for label, acc in classificationAccuracies.iteritems()]
     
     data = []
-    sizes = sorted(set(trainSize))
+    sizes = sorted(set(trainSizes))
     for label, summary in classificationSummaries:
       data.append(Scatter(x=sizes, y=summary, name=label))
     data = Data(data)
