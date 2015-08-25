@@ -163,12 +163,6 @@ class Runner(object):
         self.samples[uniqueID] = (texter.tokenize(data[0]), data[1])
 
 
-  # def _populateLabels(self):
-  #   """Fill in labels for the purpose of training on the samples."""
-  #   for uniqueID, data in self.dataDict.iteritems():
-  #     self.dataDict[uniqueID] = (data[0], [0])
-
-
   def setupData(self, preprocess=False):
     """
     Get the data from CSV and preprocess if specified. The call to readCSV()
@@ -186,11 +180,6 @@ class Runner(object):
     self._mapLabelRefs()
 
     self._preprocess(preprocess)
-
-    # import pdb; pdb.set_trace()
-    # if self.numClasses == 0:
-    #   # Data samples are not labeled
-    #   self._populateLabels()
 
     if self.verbosity > 1:
       for i, s in self.samples.iteritems():

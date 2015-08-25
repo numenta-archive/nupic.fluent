@@ -174,7 +174,7 @@ class HTMRunner(Runner):
              for classes in classifications][split:]
 
 
-  def training(self, trial):
+  def _training(self, trial):
     """
     Train the network on all the tokens in the training set for a particular
     trial
@@ -212,7 +212,7 @@ class HTMRunner(Runner):
       raise ValueError("voting method must be either \'last\' or \'most\'")
 
 
-  def testing(self, trial):
+  def _testing(self, trial):
     """
     Test the network on the test set for a particular trial and store the
     results
