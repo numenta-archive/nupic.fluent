@@ -42,7 +42,7 @@ if "linux" in sys.platform and platform.linux_distribution()[0] == "CentOS":
                "https://pypi.numenta.com/pypi/nupic.bindings" ]
 
 setup(name="Fluent",
-      version="0.3",
+      version="0.2.1",
       description=("A platform for building language/NLP-based "
                    "applications using NuPIC and Cortical.io\'s API."),
       author="Alexander Lavin",
