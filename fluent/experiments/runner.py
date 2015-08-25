@@ -223,7 +223,6 @@ class Runner(object):
 
   def runExperiment(self):
     """Train and test the model for each trial specified by self.trainSizes."""
-    # import pdb; pdb.set_trace()
     if not self.partitions:
       # An experiment (e.g. k-folds) may do this elsewhere
       self.partitionIndices()
@@ -327,13 +326,13 @@ class Runner(object):
       for split in self.trainSizes:
         trainIndices = range(split)
         testIndices = range(split, length)
-        self.partitions.append(trainIndices, testIndices)
+        self.partitions.append((trainIndices, testIndices))
     else:
       # Randomly sampled, not repeated
       for split in self.trainSizes:
         trainIndices = random.sample(xrange(length), split)
         testIndices = [i for i in xrange(length) if i not in trainIndices]
-        self.partitions.append(trainIndices, testIndices)
+        self.partitions.append((trainIndices, testIndices))
 
 
   def validateExperiment(self, expectationFilePath):

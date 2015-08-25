@@ -255,11 +255,12 @@ class HTMRunner(Runner):
     super(HTMRunner, self).save()
 
 
-  def partitionIndices(self, split, trial):
+  def partitionIndices(self):
     """
-    Returns the number of tokens for each sample in the training and test set
-    when doing an ordered split
+    Sets self.partitions for the number of tokens for each sample in the
+    training and test sets (when doing an ordered split).
     """
-    dataFile = self.dataFiles[trial]
-    numTokens = NetworkDataGenerator.getNumberOfTokens(dataFile)
-    return (numTokens[:split], numTokens[split:])
+    for trial, split in enumerate(self.trainSizes):
+      dataFile = self.dataFiles[trial]
+      numTokens = NetworkDataGenerator.getNumberOfTokens(dataFile)
+      self.partitions.append((numTokens[:split], numTokens[split:]))
