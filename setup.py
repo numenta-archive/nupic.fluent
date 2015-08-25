@@ -18,6 +18,8 @@
 #
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
+import platform
+import sys
 
 from setuptools import setup
 
@@ -34,13 +36,19 @@ def findRequirements():
   ]
 
 
-setup(name='Fluent',
-      version='0.2',
-      description=('A platform for building language / NLP-based '
-                   'applications using NuPIC and Cortical.io\'s API.'),
-      author='Alexander Lavin',
-      author_email='alavin@numenta.com',
-      url='https://github.com/numenta/nupic.fluent',
-      packages=['fluent'],
+depLinks = []
+if "linux" in sys.platform and platform.linux_distribution()[0] == "CentOS":
+  depLinks = [ "https://pypi.numenta.com/pypi/nupic",
+               "https://pypi.numenta.com/pypi/nupic.bindings" ]
+
+setup(name="Fluent",
+      version="0.2",
+      description=("A platform for building language/NLP-based "
+                   "applications using NuPIC and Cortical.io\'s API."),
+      author="Alexander Lavin",
+      author_email="alavin@numenta.com",
+      url="https://github.com/numenta/nupic.fluent",
+      packages=["fluent"],
       install_requires=findRequirements(),
+      dependency_links = depLinks,
      )

@@ -2,3 +2,4 @@
 enum==0.4.4
 pandas==0.16.2
 numpy==1.9.2
+nupic==0.2.11
