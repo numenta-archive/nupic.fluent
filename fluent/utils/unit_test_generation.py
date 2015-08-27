@@ -97,7 +97,7 @@ if __name__ == "__main__":
                         help="Path to input data file")
     parser.add_argument("-fout", "--outputDataDir",
                         type=str,
-                        default="generated_data',
+                        default="generated_data",
                         help="Desired directory for output data file")
     args = parser.parse_args()
 
