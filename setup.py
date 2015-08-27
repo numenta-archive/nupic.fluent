@@ -21,7 +21,7 @@
 import platform
 import sys
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 def findRequirements():
@@ -48,7 +48,7 @@ setup(name="Fluent",
       author="Alexander Lavin",
       author_email="alavin@numenta.com",
       url="https://github.com/numenta/nupic.fluent",
-      packages=["fluent"],
+      packages=find_packages(),
       install_requires=findRequirements(),
       dependency_links = depLinks,
      )
