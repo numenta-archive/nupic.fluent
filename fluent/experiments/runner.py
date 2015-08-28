@@ -92,7 +92,7 @@ class Runner(object):
     self.labels = None
     self.labelRefs = None
     self.partitions = []
-    self.samples = OrderedDict()
+    self.samples = {}
     self.patterns = None
     self.results = []
     self.model = None
@@ -150,19 +150,6 @@ class Runner(object):
           [self.labelRefs.index(label) for label in data[1]]))
 
 
-  def _preprocess(self, preprocess):
-    """Tokenize the samples with or without preprocessing."""
-    texter = TextPreprocess()
-    if preprocess:
-      for uniqueID, data in self.dataDict.iteritems():
-        self.samples[uniqueID] = (texter.tokenize(
-            data[0], ignoreCommon=100, removeStrings=["[identifier deleted]"],
-            correctSpell=True), data[1])
-    else:
-      for uniqueID, data in self.dataDict.iteritems():
-        self.samples[uniqueID] = (texter.tokenize(data[0]), data[1])
-
-
   def setupData(self, preprocess=False):
     """
     Get the data from CSV and preprocess if specified. The call to readCSV()
@@ -179,7 +166,7 @@ class Runner(object):
 
     self._mapLabelRefs()
 
-    self._preprocess(preprocess)
+    self.samples = self.model.prepData(self.dataDict, preprocess)
 
     if self.verbosity > 1:
       for i, s in self.samples.iteritems():

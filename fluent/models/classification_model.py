@@ -26,6 +26,8 @@ import os
 import pandas
 import random
 
+from collections import OrderedDict
+
 from fluent.utils.text_preprocess import TextPreprocess
 
 try:
@@ -68,6 +70,7 @@ class ClassificationModel(object):
     self.sampleReference = []
 
     self.patterns = []
+    self.texter = TextPreprocess()
 
 
   def saveModel(self):
@@ -102,6 +105,44 @@ class ClassificationModel(object):
   def resetModel(self):
     """Reset the model by clearing the classifier."""
     self.classifier.clear()
+
+
+  def prepText(self, text, preprocess=False):
+    """
+    Returns a list of the text tokens.
+
+    @param preprocess   (bool)    Whether or not to preprocess the text data.
+    """
+    if preprocess:
+      sample = TextPreprocess().tokenize(text,
+                                         ignoreCommon=100,
+                                         removeStrings=["[identifier deleted]"],
+                                         correctSpell=True)
+    else:
+      sample = TextPreprocess().tokenize(text)
+
+    return sample
+
+
+  def prepData(self, dataDict, preprocess):
+    """
+    Returns a dict of same format as dataDict where the text data has been
+    tokenized (and preprocessed if specified).
+
+    @param dataDict     (dict)          Keys are data record IDs, values are
+        two-tuples of text (str) and categories (numpy.array). If no labels,
+        the categories array is empty. E.g.:
+
+        dataDict = OrderedDict([
+            ('0', ('Hello world!', array([3])),
+            ('1', ('import this', array([0, 3]))
+        ])
+    """
+    outDict = OrderedDict()
+    for dataID, data in dataDict.iteritems():
+      outDict[dataID] = (self.prepText(data[0], preprocess), data[1])
+
+    return outDict
 
 
   def encodeRandomly(self, sample):
@@ -395,13 +436,7 @@ class ClassificationModel(object):
 
     @return distances   (numpy.array)   (see infer() docstring)
     """
-    if preprocess:
-      sample = TextPreprocess().tokenize(query,
-                                         ignoreCommon=100,
-                                         removeStrings=["[identifier deleted]"],
-                                         correctSpell=True)
-    else:
-      sample = TextPreprocess().tokenize(query)
+    sample = self.prepText(query, preprocess)
 
     allDistances = self.infer(self.encodeSample(sample))
 
