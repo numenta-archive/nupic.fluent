@@ -434,10 +434,17 @@ class ClassificationModel(object):
     @param samples    (dict)      Keys are sample IDs, values are two-tuples:
                                   list of tokens (str) and list of labels (int).
     """
-    self.patterns = [{"ID": i,
-                      "pattern": self.encodeSample(s[0]),
-                      "labels": s[1]}
-                     for i, s in samples.iteritems()]
+    if self.numLabels == 0:
+      # No labels for classification, so populate labels with stand-ins
+      self.patterns = [{"ID": i,
+                        "pattern": self.encodeSample(s[0]),
+                        "labels": numpy.array([-1])}
+                       for i, s in samples.iteritems()]
+    else:
+      self.patterns = [{"ID": i,
+                        "pattern": self.encodeSample(s[0]),
+                        "labels": s[1]}
+                      for i, s in samples.iteritems()]
     self.writeOutEncodings()
     return self.patterns
 
