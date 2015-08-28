@@ -195,7 +195,8 @@ class Runner(object):
         module = __import__(self.modelModuleName, {}, {}, self.modelName)
         modelClass = getattr(module, self.modelName)
         self.model = modelClass(
-            verbosity=self.verbosity, modelDir=self.modelDir)
+            verbosity=self.verbosity, numLabels=self.numClasses,
+            modelDir=self.modelDir)
       except ImportError:
         raise RuntimeError("Could not import model class \'{0}\'.".
                            format(self.modelName))
