@@ -45,11 +45,12 @@ class LanguageEncoder(object):
   - getDescription() returns a dict describing the encoded output
   """
 
-  def __init__(self, n=16384, w=328):
+  def __init__(self, n=16384, w=328, unionSparsity=20.0):
     """The SDR dimensions are standard for Cortical.io fingerprints."""
     self.n = n
     self.w = w
-    self.targetSparsity = 5.0
+    self.unionSparsity = unionSparsity
+    self.targetSparsity = float(self.w) / self.n
 
 
   def encode(self, inputText):
@@ -179,7 +180,7 @@ class LanguageEncoder(object):
 
     @return           (list)      A sparsified union bitmap.
     """
-    max_sparsity = int((self.targetSparsity / 100) * self.n)
+    max_sparsity = int((self.unionSparsity / 100) * self.n)
     w = min(len(counts), max_sparsity)
     return [c[0] for c in counts.most_common(w)]
 

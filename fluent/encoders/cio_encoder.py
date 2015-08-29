@@ -44,7 +44,8 @@ class CioEncoder(LanguageEncoder):
   """
 
   def __init__(self, w=128, h=128, retina=DEFAULT_RETINA, cacheDir="./cache",
-               verbosity=0, fingerprintType=EncoderTypes.document):
+               verbosity=0, fingerprintType=EncoderTypes.document,
+               unionSparsity=20.0):
     """
     @param w               (int)      Width dimension of the SDR topology.
     @param h               (int)      Height dimension of the SDR topology.
@@ -59,9 +60,10 @@ class CioEncoder(LanguageEncoder):
         "http://www.cortical.io/resources_apikey.html")
       raise OSError("Missing API key.")
 
+    super(CioEncoder, self).__init__(unionSparsity = unionSparsity)
+
     self.apiKey = os.environ["CORTICAL_API_KEY"]
     self.client = CorticalClient(self.apiKey, retina=retina, cacheDir=cacheDir)
-    self.targetSparsity = 5.0
     self.w = w
     self.h = h
     self.n = w*h

@@ -164,7 +164,8 @@ class ClassificationModelsTest(unittest.TestCase):
 
     expectedClasses, resultClasses = self.getExpectedClassifications(runner,
       os.path.join(DATA_DIR, "responses_expected_classes_fingerprint_word.csv"))
-
+    for i, (e, r) in enumerate(zip(expectedClasses, resultClasses)):
+      if sorted(e) != sorted(r): print i, e, r
     [self.assertEqual(sorted(e), sorted(r),
       "Fingerprint model predicted classes other than what we expect.")
       for e, r in zip(expectedClasses, resultClasses)]

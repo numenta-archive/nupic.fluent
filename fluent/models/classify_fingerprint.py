@@ -40,7 +40,8 @@ class ClassificationModelFingerprint(ClassificationModel):
                verbosity=1,
                numLabels=3,
                modelDir="ClassificationModelFingerprint",
-               fingerprintType=EncoderTypes.word):
+               fingerprintType=EncoderTypes.word,
+               unionSparsity=20.0):
 
     super(ClassificationModelFingerprint, self).__init__(
         verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
@@ -56,7 +57,7 @@ class ClassificationModelFingerprint(ClassificationModel):
       raise ValueError("Invaid type of fingerprint encoding; see the "
                        "EncoderTypes class for eligble types.")
     self.encoder = CioEncoder(cacheDir="./fluent/experiments/cioCache",
-                              fingerprintType=fingerprintType)
+      fingerprintType=fingerprintType, unionSparsity=unionSparsity)
     self.n = self.encoder.n
     self.w = int((self.encoder.targetSparsity/100)*self.n)
 

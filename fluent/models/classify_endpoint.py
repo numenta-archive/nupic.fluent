@@ -39,14 +39,16 @@ class ClassificationModelEndpoint(ClassificationModel):
   def __init__(self,
                verbosity=1,
                numLabels=3,
-               modelDir="ClassificationModelEndpoint"):
+               modelDir="ClassificationModelEndpoint",
+               unionSparsity=20.0):
     """
     Initializes the encoder as CioEncoder; requires a valid API key.
     """
     super(ClassificationModelEndpoint, self).__init__(
-        verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
+      verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
-    self.encoder = CioEncoder(cacheDir="./experiments/cache")
+    self.encoder = CioEncoder(cacheDir="./experiments/cache",
+      unionSparsity=unionSparsity)
     self.compareEncoder = LanguageEncoder()
 
     self.n = self.encoder.n
