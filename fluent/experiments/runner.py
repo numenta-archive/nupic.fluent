@@ -152,7 +152,7 @@ class Runner(object):
     @param preprocess   (bool)    Whether or not to preprocess the data when
                                   reading in samples.
     """
-    self.dataDict = readCSV(self.dataPath, self.numClasses)
+    self.dataDict = readCSV(self.dataPath, numLabels=self.numClasses)
 
     if (not isinstance(self.trainSizes, list) or not
         all([0 <= size <= len(self.dataDict) for size in self.trainSizes])):
@@ -331,7 +331,7 @@ class Runner(object):
 
   def validateExperiment(self, expectationFilePath):
     """Returns accuracy of predicted labels against expected labels."""
-    dataDict = readCSV(expectationFilePath, self.numClasses)
+    dataDict = readCSV(expectationFilePath, numLabels=self.numClasses)
 
     accuracies = numpy.zeros((len(self.results)))
     for i, trial in enumerate(self.results):

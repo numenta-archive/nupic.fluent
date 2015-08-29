@@ -57,7 +57,7 @@ class ClassificationModelsTest(unittest.TestCase):
     Return a list of the labels predicted by runner and a list of expected 
     labels from the expected classifications file path.
     """
-    dataDict = readCSV(expectationFilePath, 3)
+    dataDict = readCSV(expectationFilePath, numLabels=3)
 
     expectedClasses = []
     resultClasses = []

@@ -22,11 +22,12 @@
 import copy
 import cPickle as pkl
 import numpy
+import operator
 import os
 import pandas
 import random
 
-from collections import OrderedDict
+from collections import defaultdict, OrderedDict
 
 from fluent.utils.text_preprocess import TextPreprocess
 
@@ -70,7 +71,6 @@ class ClassificationModel(object):
     self.sampleReference = []
 
     self.patterns = []
-    self.texter = TextPreprocess()
 
 
   def encodeSample(self, sample):
@@ -235,19 +235,33 @@ class ClassificationModel(object):
     """
     Preprocesses the query, encodes it into a pattern, then queries the
     classifier to infer distances to trained-on samples.
-
-    @return distances   (numpy.array)   (see infer() docstring)
+    @return       (list)          Two-tuples of sample ID and distance, sorted
+                                  closest to farthest from the query.
     """
-    sample = self.prepText(query, preprocess)
+    if preprocess:
+      sample = TextPreprocess().tokenize(query,
+                                         ignoreCommon=100,
+                                         removeStrings=["[identifier deleted]"],
+                                         correctSpell=True)
+    else:
+      sample = TextPreprocess().tokenize(query)
 
     allDistances = self.infer(self.encodeSample(sample))
 
     # Model trains multiple times for multi-label samples, so remove repeats.
     # note: numpy.unique() auto sorts least to greatest
-    uniqueDistances, indices = numpy.unique(allDistances, return_index=True)
-    uniqueSampleRefs = [self.sampleReference[i] for i in indices]
 
-    return uniqueSampleRefs, uniqueDistances
+    if len(allDistances) != len(self.sampleReference):
+      raise IndexError("Number of protoype distances must match number of "
+                       "samples trained on.")
+
+    sampleDistances = defaultdict()
+    for i, uniqueID in enumerate(self.sampleReference):
+      sampleDistances[uniqueID] = min(
+          [allDistances[i] for i, x in enumerate(self.sampleReference)
+           if x == uniqueID])
+
+    return sorted(sampleDistances.items(), key=operator.itemgetter(1))
 
 
   def infer(self, pattern):

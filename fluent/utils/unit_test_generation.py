@@ -66,7 +66,7 @@ def generateDataFile(inputData, outputDataDir, type):
         os.makedirs(outputDataDir)
 
     fileName = string.join(inputData.split(".")[:-1], ".") + "_" + type + ".csv"
-    dataDict = readCSV(inputData, 2, 3)
+    dataDict = readCSV(inputData, numLabels=3)
     headers = ["QID", "QuestionText", "Response", "Classification1",
                "Classification2", "Classification3"]
     data = []
