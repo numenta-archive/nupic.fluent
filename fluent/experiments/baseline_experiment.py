@@ -127,10 +127,10 @@ def run(args):
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 
   resultCalcs = runner.calculateResults()
-  _ = runner.model.evaluateCumulativeResults(resultCalcs)
+  _ = runner.evaluateCumulativeResults(resultCalcs)
 
   print "Saving..."
-  runner.model.saveModel()
+  runner.saveModel()
 
   if args.validation:
     print "Validating experiment against expected classifications..."

@@ -41,10 +41,7 @@ class ClassificationModel(object):
   """
   Base class for NLP models of classification tasks. When inheriting from this
   class please take note of which methods MUST be overridden, as documented
-  below. The Model superclass mainly implements evaluation methods.
-
-  Methods/properties that must be implemented by subclasses:
-    TODO
+  below.
 
   TODO: confusion matrices
   TODO: use nupic.bindings.math import Random
@@ -56,7 +53,10 @@ class ClassificationModel(object):
                verbosity=1,
                numLabels=3,
                modelDir="ClassificationModel"):
-    """The SDR dimensions are standard for Cortical.io fingerprints."""
+    """
+    The SDR dimensions are standard for Cortical.io fingerprints. If there are
+    no labels, set numLabels=0.
+    """
     self.n = n
     self.w = w
     self.numLabels = numLabels
@@ -66,11 +66,33 @@ class ClassificationModel(object):
       os.makedirs(self.modelDir)
     self.modelPath = None
 
-    # each time a sample is trained on, its index is appended
+    # each time a sample is trained on, its unique ID is appended
     self.sampleReference = []
 
     self.patterns = []
     self.texter = TextPreprocess()
+
+
+  def encodeSample(self, sample):
+    """
+    The subclass implementations must return the encoding in the following
+    format:
+      {
+        ["text"]:sample,
+        ["sparsity"]:sparsity,
+        ["bitmap"]:bitmapSDR
+      }
+    Note: sample is a string, sparsity is float, and bitmapSDR is a numpy array.
+    """
+    raise NotImplementedError
+
+
+  def trainModel(self, index):
+    raise NotImplementedError
+
+
+  def testModel(self, index, numLabels):
+    raise NotImplementedError
 
 
   def saveModel(self):
@@ -107,7 +129,8 @@ class ClassificationModel(object):
     self.classifier.clear()
 
 
-  def prepText(self, text, preprocess=False):
+  @staticmethod
+  def prepText(text, preprocess=False):
     """
     Returns a list of the text tokens.
 
@@ -145,27 +168,6 @@ class ClassificationModel(object):
     return outDict
 
 
-  def encodeRandomly(self, sample):
-    """Return a random bitmap representation of the sample."""
-    random.seed(sample)
-    return numpy.sort(random.sample(xrange(self.n), self.w))
-
-
-  def writeOutEncodings(self):
-    """Log the encoding dictionaries to a txt file."""
-    if not os.path.isdir(self.modelDir):
-      raise ValueError("Invalid path to write encodings file.")
-
-    # Cast numpy arrays to list objects for serialization.
-    jsonPatterns = copy.deepcopy(self.patterns)
-    for jp in jsonPatterns:
-      jp["pattern"]["bitmap"] = jp["pattern"].get("bitmap", None).tolist()
-      jp["labels"] = jp.get("labels", None).tolist()
-
-    with open(os.path.join(self.modelDir, "encoding_log.json"), "w") as f:
-      json.dump(jsonPatterns, f, indent=2)
-
-
   def writeOutCategories(self, dirName, comparisons=None, labelRefs=None):
     """
     For models which define categories with bitmaps, log the categories (and
@@ -198,14 +200,6 @@ class ClassificationModel(object):
     return (randomLabels == labels).sum() / float(labels.shape[0])
 
 
-  def _sparsifyPattern(self, bitmap):
-    """Return a numpy array of 0s and 1s to represent the input bitmap."""
-    sparsePattern = numpy.zeros(self.n)
-    for i in bitmap:
-      sparsePattern[i] = 1.0
-    return sparsePattern
-
-
   @staticmethod
   def getWinningLabels(labelFreq, numLabels=3):
     """
@@ -235,6 +229,90 @@ class ClassificationModel(object):
     winners = numpy.lexsort((randomValues, labelFreq))[::-1][:numLabels]
 
     return numpy.array([i for i in winners if labelFreq[i] > 0])
+
+
+  def queryModel(self, query, preprocess):
+    """
+    Preprocesses the query, encodes it into a pattern, then queries the
+    classifier to infer distances to trained-on samples.
+
+    @return distances   (numpy.array)   (see infer() docstring)
+    """
+    sample = self.prepText(query, preprocess)
+
+    allDistances = self.infer(self.encodeSample(sample))
+
+    # Model trains multiple times for multi-label samples, so remove repeats.
+    # note: numpy.unique() auto sorts least to greatest
+    uniqueDistances, indices = numpy.unique(allDistances, return_index=True)
+    uniqueSampleRefs = [self.sampleReference[i] for i in indices]
+
+    return uniqueSampleRefs, uniqueDistances
+
+
+  def infer(self, pattern):
+    """
+    Get the classifier output for a single input pattern; assumes classifier
+    has an infer() method (as specified in NuPIC kNN implementation).
+
+    @return dist    (numpy.array)       Each entry is the distance from the
+        input pattern to that prototype (pattern in the classifier). All
+        distances are between 0.0 and 1.0
+    """
+    (_, _, dist, _) = self.classifier.infer(
+        self._sparsifyPattern(pattern["bitmap"]))
+    return dist
+
+
+  def _sparsifyPattern(self, bitmap):
+    """Return a numpy array of 0s and 1s to represent the input bitmap."""
+    sparsePattern = numpy.zeros(self.n)
+    for i in bitmap:
+      sparsePattern[i] = 1.0
+    return sparsePattern
+
+
+  def encodeSamples(self, samples):
+    """
+    Encode samples and store in self.patterns, write out encodings to a file.
+
+    @param samples    (dict)      Keys are sample IDs, values are two-tuples:
+                                  list of tokens (str) and list of labels (int).
+    """
+    if self.numLabels == 0:
+      # No labels for classification, so populate labels with stand-ins
+      self.patterns = [{"ID": i,
+                        "pattern": self.encodeSample(s[0]),
+                        "labels": numpy.array([-1])}
+                       for i, s in samples.iteritems()]
+    else:
+      self.patterns = [{"ID": i,
+                        "pattern": self.encodeSample(s[0]),
+                        "labels": s[1]}
+                      for i, s in samples.iteritems()]
+    self.writeOutEncodings()
+    return self.patterns
+
+
+  def encodeRandomly(self, sample):
+    """Return a random bitmap representation of the sample."""
+    random.seed(sample)
+    return numpy.sort(random.sample(xrange(self.n), self.w))
+
+
+  def writeOutEncodings(self):
+    """Log the encoding dictionaries to a txt file."""
+    if not os.path.isdir(self.modelDir):
+      raise ValueError("Invalid path to write encodings file.")
+
+    # Cast numpy arrays to list objects for serialization.
+    jsonPatterns = copy.deepcopy(self.patterns)
+    for jp in jsonPatterns:
+      jp["pattern"]["bitmap"] = jp["pattern"].get("bitmap", None).tolist()
+      jp["labels"] = jp.get("labels", None).tolist()
+
+    with open(os.path.join(self.modelDir, "encoding_log.json"), "w") as f:
+      json.dump(jsonPatterns, f, indent=2)
 
 
   @staticmethod
@@ -295,35 +373,6 @@ class ClassificationModel(object):
     return (accuracy, cm)
 
 
-  def evaluateCumulativeResults(self, intermResults):
-    """
-    Cumulative statistics for the outputs of evaluateTrialResults().
-
-    @param intermResults      (list)          List of returned results from
-                                              evaluateTrialResults().
-    @return                   (dict)          Returns a dictionary with entries
-                                              for max, mean, and min accuracies,
-                                              and the mean confusion matrix.
-    """
-    accuracy = []
-    cm = numpy.zeros((intermResults[0][1].shape))
-
-    # Find mean, max, and min values for the metrics.
-    for result in intermResults:
-      accuracy.append(result[0])
-      cm = numpy.add(cm, result[1])
-
-    results = {"max_accuracy":max(accuracy),
-               "mean_accuracy":sum(accuracy)/float(len(accuracy)),
-               "min_accuracy":min(accuracy),
-               "total_cm":cm}
-
-    if self.verbosity > 0:
-      self.printCumulativeReport(results)
-
-    return results
-
-
   @staticmethod
   def calculateAccuracy(classifications):
     """
@@ -380,11 +429,7 @@ class ClassificationModel(object):
 
   @staticmethod
   def printTrialReport(labels, refs, idx):
-    """
-    Print columns for sample #, actual label, and predicted label.
-
-    TODO: move to Runner
-    """
+    """Print columns for sample #, actual label, and predicted label."""
     template = "{0:<10}|{1:<55}|{2:<55}"
     print "Evaluation results for the trial:"
     print template.format("#", "Actual", "Predicted")
@@ -398,109 +443,3 @@ class ClassificationModel(object):
         print template.format(idx[i],
                               [refs[label] for label in labels[1][i]],
                               [refs[label] for label in labels[0][i]])
-
-
-  @staticmethod
-  def printCumulativeReport(results):
-    """
-    Prints results as returned by evaluateFinalResults() after several trials.
-
-    TODO: pprint, move to Runner
-    """
-    print "---------- RESULTS ----------"
-    print "max, mean, min accuracies = "
-    print "{0:.3f}, {1:.3f}, {2:.3f}".format(
-        results["max_accuracy"], results["mean_accuracy"],
-        results["min_accuracy"])
-    print "total confusion matrix =\n", results["total_cm"]
-
-
-  @staticmethod
-  def printFinalReport(trainSizes, accuracies):
-    """
-    Prints result accuracies.
-
-    TODO: move to Runner
-    """
-    template = "{0:<20}|{1:<10}"
-    print "Evaluation results for this experiment:"
-    print template.format("Size of training set", "Accuracy")
-    for i, a in enumerate(accuracies):
-      print template.format(trainSizes[i], a)
-
-
-  def queryModel(self, query, preprocess):
-    """
-    Preprocesses the query, encodes it into a pattern, then queries the
-    classifier to infer distances to trained-on samples.
-
-    @return distances   (numpy.array)   (see infer() docstring)
-    """
-    sample = self.prepText(query, preprocess)
-
-    allDistances = self.infer(self.encodeSample(sample))
-
-    # Model trains multiple times for multi-label samples, so remove repeats.
-    # note: numpy.unique() auto sorts least to greatest
-    uniqueDistances, indices = numpy.unique(allDistances, return_index=True)
-    uniqueSampleRefs = [self.sampleReference[i] for i in indices]
-
-    return uniqueSampleRefs, uniqueDistances
-
-
-  def infer(self, pattern):
-    """
-    Get the classifier output for a single input pattern; assumes classifier
-    has an infer() method (as specified in NuPIC kNN implementation).
-
-    @return dist    (numpy.array)       Each entry is the distance from the
-        input pattern to that prototype (pattern in the classifier). All
-        distances are between 0.0 and 1.0
-    """
-    (_, _, dist, _) = self.classifier.infer(
-        self._sparsifyPattern(pattern["bitmap"]))
-    return dist
-
-
-  def encodeSamples(self, samples):
-    """
-    Encode samples and store in self.patterns, write out encodings to a file.
-
-    @param samples    (dict)      Keys are sample IDs, values are two-tuples:
-                                  list of tokens (str) and list of labels (int).
-    """
-    if self.numLabels == 0:
-      # No labels for classification, so populate labels with stand-ins
-      self.patterns = [{"ID": i,
-                        "pattern": self.encodeSample(s[0]),
-                        "labels": numpy.array([-1])}
-                       for i, s in samples.iteritems()]
-    else:
-      self.patterns = [{"ID": i,
-                        "pattern": self.encodeSample(s[0]),
-                        "labels": s[1]}
-                      for i, s in samples.iteritems()]
-    self.writeOutEncodings()
-    return self.patterns
-
-
-  def encodeSample(self, sample):
-    """
-    The subclass implementations must return the encoding in the following
-    format:
-      {
-        ["text"]:sample,
-        ["sparsity"]:sparsity,
-        ["bitmap"]:bitmapSDR
-      }
-    Note: sample is a string, sparsity is float, and bitmapSDR is a numpy array.
-    """
-    raise NotImplementedError
-
-
-  def trainModel(self, index):
-    raise NotImplementedError
-
-
-  def testModel(self, index, numLabels):
-    raise NotImplementedError

@@ -98,81 +98,6 @@ class Runner(object):
     self.model = None
 
 
-  def _calculateTrialAccuracies(self):
-    """
-    @return trialAccuracies     (defaultdict)   Items are defaultdicts, one for
-        each size of the training set. Inner defaultdicts keys are
-        categories, with numpy array values that contain one accuracy value for
-        each trial.
-    """
-    # To handle multiple trials of the same size:
-    # trialSize -> (category -> list of accuracies)
-    trialAccuracies = defaultdict(lambda: defaultdict(lambda: numpy.ndarray(0)))
-    for i, size in enumerate(self.trainSizes):
-      accuracies = self.model.calculateClassificationResults(self.results[i])
-      for label, acc in accuracies:
-        category = self.labelRefs[label]
-        accList = trialAccuracies[size][category]
-        trialAccuracies[size][category] = numpy.append(accList, acc)
-
-    return trialAccuracies
-
-
-  def _calculateClassificationAccuracies(self, trialAccuracies):
-    """
-    @param trialAccuracies            (defaultdict)   Please see the description
-        in self._calculateClassificationAccuracies().
-
-    @return classificationAccuracies  (defaultdict)   Keys are classification
-        categories, with multiple numpy arrays as values -- one for each size of
-        training sets, with one accuracy value for each run of that training set
-        size.
-    """
-    # Need the accuracies to be ordered for the plot
-    trials = sorted(set(self.trainSizes))
-    # category -> list of list of accuracies
-    classificationAccuracies = defaultdict(list)
-    for trial in trials:
-      accuracies = trialAccuracies[trial]
-      for label, acc in accuracies.iteritems():
-        classificationAccuracies[label].append(acc)
-
-    return classificationAccuracies
-
-
-  def _mapLabelRefs(self):
-    """Replace the label strings in self.dataDict with corresponding ints."""
-    self.labelRefs = [label for label in set(
-        itertools.chain.from_iterable([x[1] for x in self.dataDict.values()]))]
-
-    for uniqueID, data in self.dataDict.iteritems():
-      self.dataDict[uniqueID] = (data[0], numpy.array(
-          [self.labelRefs.index(label) for label in data[1]]))
-
-
-  def setupData(self, preprocess=False):
-    """
-    Get the data from CSV and preprocess if specified. The call to readCSV()
-    assumes a specific CSV format, detailed in its docstring.
-
-    @param preprocess   (bool)    Whether or not to preprocess the data when
-                                  reading in samples.
-    """
-    self.dataDict = readCSV(self.dataPath, self.numClasses)
-
-    if (not isinstance(self.trainSizes, list) or not
-        all([0 <= size <= len(self.dataDict) for size in self.trainSizes])):
-      raise ValueError("Invalid size(s) for training set.")
-
-    self._mapLabelRefs()
-
-    self.samples = self.model.prepData(self.dataDict, preprocess)
-
-    if self.verbosity > 1:
-      for i, s in self.samples.iteritems():
-        print i, s
-
-
   def initModel(self):
     """Load or instantiate the classification model."""
     if self.load:
@@ -205,6 +130,45 @@ class Runner(object):
     self.model.resetModel()
 
 
+  def saveModel(self):
+    self.model.saveModel()
+
+
+  def _mapLabelRefs(self):
+    """Replace the label strings in self.dataDict with corresponding ints."""
+    self.labelRefs = [label for label in set(
+        itertools.chain.from_iterable([x[1] for x in self.dataDict.values()]))]
+
+    for uniqueID, data in self.dataDict.iteritems():
+      self.dataDict[uniqueID] = (data[0], numpy.array(
+          [self.labelRefs.index(label) for label in data[1]]))
+
+
+  def setupData(self, preprocess=False):
+    """
+    Get the data from CSV and preprocess if specified. The call to readCSV()
+    assumes a specific CSV format, detailed in its docstring.
+
+    @param preprocess   (bool)    Whether or not to preprocess the data when
+                                  reading in samples.
+    """
+    self.dataDict = readCSV(self.dataPath, self.numClasses)
+
+    if (not isinstance(self.trainSizes, list) or not
+        all([0 <= size <= len(self.dataDict) for size in self.trainSizes])):
+      raise ValueError("Invalid size(s) for training set.")
+
+    self._mapLabelRefs()
+
+    self.samples = self.model.prepData(self.dataDict, preprocess)
+
+    self.patterns = self.model.encodeSamples(self.samples)
+
+    if self.verbosity > 1:
+      for i, s in self.samples.iteritems():
+        print i, s
+
+
   def encodeSamples(self):
     self.patterns = self.model.encodeSamples(self.samples)
 
@@ -226,6 +190,26 @@ class Runner(object):
       if self.verbosity > 0:
         print "\tTesting for this run."
       self._testing(i)
+
+
+  def partitionIndices(self):
+    """
+    Partitions list of two-tuples of train and test indices for each trial.
+
+    TODO: use StandardSplit in data_split.py
+    """
+    length = len(self.samples)
+    if self.orderedSplit:
+      for split in self.trainSizes:
+        trainIndices = range(split)
+        testIndices = range(split, length)
+        self.partitions.append((trainIndices, testIndices))
+    else:
+      # Randomly sampled, not repeated
+      for split in self.trainSizes:
+        trainIndices = random.sample(xrange(length), split)
+        testIndices = [i for i in xrange(length) if i not in trainIndices]
+        self.partitions.append((trainIndices, testIndices))
 
 
   def _training(self, trial):
@@ -284,7 +268,7 @@ class Runner(object):
                                               self.partitions[i][1])
                    for i in xrange(len(self.partitions))]
 
-    self.model.printFinalReport(self.trainSizes, [r[0] for r in resultCalcs])
+    self.printFinalReport(self.trainSizes, [r[0] for r in resultCalcs])
 
     if self.plots:
       trialAccuracies = self._calculateTrialAccuracies()
@@ -303,24 +287,46 @@ class Runner(object):
     return resultCalcs
 
 
-  def partitionIndices(self):
+  def _calculateTrialAccuracies(self):
     """
-    Partitions list of two-tuples of train and test indices for each trial.
+    @return trialAccuracies     (defaultdict)   Items are defaultdicts, one for
+        each size of the training set. Inner defaultdicts keys are
+        categories, with numpy array values that contain one accuracy value for
+        each trial.
+    """
+    # To handle multiple trials of the same size:
+    # trialSize -> (category -> list of accuracies)
+    trialAccuracies = defaultdict(lambda: defaultdict(lambda: numpy.ndarray(0)))
+    for i, size in enumerate(self.trainSizes):
+      accuracies = self.model.calculateClassificationResults(self.results[i])
+      for label, acc in accuracies:
+        category = self.labelRefs[label]
+        accList = trialAccuracies[size][category]
+        trialAccuracies[size][category] = numpy.append(accList, acc)
 
-    TODO: use StandardSplit in data_split.py
+    return trialAccuracies
+
+
+  def _calculateClassificationAccuracies(self, trialAccuracies):
     """
-    length = len(self.samples)
-    if self.orderedSplit:
-      for split in self.trainSizes:
-        trainIndices = range(split)
-        testIndices = range(split, length)
-        self.partitions.append((trainIndices, testIndices))
-    else:
-      # Randomly sampled, not repeated
-      for split in self.trainSizes:
-        trainIndices = random.sample(xrange(length), split)
-        testIndices = [i for i in xrange(length) if i not in trainIndices]
-        self.partitions.append((trainIndices, testIndices))
+    @param trialAccuracies            (defaultdict)   Please see the description
+        in self._calculateClassificationAccuracies().
+
+    @return classificationAccuracies  (defaultdict)   Keys are classification
+        categories, with multiple numpy arrays as values -- one for each size of
+        training sets, with one accuracy value for each run of that training set
+        size.
+    """
+    # Need the accuracies to be ordered for the plot
+    trials = sorted(set(self.trainSizes))
+    # category -> list of list of accuracies
+    classificationAccuracies = defaultdict(list)
+    for trial in trials:
+      accuracies = trialAccuracies[trial]
+      for label, acc in accuracies.iteritems():
+        classificationAccuracies[label].append(acc)
+
+    return classificationAccuracies
 
 
   def validateExperiment(self, expectationFilePath):
@@ -341,3 +347,55 @@ class Runner(object):
       accuracies[i] = accuracies[i] / len(trial[0])
 
     return accuracies
+
+
+  @staticmethod
+  def printFinalReport(trainSizes, accuracies):
+    """Prints result accuracies."""
+    template = "{0:<20}|{1:<10}"
+    print "Evaluation results for this experiment:"
+    print template.format("Size of training set", "Accuracy")
+    for i, a in enumerate(accuracies):
+      print template.format(trainSizes[i], a)
+
+
+  def evaluateCumulativeResults(self, intermResults):
+    """
+    Cumulative statistics for the outputs of evaluateTrialResults().
+
+    @param intermResults      (list)          List of returned results from
+                                              evaluateTrialResults().
+    @return                   (dict)          Returns a dictionary with entries
+                                              for max, mean, and min accuracies,
+                                              and the mean confusion matrix.
+    """
+    accuracy = []
+    cm = numpy.zeros((intermResults[0][1].shape))
+
+    # Find mean, max, and min values for the metrics.
+    for result in intermResults:
+      accuracy.append(result[0])
+      cm = numpy.add(cm, result[1])
+
+    results = {"max_accuracy":max(accuracy),
+               "mean_accuracy":sum(accuracy)/float(len(accuracy)),
+               "min_accuracy":min(accuracy),
+               "total_cm":cm}
+
+    if self.verbosity > 0:
+      self._printCumulativeReport(results)
+
+    return results
+
+
+  @staticmethod
+  def _printCumulativeReport(results):
+    """
+    Prints results as returned by evaluateFinalResults() after several trials.
+    """
+    print "---------- RESULTS ----------"
+    print "max, mean, min accuracies = "
+    print "{0:.3f}, {1:.3f}, {2:.3f}".format(
+        results["max_accuracy"], results["mean_accuracy"],
+        results["min_accuracy"])
+    print "total confusion matrix =\n", results["total_cm"]

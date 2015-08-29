@@ -119,7 +119,7 @@ def run(args):
   runner.calculateResults()
 
   print "Saving..."
-  runner.model.saveModel()
+  runner.saveModel()
 
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 
@@ -177,7 +177,7 @@ if __name__ == "__main__":
                            "the samples randomly, True will allocate the "
                            "first n samples to training with the remainder "
                            "for testing.")
-  parser.add_argument("--trainSize",
+  parser.add_argument("--trainSizes",
                       default=[7, 7, 7, 13, 13, 13],
                       nargs="+",
                       type=int,
