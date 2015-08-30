@@ -48,7 +48,7 @@ class ClassificationModelEndpoint(ClassificationModel):
       verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     self.encoder = CioEncoder(cacheDir="./experiments/cache",
-      unionSparsity=unionSparsity)
+                              unionSparsity=unionSparsity)
     self.compareEncoder = LanguageEncoder()
 
     self.n = self.encoder.n
@@ -95,6 +95,8 @@ class ClassificationModelEndpoint(ClassificationModel):
 
 
   def trainModel(self, i, negatives=None):
+    # TODO: add batch training, where i is a list; note we should only add
+    # negatives when training on one sample so we know which labels to use.
     """
     Train the classifier on the sample and labels for record i. Use
     Cortical.io's createClassification() to make a bitmap that represents the
@@ -104,9 +106,6 @@ class ClassificationModelEndpoint(ClassificationModel):
     @param negative   (list)            Each item is the dictionary containing
                                         text, sparsity and bitmap for the
                                         negative samples.
-
-    TODO: add batch training, where i is a list; note we should only add
-          negatives when training on one sample so we know which labels to use.
     """
     record = self.patterns[i]
     labelsToUpdateBitmaps = set()
@@ -121,9 +120,7 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     for label in labelsToUpdateBitmaps:
       self.categoryBitmaps[label] = self.encoder.createCategory(
-          str(label),
-          self.positives[label],
-          self.negatives[label])["positions"]
+        str(label), self.positives[label], self.negatives[label])["positions"]
       self.sampleReference.append(i)
 
 
@@ -165,7 +162,7 @@ class ClassificationModelEndpoint(ClassificationModel):
       # Sort the dict by the metric
       reverse = True if metric in descendingOrder else False
       categoryComparisons[k] = OrderedDict(
-          sorted(metricDict.items(), key=lambda k: k[1], reverse=reverse))
+        sorted(metricDict.items(), key=lambda k: k[1], reverse=reverse))
 
     return categoryComparisons
 
@@ -196,7 +193,7 @@ class ClassificationModelEndpoint(ClassificationModel):
       for compareCat, compareBitmap in self.categoryBitmaps.iteritems():
         # List is in order of self.categoryBitmaps.keys()
         catDistances[cat][compareCat] = self.compareEncoder.compare(
-            catBitmap, compareBitmap)
+          catBitmap, compareBitmap)
 
     if sort:
       # Order each inner dict of catDistances such that the ranking is most to
@@ -205,7 +202,7 @@ class ClassificationModelEndpoint(ClassificationModel):
 
     if save is not None:
       self.writeOutCategories(
-          save, comparisons=catDistances, labelRefs=labelRefs)
+        save, comparisons=catDistances, labelRefs=labelRefs)
 
     return catDistances
 
@@ -227,7 +224,7 @@ class ClassificationModelEndpoint(ClassificationModel):
       sortedIdx = sortedIdx[::-1]
 
     return numpy.array(
-        [distances.keys()[catIdx] for catIdx in sortedIdx[:numLabels]])
+      [distances.keys()[catIdx] for catIdx in sortedIdx[:numLabels]])
 
 
   @staticmethod

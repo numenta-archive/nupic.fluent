@@ -88,7 +88,7 @@ def readDir(dirPath, numLabels, modify=False):
           category = category.replace("0", "/")
           category = category.replace("_", " ")
         samplesDict[category] = readCSV(
-            os.path.join(dirPath, f), numLabels=numLabels)
+          os.path.join(dirPath, f), numLabels=numLabels)
 
   return samplesDict
 

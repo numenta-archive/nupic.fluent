@@ -113,7 +113,7 @@ def run(args):
   # TODO: move kfolds splitting to Runner
   random = False if args.orderedSplit else True
   runner.partitions = KFolds(args.kFolds).split(
-      range(len(runner.samples)), randomize=random)
+    range(len(runner.samples)), randomize=random)
   runner.trainSizes = [len(x[0]) for x in runner.partitions]
   print ("Data setup complete; elapsed time is {0:.2f} seconds.\nNow encoding "
          "the data".format(time.time() - dataTime))

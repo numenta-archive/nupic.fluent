@@ -25,10 +25,8 @@ import numpy
 import os
 import random
 
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from fluent.utils.csv_helper import readCSV, writeFromDict
-
-from fluent.utils.text_preprocess import TextPreprocess
 
 
 
@@ -80,7 +78,7 @@ class Runner(object):
     self.verbosity = verbosity
 
     self.modelDir = os.path.join(
-        self.resultsDir, self.experimentName, self.modelName)
+      self.resultsDir, self.experimentName, self.modelName)
     if not os.path.exists(self.modelDir):
       os.makedirs(self.modelDir)
 
@@ -106,9 +104,9 @@ class Runner(object):
       try:
         module = __import__(self.modelModuleName, {}, {}, self.modelName)
         modelClass = getattr(module, self.modelName)
-        self.model = modelClass(
-            verbosity=self.verbosity, numLabels=self.numClasses,
-            modelDir=self.modelDir)
+        self.model = modelClass(verbosity=self.verbosity,
+                                numLabels=self.numClasses,
+                                modelDir=self.modelDir)
       except ImportError:
         raise RuntimeError("Could not import model class \'{0}\'.".
                            format(self.modelName))
@@ -126,7 +124,7 @@ class Runner(object):
       raise e
 
 
-  def resetModel(self, trial):
+  def resetModel(self, _):
     self.model.resetModel()
 
 
@@ -137,11 +135,11 @@ class Runner(object):
   def _mapLabelRefs(self):
     """Replace the label strings in self.dataDict with corresponding ints."""
     self.labelRefs = [label for label in set(
-        itertools.chain.from_iterable([x[1] for x in self.dataDict.values()]))]
+      itertools.chain.from_iterable([x[1] for x in self.dataDict.values()]))]
 
     for uniqueID, data in self.dataDict.iteritems():
       self.dataDict[uniqueID] = (data[0], numpy.array(
-          [self.labelRefs.index(label) for label in data[1]]))
+        [self.labelRefs.index(label) for label in data[1]]))
 
 
   def setupData(self, preprocess=False):
@@ -179,12 +177,12 @@ class Runner(object):
       # An experiment (e.g. k-folds) may do this elsewhere
       self.partitionIndices()
 
-    for i, size in enumerate(self.trainSizes):
+    for i, _ in enumerate(self.trainSizes):
       self.resetModel(i)
 
       if self.verbosity > 0:
         print "\tTraining for run {0} of {1}.".format(
-            i + 1, len(self.trainSizes))
+          i + 1, len(self.trainSizes))
       self._training(i)
 
       if self.verbosity > 0:
@@ -220,7 +218,7 @@ class Runner(object):
     """
     if self.verbosity > 0:
       print ("\tRunner selects to train on sample(s) {}".format(
-          self.partitions[trial][0]))
+        self.partitions[trial][0]))
 
     for i in self.partitions[trial][0]:
       self.model.trainModel(i)
@@ -229,7 +227,7 @@ class Runner(object):
   def _testing(self, trial):
     if self.verbosity > 0:
       print ("\tRunner selects to test on sample(s) {}".format(
-          self.partitions[trial][1]))
+        self.partitions[trial][1]))
 
     results = ([], [])
     for i in self.partitions[trial][1]:
@@ -273,16 +271,16 @@ class Runner(object):
     if self.plots:
       trialAccuracies = self._calculateTrialAccuracies()
       classificationAccuracies = self._calculateClassificationAccuracies(
-          trialAccuracies)
+        trialAccuracies)
 
       self.plotter.plotCategoryAccuracies(trialAccuracies, self.trainSizes)
       self.plotter.plotCumulativeAccuracies(
-          classificationAccuracies, self.trainSizes)
+        classificationAccuracies, self.trainSizes)
 
       if self.plots > 1:
         # Plot extra evaluation figures -- confusion matrix.
         self.plotter.plotConfusionMatrix(
-            self.setupConfusionMatrices(resultCalcs))
+          self.setupConfusionMatrices(resultCalcs))
 
     return resultCalcs
 
@@ -396,6 +394,6 @@ class Runner(object):
     print "---------- RESULTS ----------"
     print "max, mean, min accuracies = "
     print "{0:.3f}, {1:.3f}, {2:.3f}".format(
-        results["max_accuracy"], results["mean_accuracy"],
-        results["min_accuracy"])
+      results["max_accuracy"], results["mean_accuracy"],
+      results["min_accuracy"])
     print "total confusion matrix =\n", results["total_cm"]

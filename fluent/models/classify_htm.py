@@ -62,7 +62,7 @@ class ClassificationModelHTM(ClassificationModel):
     self.clsTrainingSize = clsTrainingSize
 
     super(ClassificationModelHTM, self).__init__(
-        verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
+      verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     # Initialize Network
     self.classifierType = classifierType
@@ -87,11 +87,11 @@ class ClassificationModelHTM(ClassificationModel):
                           "maxCategoryCount": self.numLabels}
     else:
       raise ValueError("Classifier type {} is not supported.".format(
-          self.classifierType))
+        self.classifierType))
 
     self.network = createNetwork(
-        self.recordStream, "py.LanguageSensor", self.encoder, self.numLabels,
-        "py.{}ClassifierRegion".format(self.classifierType), classifierParams)
+      self.recordStream, "py.LanguageSensor", self.encoder, self.numLabels,
+      "py.{}ClassifierRegion".format(self.classifierType), classifierParams)
 
     self.network.initialize()
 
@@ -155,7 +155,8 @@ class ClassificationModelHTM(ClassificationModel):
       classifierRegion.setParameter("learningMode", True)
 
     self.network.run(1)
-    # self.sampleReference doesn't get populated b/c in a network model there's a 1-to-1 mapping of training samples
+    # self.sampleReference doesn't get populated b/c in a network model there's
+    # a 1-to-1 mapping of training samples
 
     # TODO: delete after Marion's PR is merged
     # https://github.com/numenta/nupic/pull/2415
@@ -192,8 +193,8 @@ class ClassificationModelHTM(ClassificationModel):
       activeCells = temporalMemoryRegion.getOutputData("bottomUpOut")
       patternNZ = activeCells.nonzero()[0]
       clResults = classifierRegion.getSelf().customCompute(
-          recordNum=self.numTrained, patternNZ=patternNZ,
-          classification=classificationIn)
+        recordNum=self.numTrained, patternNZ=patternNZ,
+        classification=classificationIn)
 
       return clResults[int(classifierRegion.getParameter("steps"))]
 
@@ -231,7 +232,7 @@ class ClassificationModelHTM(ClassificationModel):
       self.oldClassifications += (numpy.array(inferredValue) * i)
 
     orderedInferredValues = sorted(enumerate(
-        self.oldClassifications), key=lambda x: x[1], reverse=True)
+      self.oldClassifications), key=lambda x: x[1], reverse=True)
 
     labels = zip(*orderedInferredValues)[0]
     return numpy.array(labels[:numLabels])

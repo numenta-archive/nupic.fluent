@@ -38,9 +38,8 @@ class ClassificationModelKeywords(ClassificationModel):
   Class to run the survey response classification task with random SDRs.
 
   From the experiment runner, the methods expect to be fed one sample at a time.
-
-  TODO: use nupic.bindings.math import Random
   """
+  # TODO: use nupic.bindings.math import Random
 
   def __init__(self,
                n=100,
@@ -50,7 +49,7 @@ class ClassificationModelKeywords(ClassificationModel):
                modelDir="ClassificationModelKeywords"):
 
     super(ClassificationModelKeywords, self).__init__(
-        n, w, verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
+      n, w, verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     self.classifier = KNNClassifier(exact=True,
                                     distanceMethod="rawOverlap",
@@ -97,13 +96,12 @@ class ClassificationModelKeywords(ClassificationModel):
 
 
   def trainModel(self, i):
+    # TODO: add batch training, where i is a list
     """
     Train the classifier on the sample and labels for record i. The list
     sampleReference is populated to correlate classifier prototypes to sample
     IDs. This model is unique in that a single sample contains multiple encoded
     patterns.
-
-    TODO: add batch training, where i is a list
     """
     for token in self.patterns[i]["pattern"]:
       if token["bitmap"].any():
@@ -129,7 +127,7 @@ class ClassificationModelKeywords(ClassificationModel):
         continue
 
       (_, inferenceResult, _, _) = self.classifier.infer(
-          self._sparsifyPattern(pattern["bitmap"]))
+        self._sparsifyPattern(pattern["bitmap"]))
 
       if totalInferenceResult is None:
         totalInferenceResult = inferenceResult
@@ -149,10 +147,11 @@ class ClassificationModelKeywords(ClassificationModel):
         input pattern to that prototype (pattern in the classifier). All
         distances are between 0.0 and 1.0
     """
+    # TODO: implement getNumPatterns() method in classifier.
     distances = numpy.zeros((self.classifier._numPatterns))
     for i, p in enumerate(patterns):
       (_, _, dist, _) = self.classifier.infer(
-          self._sparsifyPattern(p["bitmap"]))
+        self._sparsifyPattern(p["bitmap"]))
 
       distances = numpy.array([sum(x) for x in zip(dist, distances)])
 

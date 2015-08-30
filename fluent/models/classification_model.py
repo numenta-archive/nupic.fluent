@@ -43,10 +43,8 @@ class ClassificationModel(object):
   Base class for NLP models of classification tasks. When inheriting from this
   class please take note of which methods MUST be overridden, as documented
   below.
-
-  TODO: confusion matrices
-  TODO: use nupic.bindings.math import Random
   """
+  # TODO: use nupic.bindings.math import Random
 
   def __init__(self,
                n=16384,
@@ -258,8 +256,8 @@ class ClassificationModel(object):
     sampleDistances = defaultdict()
     for i, uniqueID in enumerate(self.sampleReference):
       sampleDistances[uniqueID] = min(
-          [allDistances[i] for i, x in enumerate(self.sampleReference)
-           if x == uniqueID])
+        [allDistances[i] for i, x in enumerate(self.sampleReference)
+         if x == uniqueID])
 
     return sorted(sampleDistances.items(), key=operator.itemgetter(1))
 
@@ -274,7 +272,7 @@ class ClassificationModel(object):
         distances are between 0.0 and 1.0
     """
     (_, _, dist, _) = self.classifier.infer(
-        self._sparsifyPattern(pattern["bitmap"]))
+      self._sparsifyPattern(pattern["bitmap"]))
     return dist
 
 
@@ -303,7 +301,7 @@ class ClassificationModel(object):
       self.patterns = [{"ID": i,
                         "pattern": self.encodeSample(s[0]),
                         "labels": s[1]}
-                      for i, s in samples.iteritems()]
+                       for i, s in samples.iteritems()]
     self.writeOutEncodings()
     return self.patterns
 
@@ -414,10 +412,9 @@ class ClassificationModel(object):
   def calculateConfusionMatrix(classifications, references):
     """
     Returns confusion matrix as a pandas dataframe.
-
-    TODO: Figure out better way to report multilabel outputs--only handles
-    single label now. So for now return empty array.
     """
+    # TODO: Figure out better way to report multilabel outputs--only handles
+    # single label now. So for now return empty array.
     return numpy.array([])
 
     if len(classifications[0]) != len(classifications[1]):
