@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 import copy
+import numpy
 import os
 
 from fluent.models.classification_model import ClassificationModel
@@ -37,9 +38,8 @@ class ClassificationModelKeywords(ClassificationModel):
   Class to run the survey response classification task with random SDRs.
 
   From the experiment runner, the methods expect to be fed one sample at a time.
-
-  TODO: use nupic.bindings.math import Random
   """
+  # TODO: use nupic.bindings.math import Random
 
   def __init__(self,
                n=100,
@@ -49,7 +49,7 @@ class ClassificationModelKeywords(ClassificationModel):
                modelDir="ClassificationModelKeywords"):
 
     super(ClassificationModelKeywords, self).__init__(
-        n, w, verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
+      n, w, verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     self.classifier = KNNClassifier(exact=True,
                                     distanceMethod="rawOverlap",
@@ -96,13 +96,12 @@ class ClassificationModelKeywords(ClassificationModel):
 
 
   def trainModel(self, i):
+    # TODO: add batch training, where i is a list
     """
     Train the classifier on the sample and labels for record i. The list
     sampleReference is populated to correlate classifier prototypes to sample
     IDs. This model is unique in that a single sample contains multiple encoded
     patterns.
-
-    TODO: add batch training, where i is a list
     """
     for token in self.patterns[i]["pattern"]:
       if token["bitmap"].any():
@@ -128,7 +127,7 @@ class ClassificationModelKeywords(ClassificationModel):
         continue
 
       (_, inferenceResult, _, _) = self.classifier.infer(
-          self._sparsifyPattern(pattern["bitmap"]))
+        self.sparsifyPattern(pattern["bitmap"], self.n))
 
       if totalInferenceResult is None:
         totalInferenceResult = inferenceResult
@@ -136,3 +135,24 @@ class ClassificationModelKeywords(ClassificationModel):
         totalInferenceResult += inferenceResult
 
     return self.getWinningLabels(totalInferenceResult, numLabels)
+
+
+  def infer(self, patterns):
+    """
+    Get the classifier output for a single input pattern; assumes classifier
+    has an infer() method (as specified in NuPIC kNN implementation). For this
+    model we sum the distances across the patterns. and normalize
+    before returning.
+    @return       (numpy.array)       Each entry is the distance from the
+        input pattern to that prototype (pattern in the classifier). All
+        distances are between 0.0 and 1.0
+    """
+    # TODO: implement getNumPatterns() method in classifier.
+    distances = numpy.zeros((self.classifier._numPatterns))
+    for i, p in enumerate(patterns):
+      (_, _, dist, _) = self.classifier.infer(
+        self.sparsifyPattern(p["bitmap"], self.n))
+
+      distances = numpy.array([sum(x) for x in zip(dist, distances)])
+
+    return distances / (i+1)

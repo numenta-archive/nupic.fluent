@@ -24,6 +24,7 @@ import os
 
 from collections import Counter
 from fluent.experiments.runner import Runner
+from fluent.models.classify_htm import ClassificationModelHTM
 from fluent.utils.network_data_generator import NetworkDataGenerator
 from nupic.engine import Network
 
@@ -44,9 +45,8 @@ class HTMRunner(Runner):
                dataPath,
                resultsDir,
                experimentName,
-               load,
+               loadPath,
                modelName,
-               modelModuleName,
                numClasses=3,
                plots=0,
                orderedSplit=False,
@@ -76,9 +76,9 @@ class HTMRunner(Runner):
     self.dataFiles = []
     self.actualLabels = None
 
-    super(HTMRunner, self).__init__(dataPath, resultsDir, experimentName, load,
-                                    modelName, modelModuleName, numClasses,
-                                    plots, orderedSplit, trainSizes, verbosity)
+    super(HTMRunner, self).__init__(dataPath, resultsDir, experimentName,
+                                    modelName, loadPath, numClasses, plots,
+                                    orderedSplit, trainSizes, verbosity)
 
 
   def _mapLabelRefs(self):
@@ -131,28 +131,21 @@ class HTMRunner(Runner):
 
   def resetModel(self, trial):
     """Load or instantiate the classification model."""
-    if self.load:
-      with open(os.path.join(self.modelPath, "model.pkl"), "rb") as f:
+    if self.loadPath:
+      with open(self.loadPath, "rb") as f:
         self.model = pkl.load(f)
       networkFile = self.model.network
       # TODO: uncomment once we can save TPRegion
       #self.model.network = Network(networkFile)
-      print "Model loaded from \'{0}\'.".format(self.modelPath)
+      print "Model loaded from \'{0}\'.".format(self.loadPath)
     else:
-      try:
-        module = __import__(self.modelModuleName, {}, {}, self.modelName)
-        modelClass = getattr(module, self.modelName)
-        tmTrainingSize = self.trainSizes[trial] / 3.0
-        clsTrainingSize = 2 * self.trainSizes[trial] / 3.0
-
-        self.model = modelClass(self.dataFiles[trial],
-                                verbosity=self.verbosity,
-                                tmTrainingSize=tmTrainingSize,
-                                clsTrainingSize=clsTrainingSize,
-                                classifierType=self.classifierType)
-      except ImportError:
-        raise RuntimeError("Could not import model class \'{0}\'.".
-                           format(self.modelName))
+      tmTrainingSize = self.trainSizes[trial] / 3.0
+      clsTrainingSize = 2 * self.trainSizes[trial] / 3.0
+      self.model = ClassificationModelHTM(self.dataFiles[trial],
+                                          verbosity=self.verbosity,
+                                          tmTrainingSize=tmTrainingSize,
+                                          clsTrainingSize=clsTrainingSize,
+                                          classifierType=self.classifierType)
 
 
   def encodeSamples(self):
@@ -246,14 +239,14 @@ class HTMRunner(Runner):
     self.results.append(results)
 
 
-  def save(self):
+  def saveModel(self):
     """Save the serialized model and network"""
     # Can't pickle a SWIG object so serialize it using nupic
-    networkPath = os.path.join(self.modelPath, "network.nta")
+    networkPath = os.path.join(self.modelDir, "network.nta")
     # TODO: uncomment once we can save TPRegion
     #self.model.network.save(networkPath)
     self.model.network = networkPath
-    super(HTMRunner, self).save()
+    super(HTMRunner, self).saveModel()
 
 
   def partitionIndices(self):
@@ -265,3 +258,9 @@ class HTMRunner(Runner):
       dataFile = self.dataFiles[trial]
       numTokens = NetworkDataGenerator.getNumberOfTokens(dataFile)
       self.partitions.append((numTokens[:split], numTokens[split:]))
+
+
+  def writeOutClassifications(self):
+    # TODO: implement this method after updating HTM network models and runner
+    # per nupic.research #277
+    pass

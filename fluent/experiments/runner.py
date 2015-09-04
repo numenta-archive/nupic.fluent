@@ -25,10 +25,21 @@ import numpy
 import os
 import random
 
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
+
+from fluent.encoders import EncoderTypes
+from fluent.models.classify_endpoint import ClassificationModelEndpoint
+from fluent.models.classify_fingerprint import ClassificationModelFingerprint
+from fluent.models.classify_keywords import ClassificationModelKeywords
 from fluent.utils.csv_helper import readCSV, writeFromDict
 
-from fluent.utils.text_preprocess import TextPreprocess
+
+_MODEL_MAPPING = {
+  "CioWordFingerprint": ClassificationModelFingerprint,
+  "CioDocumentFingerprint": ClassificationModelFingerprint,
+  "Keywords": ClassificationModelKeywords,
+  "CioEndpoint": ClassificationModelEndpoint,
+  }
 
 
 
@@ -42,9 +53,8 @@ class Runner(object):
                dataPath,
                resultsDir,
                experimentName,
-               load,
                modelName,
-               modelModuleName,
+               loadPath=None,
                numClasses=3,
                plots=0,
                orderedSplit=False,
@@ -54,10 +64,8 @@ class Runner(object):
     @param dataPath         (str)     Path to raw data file for the experiment.
     @param resultsDir       (str)     Directory where for the results metrics.
     @param experimentName   (str)     Experiment name, used for saving results.
-    @param load             (bool)    True if a serialized model is to be
-                                      loaded.
+    @param loadPath         (str)     Path to serialized model for loading.
     @param modelName        (str)     Name of nupic.fluent Model subclass.
-    @param modeModuleName   (str)     Model module -- location of the subclass.
     @param numClasses       (int)     Number of classes (labels) per sample.
     @param plots            (int)     Specifies plotting of evaluation metrics.
     @param orderedSplit     (bool)    Indicates method for splitting train/test
@@ -70,9 +78,8 @@ class Runner(object):
     self.dataPath = dataPath
     self.resultsDir = resultsDir
     self.experimentName = experimentName
-    self.load = load
+    self.loadPath = loadPath
     self.modelName = modelName
-    self.modelModuleName = modelModuleName
     self.numClasses = numClasses
     self.plots = plots
     self.orderedSplit = orderedSplit
@@ -80,7 +87,7 @@ class Runner(object):
     self.verbosity = verbosity
 
     self.modelDir = os.path.join(
-        self.resultsDir, self.experimentName, self.modelName)
+      self.resultsDir, self.experimentName, self.modelName)
     if not os.path.exists(self.modelDir):
       os.makedirs(self.modelDir)
 
@@ -92,75 +99,76 @@ class Runner(object):
     self.labels = None
     self.labelRefs = None
     self.partitions = []
-    self.samples = OrderedDict()
+    self.samples = {}
     self.patterns = None
     self.results = []
     self.model = None
 
 
-  def _calculateTrialAccuracies(self):
-    """
-    @return trialAccuracies     (defaultdict)   Items are defaultdicts, one for
-        each size of the training set. Inner defaultdicts keys are
-        categories, with numpy array values that contain one accuracy value for
-        each trial.
-    """
-    # To handle multiple trials of the same size:
-    # trialSize -> (category -> list of accuracies)
-    trialAccuracies = defaultdict(lambda: defaultdict(lambda: numpy.ndarray(0)))
-    for i, size in enumerate(self.trainSizes):
-      accuracies = self.model.calculateClassificationResults(self.results[i])
-      for label, acc in accuracies:
-        category = self.labelRefs[label]
-        accList = trialAccuracies[size][category]
-        trialAccuracies[size][category] = numpy.append(accList, acc)
-
-    return trialAccuracies
+  def initModel(self, modelName):
+    """Load or instantiate the classification model."""
+    if self.loadPath:
+      self.model = self.loadModel()
+    else:
+      self.model = self._createModel(modelName)
 
 
-  def _calculateClassificationAccuracies(self, trialAccuracies):
-    """
-    @param trialAccuracies            (defaultdict)   Please see the description
-        in self._calculateClassificationAccuracies().
+  def _createModel(self, modelName):
+    """Return an instantiated model."""
+    modelCls = _MODEL_MAPPING.get(modelName, None)
 
-    @return classificationAccuracies  (defaultdict)   Keys are classification
-        categories, with multiple numpy arrays as values -- one for each size of
-        training sets, with one accuracy value for each run of that training set
-        size.
-    """
-    # Need the accuracies to be ordered for the plot
-    trials = sorted(set(self.trainSizes))
-    # category -> list of list of accuracies
-    classificationAccuracies = defaultdict(list)
-    for trial in trials:
-      accuracies = trialAccuracies[trial]
-      for label, acc in accuracies.iteritems():
-        classificationAccuracies[label].append(acc)
+    if modelCls is None:
+      raise ValueError("Could not instantiate model \'{}\'.".format(modelName))
 
-    return classificationAccuracies
+    # TODO: remove these if blocks and just use the else; either specify the Cio
+    # FP type elsewhere, or split Word and Doc into separate classes.
+
+    if modelName == "CioWordFingerprint":
+      return modelCls(verbosity=self.verbosity,
+                      numLabels=self.numClasses,
+                      modelDir=self.modelDir,
+                      fingerprintType=EncoderTypes.word)
+
+    elif modelName == "CioDocumentFingerprint":
+      return modelCls(verbosity=self.verbosity,
+                      numLabels=self.numClasses,
+                      modelDir=self.modelDir,
+                      fingerprintType=EncoderTypes.document)
+
+    else:
+      return modelCls(verbosity=self.verbosity,
+                      numLabels=self.numClasses,
+                      modelDir=self.modelDir)
+
+
+  def loadModel(self):
+    """Load the serialized model."""
+    try:
+      with open(self.loadPath, "rb") as f:
+        model = pkl.load(f)
+      print "Model loaded from \'{}\'.".format(self.loadPath)
+      return model
+    except IOError as e:
+      print "Could not load model from \'{}\'.".format(self.loadPath)
+      raise e
+
+
+  def resetModel(self, _):
+    self.model.resetModel()
+
+
+  def saveModel(self):
+    self.model.saveModel()
 
 
   def _mapLabelRefs(self):
     """Replace the label strings in self.dataDict with corresponding ints."""
     self.labelRefs = [label for label in set(
-        itertools.chain.from_iterable([x[1] for x in self.dataDict.values()]))]
+      itertools.chain.from_iterable([x[1] for x in self.dataDict.values()]))]
 
     for uniqueID, data in self.dataDict.iteritems():
       self.dataDict[uniqueID] = (data[0], numpy.array(
-          [self.labelRefs.index(label) for label in data[1]]))
-
-
-  def _preprocess(self, preprocess):
-    """Tokenize the samples with or without preprocessing."""
-    texter = TextPreprocess()
-    if preprocess:
-      for uniqueID, data in self.dataDict.iteritems():
-        self.samples[uniqueID] = (texter.tokenize(
-            data[0], ignoreCommon=100, removeStrings=["[identifier deleted]"],
-            correctSpell=True), data[1])
-    else:
-      for uniqueID, data in self.dataDict.iteritems():
-        self.samples[uniqueID] = (texter.tokenize(data[0]), data[1])
+        [self.labelRefs.index(label) for label in data[1]]))
 
 
   def setupData(self, preprocess=False):
@@ -171,7 +179,7 @@ class Runner(object):
     @param preprocess   (bool)    Whether or not to preprocess the data when
                                   reading in samples.
     """
-    self.dataDict = readCSV(self.dataPath, self.numClasses)
+    self.dataDict = readCSV(self.dataPath, numLabels=self.numClasses)
 
     if (not isinstance(self.trainSizes, list) or not
         all([0 <= size <= len(self.dataDict) for size in self.trainSizes])):
@@ -179,43 +187,13 @@ class Runner(object):
 
     self._mapLabelRefs()
 
-    self._preprocess(preprocess)
+    self.samples = self.model.prepData(self.dataDict, preprocess)
+
+    self.patterns = self.model.encodeSamples(self.samples)
 
     if self.verbosity > 1:
       for i, s in self.samples.iteritems():
         print i, s
-
-
-  def initModel(self):
-    """Load or instantiate the classification model."""
-    if self.load:
-      self.loadModel()
-    else:
-      try:
-        module = __import__(self.modelModuleName, {}, {}, self.modelName)
-        modelClass = getattr(module, self.modelName)
-        self.model = modelClass(
-            verbosity=self.verbosity, numLabels=self.numClasses,
-            modelDir=self.modelDir)
-      except ImportError:
-        raise RuntimeError("Could not import model class \'{0}\'.".
-                           format(self.modelName))
-
-
-  def loadModel(self):
-    """Load the serialized model."""
-    try:
-      with open(os.path.join(self.modelDir, "model.pkl"), "rb") as f:
-        model = pkl.load(f)
-      print "Model loaded from \'{}\'.".format(self.modelDir)
-      return model
-    except IOError as e:
-      print "Could not load model from \'{}\'.".format(self.modelDir)
-      raise e
-
-
-  def resetModel(self, trial):
-    self.model.resetModel()
 
 
   def encodeSamples(self):
@@ -228,17 +206,37 @@ class Runner(object):
       # An experiment (e.g. k-folds) may do this elsewhere
       self.partitionIndices()
 
-    for i, size in enumerate(self.trainSizes):
+    for i, _ in enumerate(self.trainSizes):
       self.resetModel(i)
 
       if self.verbosity > 0:
         print "\tTraining for run {0} of {1}.".format(
-            i + 1, len(self.trainSizes))
+          i + 1, len(self.trainSizes))
       self._training(i)
 
       if self.verbosity > 0:
         print "\tTesting for this run."
       self._testing(i)
+
+
+  def partitionIndices(self):
+    """
+    Partitions list of two-tuples of train and test indices for each trial.
+
+    TODO: use StandardSplit in data_split.py
+    """
+    length = len(self.samples)
+    if self.orderedSplit:
+      for split in self.trainSizes:
+        trainIndices = range(split)
+        testIndices = range(split, length)
+        self.partitions.append((trainIndices, testIndices))
+    else:
+      # Randomly sampled, not repeated
+      for split in self.trainSizes:
+        trainIndices = random.sample(xrange(length), split)
+        testIndices = [i for i in xrange(length) if i not in trainIndices]
+        self.partitions.append((trainIndices, testIndices))
 
 
   def _training(self, trial):
@@ -249,7 +247,7 @@ class Runner(object):
     """
     if self.verbosity > 0:
       print ("\tRunner selects to train on sample(s) {}".format(
-          self.partitions[trial][0]))
+        self.partitions[trial][0]))
 
     for i in self.partitions[trial][0]:
       self.model.trainModel(i)
@@ -258,7 +256,7 @@ class Runner(object):
   def _testing(self, trial):
     if self.verbosity > 0:
       print ("\tRunner selects to test on sample(s) {}".format(
-          self.partitions[trial][1]))
+        self.partitions[trial][1]))
 
     results = ([], [])
     for i in self.partitions[trial][1]:
@@ -297,48 +295,70 @@ class Runner(object):
                                               self.partitions[i][1])
                    for i in xrange(len(self.partitions))]
 
-    self.model.printFinalReport(self.trainSizes, [r[0] for r in resultCalcs])
+    self.printFinalReport(self.trainSizes, [r[0] for r in resultCalcs])
 
     if self.plots:
       trialAccuracies = self._calculateTrialAccuracies()
       classificationAccuracies = self._calculateClassificationAccuracies(
-          trialAccuracies)
+        trialAccuracies)
 
       self.plotter.plotCategoryAccuracies(trialAccuracies, self.trainSizes)
       self.plotter.plotCumulativeAccuracies(
-          classificationAccuracies, self.trainSizes)
+        classificationAccuracies, self.trainSizes)
 
       if self.plots > 1:
         # Plot extra evaluation figures -- confusion matrix.
         self.plotter.plotConfusionMatrix(
-            self.setupConfusionMatrices(resultCalcs))
+          self.setupConfusionMatrices(resultCalcs))
 
     return resultCalcs
 
 
-  def partitionIndices(self):
+  def _calculateTrialAccuracies(self):
     """
-    Partitions list of two-tuples of train and test indices for each trial.
+    @return trialAccuracies     (defaultdict)   Items are defaultdicts, one for
+        each size of the training set. Inner defaultdicts keys are
+        categories, with numpy array values that contain one accuracy value for
+        each trial.
+    """
+    # To handle multiple trials of the same size:
+    # trialSize -> (category -> list of accuracies)
+    trialAccuracies = defaultdict(lambda: defaultdict(lambda: numpy.ndarray(0)))
+    for result, size in itertools.izip(self.results, self.trainSizes):
+      accuracies = self.model.calculateClassificationResults(result)
+      for label, acc in accuracies:
+        category = self.labelRefs[label]
+        accList = trialAccuracies[size][category]
+        trialAccuracies[size][category] = numpy.append(accList, acc)
 
-    TODO: use StandardSplit in data_split.py
+    return trialAccuracies
+
+
+  def _calculateClassificationAccuracies(self, trialAccuracies):
     """
-    length = len(self.samples)
-    if self.orderedSplit:
-      for split in self.trainSizes:
-        trainIndices = range(split)
-        testIndices = range(split, length)
-        self.partitions.append((trainIndices, testIndices))
-    else:
-      # Randomly sampled, not repeated
-      for split in self.trainSizes:
-        trainIndices = random.sample(xrange(length), split)
-        testIndices = [i for i in xrange(length) if i not in trainIndices]
-        self.partitions.append((trainIndices, testIndices))
+    @param trialAccuracies            (defaultdict)   Please see the description
+        in self._calculateClassificationAccuracies().
+
+    @return classificationAccuracies  (defaultdict)   Keys are classification
+        categories, with multiple numpy arrays as values -- one for each size of
+        training sets, with one accuracy value for each run of that training set
+        size.
+    """
+    # Need the accuracies to be ordered for the plot
+    trials = sorted(set(self.trainSizes))
+    # category -> list of list of accuracies
+    classificationAccuracies = defaultdict(list)
+    for trial in trials:
+      accuracies = trialAccuracies[trial]
+      for label, acc in accuracies.iteritems():
+        classificationAccuracies[label].append(acc)
+
+    return classificationAccuracies
 
 
   def validateExperiment(self, expectationFilePath):
     """Returns accuracy of predicted labels against expected labels."""
-    dataDict = readCSV(expectationFilePath, self.numClasses)
+    dataDict = readCSV(expectationFilePath, numLabels=self.numClasses)
 
     accuracies = numpy.zeros((len(self.results)))
     for i, trial in enumerate(self.results):
@@ -354,3 +374,55 @@ class Runner(object):
       accuracies[i] = accuracies[i] / len(trial[0])
 
     return accuracies
+
+
+  @staticmethod
+  def printFinalReport(trainSizes, accuracies):
+    """Prints result accuracies."""
+    template = "{0:<20}|{1:<10}"
+    print "Evaluation results for this experiment:"
+    print template.format("Size of training set", "Accuracy")
+    for size, acc in itertools.izip(trainSizes, accuracies):
+      print template.format(size, acc)
+
+
+  def evaluateCumulativeResults(self, intermResults):
+    """
+    Cumulative statistics for the outputs of evaluateTrialResults().
+
+    @param intermResults      (list)          List of returned results from
+                                              evaluateTrialResults().
+    @return                   (dict)          Returns a dictionary with entries
+                                              for max, mean, and min accuracies,
+                                              and the mean confusion matrix.
+    """
+    accuracy = []
+    cm = numpy.zeros((intermResults[0][1].shape))
+
+    # Find mean, max, and min values for the metrics.
+    for result in intermResults:
+      accuracy.append(result[0])
+      cm = numpy.add(cm, result[1])
+
+    results = {"max_accuracy":max(accuracy),
+               "mean_accuracy":sum(accuracy)/float(len(accuracy)),
+               "min_accuracy":min(accuracy),
+               "total_cm":cm}
+
+    if self.verbosity > 0:
+      self._printCumulativeReport(results)
+
+    return results
+
+
+  @staticmethod
+  def _printCumulativeReport(results):
+    """
+    Prints results as returned by evaluateFinalResults() after several trials.
+    """
+    print "---------- RESULTS ----------"
+    print "max, mean, min accuracies = "
+    print "{0:.3f}, {1:.3f}, {2:.3f}".format(
+      results["max_accuracy"], results["mean_accuracy"],
+      results["min_accuracy"])
+    print "total confusion matrix =\n", results["total_cm"]

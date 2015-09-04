@@ -130,7 +130,7 @@ class MultiRunner(Runner):
     self.dataDict = readDir(self.dataPath, self.numClasses, True)
 
     if self.test:
-      self.testDict = readCSV(self.test, self.numClasses)
+      self.testDict = readCSV(self.test, numLabels=self.numClasses)
 
     minCategorySize = min(map(len, self.dataDict.values()))
     if not (isinstance(self.trainSizes, list) or

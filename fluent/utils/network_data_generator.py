@@ -81,7 +81,7 @@ class NetworkDataGenerator(object):
     @param textPreprocess  (bool)   True will preprocess text while tokenizing.
     Please see TextPreprocess tokenize() for the other parameters
     """
-    dataDict = readCSV(filename, numLabels)
+    dataDict = readCSV(filename, numLabels=numLabels)
     if dataDict is None:
       raise Exception("Could not read CSV.")
 

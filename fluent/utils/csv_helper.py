@@ -28,7 +28,7 @@ import os
 from collections import defaultdict, OrderedDict
 
 
-def readCSV(csvFile, numLabels):
+def readCSV(csvFile, numLabels=0):
   """
   Read in a CSV file w/ the following formatting:
     - one header row
@@ -87,7 +87,8 @@ def readDir(dirPath, numLabels, modify=False):
         if modify:
           category = category.replace("0", "/")
           category = category.replace("_", " ")
-        samplesDict[category] = readCSV(os.path.join(dirPath, f), numLabels)
+        samplesDict[category] = readCSV(
+          os.path.join(dirPath, f), numLabels=numLabels)
 
   return samplesDict
 

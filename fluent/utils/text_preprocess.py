@@ -59,15 +59,17 @@ class TextPreprocess(object):
     self.corpusTxt = corpusTxt
 
     self.abbrs = None
+    self.abbrRegex = None
     self.bagOfWords = None
     self.contrs = None
+    self.contrRegex = None
     self.corpus = None
 
 
   def _setupCorpus(self, corpusSource):
     """Create member vars for English language corpus and bag of words."""
     corpusPath = os.path.abspath(os.path.join(
-        os.path.dirname(__file__), '../..', 'data/etc', corpusSource))
+      os.path.dirname(__file__), "../..", "data/etc", corpusSource))
     try:
       self.corpus = file(corpusPath).read()
     except IOError:

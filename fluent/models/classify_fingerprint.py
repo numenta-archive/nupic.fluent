@@ -40,10 +40,11 @@ class ClassificationModelFingerprint(ClassificationModel):
                verbosity=1,
                numLabels=3,
                modelDir="ClassificationModelFingerprint",
-               fingerprintType=EncoderTypes.word):
+               fingerprintType=EncoderTypes.word,
+               unionSparsity=20.0):
 
     super(ClassificationModelFingerprint, self).__init__(
-        verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
+      verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     # Init kNN classifier and Cortical.io encoder; need valid API key (see
     # CioEncoder init for details).
@@ -56,7 +57,8 @@ class ClassificationModelFingerprint(ClassificationModel):
       raise ValueError("Invaid type of fingerprint encoding; see the "
                        "EncoderTypes class for eligble types.")
     self.encoder = CioEncoder(cacheDir="./fluent/experiments/cioCache",
-                              fingerprintType=fingerprintType)
+                              fingerprintType=fingerprintType,
+                              unionSparsity=unionSparsity)
     self.n = self.encoder.n
     self.w = int((self.encoder.targetSparsity/100)*self.n)
 
@@ -91,12 +93,11 @@ class ClassificationModelFingerprint(ClassificationModel):
 
 
   def trainModel(self, i):
+    # TODO: add batch training, where i is a list
     """
     Train the classifier on the sample and labels for record i. The list
     sampleReference is populated to correlate classifier prototypes to sample
     IDs.
-
-    TODO: add batch training, where i is a list
     """
     bitmap = self.patterns[i]["pattern"]["bitmap"]
     if bitmap.any():
@@ -114,5 +115,5 @@ class ClassificationModelFingerprint(ClassificationModel):
                                       for the data samples; int or empty.
     """
     (_, inferenceResult, _, _) = self.classifier.infer(
-        self._sparsifyPattern(self.patterns[i]["pattern"]["bitmap"]))
+      self.sparsifyPattern(self.patterns[i]["pattern"]["bitmap"], self.n))
     return self.getWinningLabels(inferenceResult, numLabels)

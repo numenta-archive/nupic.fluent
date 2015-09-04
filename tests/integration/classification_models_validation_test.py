@@ -57,7 +57,7 @@ class ClassificationModelsTest(unittest.TestCase):
     Return a list of the labels predicted by runner and a list of expected 
     labels from the expected classifications file path.
     """
-    dataDict = readCSV(expectationFilePath, 3)
+    dataDict = readCSV(expectationFilePath, numLabels=3)
 
     expectedClasses = []
     resultClasses = []
@@ -80,18 +80,18 @@ class ClassificationModelsTest(unittest.TestCase):
     the model's classifications should match those in the expected classes
     data file.
     """
+    modelName = "Keywords"
     runner = Runner(dataPath=os.path.join(DATA_DIR, "responses.csv"),
                     resultsDir="",
                     experimentName="keywords_test",
-                    load=False,
-                    modelName="ClassificationModelKeywords",
-                    modelModuleName="fluent.models.classify_keywords",
+                    loadPath=None,
+                    modelName=modelName,
                     numClasses=3,
                     plots=0,
                     orderedSplit=True,
                     trainSizes=[5],
                     verbosity=0)
-    runner.initModel()
+    runner.initModel(modelName)
     self.runExperiment(runner)
 
     expectedClasses, resultClasses = self.getExpectedClassifications(
@@ -115,18 +115,18 @@ class ClassificationModelsTest(unittest.TestCase):
     the model's classifications should match those in the expected classes
     data file.
     """
+    modelName = "CioDocumentFingerprint"
     runner = Runner(dataPath=os.path.join(DATA_DIR, "responses.csv"),
                     resultsDir="",
                     experimentName="fingerprints_test",
-                    load=False,
-                    modelName="ClassificationModelFingerprint",
-                    modelModuleName="fluent.models.classify_fingerprint",
+                    loadPath=None,
+                    modelName=modelName,
                     numClasses=3,
                     plots=0,
                     orderedSplit=True,
                     trainSizes=[5],
                     verbosity=0)
-    runner.initModel()
+    runner.initModel(modelName)
     runner.model.encoder.fingerprintType = EncoderTypes.document
     self.runExperiment(runner)
 
@@ -147,24 +147,25 @@ class ClassificationModelsTest(unittest.TestCase):
     the model's classifications should match those in the expected classes
     data file.
     """
+    modelName = "CioWordFingerprint"
     runner = Runner(dataPath=os.path.join(DATA_DIR, "responses.csv"),
                     resultsDir="",
                     experimentName="fingerprints_test",
-                    load=False,
-                    modelName="ClassificationModelFingerprint",
-                    modelModuleName="fluent.models.classify_fingerprint",
+                    loadPath=None,
+                    modelName=modelName,
                     numClasses=3,
                     plots=0,
                     orderedSplit=True,
                     trainSizes=[5],
                     verbosity=0)
-    runner.initModel()
+    runner.initModel(modelName)
     runner.model.encoder.fingerprintType = EncoderTypes.word
     self.runExperiment(runner)
 
     expectedClasses, resultClasses = self.getExpectedClassifications(runner,
       os.path.join(DATA_DIR, "responses_expected_classes_fingerprint_word.csv"))
-
+    for i, (e, r) in enumerate(zip(expectedClasses, resultClasses)):
+      if sorted(e) != sorted(r): print i, e, r
     [self.assertEqual(sorted(e), sorted(r),
       "Fingerprint model predicted classes other than what we expect.")
       for e, r in zip(expectedClasses, resultClasses)]
@@ -178,18 +179,18 @@ class ClassificationModelsTest(unittest.TestCase):
     the model's classifications should match those in the expected classes
     data file.
     """
+    modelName = "CioEndpoint"
     runner = Runner(dataPath=os.path.join(DATA_DIR, "responses.csv"),
                     resultsDir="",
                     experimentName="endpoint_test",
-                    load=False,
-                    modelName="ClassificationModelEndpoint",
-                    modelModuleName="fluent.models.classify_endpoint",
+                    loadPath=None,
+                    modelName=modelName,
                     numClasses=3,
                     plots=0,
                     orderedSplit=True,
                     trainSizes=[5],
                     verbosity=0)
-    runner.initModel()
+    runner.initModel(modelName)
     self.runExperiment(runner)
 
     expectedClasses, resultClasses = self.getExpectedClassifications(runner,
@@ -208,12 +209,12 @@ class ClassificationModelsTest(unittest.TestCase):
     the model's classifications should match those in the expected classes
     data file.
     """
+    modelName = "HTMNetwork"
     runner = HTMRunner(dataPath=os.path.join(DATA_DIR, "responses_network.csv"),
                        resultsDir="",
                        experimentName="htm_test",
-                       load=False,
-                       modelName="ClassificationModelHTM",
-                       modelModuleName="fluent.models.classify_htm",
+                       loadPath=None,
+                       modelName=modelName,
                        numClasses=3,
                        plots=0,
                        orderedSplit=True,

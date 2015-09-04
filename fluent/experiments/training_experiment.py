@@ -59,22 +59,20 @@ def run(args):
     runner = MultiRunner(dataPath=args.dataPath,
                          resultsDir=resultsDir,
                          experimentName=args.experimentName,
-                         load=args.load,
+                         loadPath=args.loadPath,
                          modelName=args.modelName,
-                         modelModuleName=args.modelModuleName,
                          numClasses=args.numClasses,
                          plots=args.plots,
                          orderedSplit=args.orderedSplit,
                          trainSizes=args.trainSizes,
                          verbosity=args.verbosity,
                          test=args.test)
-  elif args.modelName == "ClassificationModelHTM":
+  elif args.modelName == "HTMNetwork":
     runner = HTMRunner(dataPath=args.dataPath,
                        resultsDir=resultsDir,
                        experimentName=args.experimentName,
-                       load=args.load,
+                       loadPath=args.loadPath,
                        modelName=args.modelName,
-                       modelModuleName=args.modelModuleName,
                        numClasses=args.numClasses,
                        plots=args.plots,
                        orderedSplit=args.orderedSplit,
@@ -88,18 +86,17 @@ def run(args):
     runner = Runner(dataPath=args.dataPath,
                     resultsDir=resultsDir,
                     experimentName=args.experimentName,
-                    load=args.load,
+                    loadPath=args.loadPath,
                     modelName=args.modelName,
-                    modelModuleName=args.modelModuleName,
                     numClasses=args.numClasses,
                     plots=args.plots,
                     orderedSplit=args.orderedSplit,
                     trainSizes=args.trainSizes,
                     verbosity=args.verbosity)
 
-  if args.modelName != "ClassificationModelHTM":
+  if args.modelName != "HTMNetwork":
     # The data isn't ready yet to initialize an htm model
-    runner.initModel()
+    runner.initModel(args.modelName)
 
   print "Reading in data and preprocessing."
   dataTime = time.time()
@@ -119,7 +116,7 @@ def run(args):
   runner.calculateResults()
 
   print "Saving..."
-  runner.model.saveModel()
+  runner.saveModel()
 
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 
@@ -143,14 +140,10 @@ if __name__ == "__main__":
                       type=str,
                       help="Experiment name.")
   parser.add_argument("-m", "--modelName",
-                      default="ClassificationModelKeywords",
+                      default="Keywords",
                       type=str,
                       help="Name of model class. Also used for model results "
                            "directory and pickle checkpoint.")
-  parser.add_argument("-mm", "--modelModuleName",
-                      default="fluent.models.classify_keywords",
-                      type=str,
-                      help="Model module (location of model class).")
   parser.add_argument("--resultsDir",
                       default="results",
                       help="This will hold the experiment results.")
@@ -158,9 +151,10 @@ if __name__ == "__main__":
                       action="store_true",
                       default=False,
                       help="Whether or not to use text preprocessing.")
-  parser.add_argument("--load",
-                      help="Load the serialized model.",
-                      default=False)
+  parser.add_argument("--loadPath",
+                      help="Path from which to load the serialized model.",
+                      type=str,
+                      default=None)
   parser.add_argument("--numClasses",
                       help="Specifies the number of classes per sample.",
                       type=int,
@@ -177,7 +171,7 @@ if __name__ == "__main__":
                            "the samples randomly, True will allocate the "
                            "first n samples to training with the remainder "
                            "for testing.")
-  parser.add_argument("--trainSize",
+  parser.add_argument("--trainSizes",
                       default=[7, 7, 7, 13, 13, 13],
                       nargs="+",
                       type=int,

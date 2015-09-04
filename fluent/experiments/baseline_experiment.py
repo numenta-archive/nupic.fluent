@@ -73,13 +73,12 @@ def run(args):
   root = os.path.dirname(os.path.realpath(__file__))
   resultsDir = os.path.join(root, args.resultsDir)
 
-  if args.modelName == "ClassificationModelHTM":
+  if args.modelName == "HTMNetwork":
     runner = HTMRunner(dataPath=args.dataPath,
                        resultsDir=resultsDir,
                        experimentName=args.experimentName,
-                       load=args.load,
+                       loadPath=args.loadPath,
                        modelName=args.modelName,
-                       modelModuleName=args.modelModuleName,
                        numClasses=args.numClasses,
                        plots=args.plots,
                        orderedSplit=args.orderedSplit,
@@ -93,18 +92,16 @@ def run(args):
     runner = Runner(dataPath=args.dataPath,
                     resultsDir=resultsDir,
                     experimentName=args.experimentName,
-                    load=args.load,
+                    loadPath=args.loadPath,
                     modelName=args.modelName,
-                    modelModuleName=args.modelModuleName,
                     numClasses=args.numClasses,
                     plots=args.plots,
                     orderedSplit=args.orderedSplit,
                     trainSizes=[],
                     verbosity=args.verbosity)
 
-  if args.modelName != "ClassificationModelHTM":
-    # The data isn't ready yet to initialize an htm model
-    runner.initModel()
+    # HTM network data isn't ready yet to initialize the model
+    runner.initModel(args.modelName)
 
   print "Reading in data and preprocessing."
   dataTime = time.time()
@@ -113,7 +110,7 @@ def run(args):
   # TODO: move kfolds splitting to Runner
   random = False if args.orderedSplit else True
   runner.partitions = KFolds(args.kFolds).split(
-      range(len(runner.samples)), randomize=random)
+    range(len(runner.samples)), randomize=random)
   runner.trainSizes = [len(x[0]) for x in runner.partitions]
   print ("Data setup complete; elapsed time is {0:.2f} seconds.\nNow encoding "
          "the data".format(time.time() - dataTime))
@@ -127,10 +124,10 @@ def run(args):
   print "Experiment complete in {0:.2f} seconds.".format(time.time() - start)
 
   resultCalcs = runner.calculateResults()
-  _ = runner.model.evaluateCumulativeResults(resultCalcs)
+  _ = runner.evaluateCumulativeResults(resultCalcs)
 
   print "Saving..."
-  runner.model.saveModel()
+  runner.saveModel()
 
   if args.validation:
     print "Validating experiment against expected classifications..."
@@ -156,14 +153,10 @@ if __name__ == "__main__":
                       type=str,
                       help="Experiment name.")
   parser.add_argument("-m", "--modelName",
-                      default="ClassificationModelKeywords",
+                      default="Keywords",
                       type=str,
                       help="Name of model class. Also used for model results "
                            "directory and pickle checkpoint.")
-  parser.add_argument("-mm", "--modelModuleName",
-                      default="fluent.models.classify_keywords",
-                      type=str,
-                      help="Model module (location of model class).")
   parser.add_argument("--resultsDir",
                       default="results",
                       help="This will hold the experiment results.")
@@ -171,9 +164,10 @@ if __name__ == "__main__":
                       action="store_true",
                       default=False,
                       help="Whether or not to use text preprocessing.")
-  parser.add_argument("--load",
-                      help="Load the serialized model.",
-                      default=False)
+  parser.add_argument("--loadPath",
+                      help="Path from which to load the serialized model.",
+                      type=str,
+                      default=None)
   parser.add_argument("--numClasses",
                       help="Specifies the number of classes per sample.",
                       type=int,
@@ -231,6 +225,10 @@ if __name__ == "__main__":
                       default="",
                       help="Json file mapping labels strings to their IDs. "
                            "This only applies to HTM models.")
+  parser.add_argument("--classifierType",
+                      default="KNN",
+                      choices=["KNN", "CLA"],
+                      help="Type of classifier to use for the HTM")
 
   args = parser.parse_args()
 
