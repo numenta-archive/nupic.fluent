@@ -77,7 +77,7 @@ def run(args):
     runner = HTMRunner(dataPath=args.dataPath,
                        resultsDir=resultsDir,
                        experimentName=args.experimentName,
-                       load=args.load,
+                       loadPath=args.loadPath,
                        modelName=args.modelName,
                        numClasses=args.numClasses,
                        plots=args.plots,
@@ -92,7 +92,7 @@ def run(args):
     runner = Runner(dataPath=args.dataPath,
                     resultsDir=resultsDir,
                     experimentName=args.experimentName,
-                    load=args.load,
+                    loadPath=args.loadPath,
                     modelName=args.modelName,
                     numClasses=args.numClasses,
                     plots=args.plots,
@@ -100,8 +100,7 @@ def run(args):
                     trainSizes=[],
                     verbosity=args.verbosity)
 
-  if args.modelName != "HTMNetwork":
-    # The data isn't ready yet to initialize an htm model
+    # HTM network data isn't ready yet to initialize the model
     runner.initModel(args.modelName)
 
   print "Reading in data and preprocessing."
@@ -165,7 +164,7 @@ if __name__ == "__main__":
                       action="store_true",
                       default=False,
                       help="Whether or not to use text preprocessing.")
-  parser.add_argument("--load",
+  parser.add_argument("--loadPath",
                       help="Path from which to load the serialized model.",
                       type=str,
                       default=None)

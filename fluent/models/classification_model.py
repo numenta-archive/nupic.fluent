@@ -272,13 +272,14 @@ class ClassificationModel(object):
         distances are between 0.0 and 1.0
     """
     (_, _, dist, _) = self.classifier.infer(
-      self._sparsifyPattern(pattern["bitmap"]))
+      self._sparsifyPattern(pattern["bitmap"], self.n))
     return dist
 
 
-  def _sparsifyPattern(self, bitmap):
+  @staticmethod
+  def sparsifyPattern(bitmap, n):
     """Return a numpy array of 0s and 1s to represent the input bitmap."""
-    sparsePattern = numpy.zeros(self.n)
+    sparsePattern = numpy.zeros(n)
     for i in bitmap:
       sparsePattern[i] = 1.0
     return sparsePattern

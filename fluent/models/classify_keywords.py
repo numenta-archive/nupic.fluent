@@ -127,7 +127,7 @@ class ClassificationModelKeywords(ClassificationModel):
         continue
 
       (_, inferenceResult, _, _) = self.classifier.infer(
-        self._sparsifyPattern(pattern["bitmap"]))
+        self.sparsifyPattern(pattern["bitmap"], self.n))
 
       if totalInferenceResult is None:
         totalInferenceResult = inferenceResult
@@ -151,7 +151,7 @@ class ClassificationModelKeywords(ClassificationModel):
     distances = numpy.zeros((self.classifier._numPatterns))
     for i, p in enumerate(patterns):
       (_, _, dist, _) = self.classifier.infer(
-        self._sparsifyPattern(p["bitmap"]))
+        self.sparsifyPattern(p["bitmap"], self.n))
 
       distances = numpy.array([sum(x) for x in zip(dist, distances)])
 

@@ -87,9 +87,9 @@ class CioEncoder(LanguageEncoder):
     if not text:
       return None
     try:
-      if self.fingerprintType is EncoderTypes.document:
+      if self.fingerprintType == EncoderTypes.document:
         encoding = self.client.getTextBitmap(text)
-      elif self.fingerprintType is EncoderTypes.word:
+      elif self.fingerprintType == EncoderTypes.word:
         encoding = self.getUnionEncoding(text)
     except UnsuccessfulEncodingError:
       if self.verbosity > 0:

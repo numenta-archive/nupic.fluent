@@ -45,7 +45,7 @@ class HTMRunner(Runner):
                dataPath,
                resultsDir,
                experimentName,
-               load,
+               loadPath,
                modelName,
                numClasses=3,
                plots=0,
@@ -77,7 +77,7 @@ class HTMRunner(Runner):
     self.actualLabels = None
 
     super(HTMRunner, self).__init__(dataPath, resultsDir, experimentName,
-                                    modelName, load, numClasses, plots,
+                                    modelName, loadPath, numClasses, plots,
                                     orderedSplit, trainSizes, verbosity)
 
 
@@ -131,13 +131,13 @@ class HTMRunner(Runner):
 
   def resetModel(self, trial):
     """Load or instantiate the classification model."""
-    if self.load:
-      with open(self.load, "rb") as f:
+    if self.loadPath:
+      with open(self.loadPath, "rb") as f:
         self.model = pkl.load(f)
       networkFile = self.model.network
       # TODO: uncomment once we can save TPRegion
       #self.model.network = Network(networkFile)
-      print "Model loaded from \'{0}\'.".format(self.load)
+      print "Model loaded from \'{0}\'.".format(self.loadPath)
     else:
       tmTrainingSize = self.trainSizes[trial] / 3.0
       clsTrainingSize = 2 * self.trainSizes[trial] / 3.0

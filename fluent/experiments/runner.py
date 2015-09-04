@@ -34,6 +34,14 @@ from fluent.models.classify_keywords import ClassificationModelKeywords
 from fluent.utils.csv_helper import readCSV, writeFromDict
 
 
+_MODEL_MAPPING = {
+  "CioWordFingerprint": ClassificationModelFingerprint,
+  "CioDocumentFingerprint": ClassificationModelFingerprint,
+  "Keywords": ClassificationModelKeywords,
+  "CioEndpoint": ClassificationModelEndpoint,
+  }
+
+
 
 class Runner(object):
   """
@@ -46,7 +54,7 @@ class Runner(object):
                resultsDir,
                experimentName,
                modelName,
-               load=None,
+               loadPath=None,
                numClasses=3,
                plots=0,
                orderedSplit=False,
@@ -56,7 +64,7 @@ class Runner(object):
     @param dataPath         (str)     Path to raw data file for the experiment.
     @param resultsDir       (str)     Directory where for the results metrics.
     @param experimentName   (str)     Experiment name, used for saving results.
-    @param load             (str)     Path to serialized model for loading.
+    @param loadPath         (str)     Path to serialized model for loading.
     @param modelName        (str)     Name of nupic.fluent Model subclass.
     @param numClasses       (int)     Number of classes (labels) per sample.
     @param plots            (int)     Specifies plotting of evaluation metrics.
@@ -70,7 +78,7 @@ class Runner(object):
     self.dataPath = dataPath
     self.resultsDir = resultsDir
     self.experimentName = experimentName
-    self.load = load
+    self.loadPath = loadPath
     self.modelName = modelName
     self.numClasses = numClasses
     self.plots = plots
@@ -99,46 +107,49 @@ class Runner(object):
 
   def initModel(self, modelName):
     """Load or instantiate the classification model."""
-    if self.load:
+    if self.loadPath:
       self.model = self.loadModel()
     else:
-      if modelName == "CioWordFingerprint":
-        self.model = ClassificationModelFingerprint(
-          verbosity=self.verbosity,
-          numLabels=self.numClasses,
-          modelDir=self.modelDir,
-          fingerprintType=EncoderTypes.word)
-      if modelName == "CioDocumentFingerprint":
-        self.model = ClassificationModelFingerprint(
-          verbosity=self.verbosity,
-          numLabels=self.numClasses,
-          modelDir=self.modelDir,
-          fingerprintType=EncoderTypes.document)
-      if modelName == "Keywords":
-        self.model = ClassificationModelKeywords(
-          verbosity=self.verbosity,
-          numLabels=self.numClasses,
-          modelDir=self.modelDir)
-      if modelName == "CioEndpoint":
-        self.model = ClassificationModelEndpoint(
-          verbosity=self.verbosity,
-          numLabels=self.numClasses,
-          modelDir=self.modelDir)
+      self.model = self._createModel(modelName)
 
-      if self.model == None:
-        raise ValueError(
-          "Could not instantiate model \'{}\'.".format(modelName))
+
+  def _createModel(self, modelName):
+    """Return an instantiated model."""
+    modelCls = _MODEL_MAPPING.get(modelName, None)
+
+    if modelCls is None:
+      raise ValueError("Could not instantiate model \'{}\'.".format(modelName))
+
+    # TODO: remove these if blocks and just use the else; either specify the Cio
+    # FP type elsewhere, or split Word and Doc into separate classes.
+
+    if modelName == "CioWordFingerprint":
+      return modelCls(verbosity=self.verbosity,
+                      numLabels=self.numClasses,
+                      modelDir=self.modelDir,
+                      fingerprintType=EncoderTypes.word)
+
+    elif modelName == "CioDocumentFingerprint":
+      return modelCls(verbosity=self.verbosity,
+                      numLabels=self.numClasses,
+                      modelDir=self.modelDir,
+                      fingerprintType=EncoderTypes.document)
+
+    else:
+      return modelCls(verbosity=self.verbosity,
+                      numLabels=self.numClasses,
+                      modelDir=self.modelDir)
 
 
   def loadModel(self):
     """Load the serialized model."""
     try:
-      with open(self.load, "rb") as f:
+      with open(self.loadPath, "rb") as f:
         model = pkl.load(f)
-      print "Model loaded from \'{}\'.".format(self.load)
+      print "Model loaded from \'{}\'.".format(self.loadPath)
       return model
     except IOError as e:
-      print "Could not load model from \'{}\'.".format(self.load)
+      print "Could not load model from \'{}\'.".format(self.loadPath)
       raise e
 
 

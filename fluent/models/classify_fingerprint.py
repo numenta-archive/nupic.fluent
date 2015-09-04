@@ -115,5 +115,5 @@ class ClassificationModelFingerprint(ClassificationModel):
                                       for the data samples; int or empty.
     """
     (_, inferenceResult, _, _) = self.classifier.infer(
-      self._sparsifyPattern(self.patterns[i]["pattern"]["bitmap"]))
+      self.sparsifyPattern(self.patterns[i]["pattern"]["bitmap"], self.n))
     return self.getWinningLabels(inferenceResult, numLabels)
