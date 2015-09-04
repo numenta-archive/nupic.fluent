@@ -26,6 +26,11 @@ import os
 import random
 
 from collections import defaultdict
+
+from fluent.encoders import EncoderTypes
+from fluent.models.classify_endpoint import ClassificationModelEndpoint
+from fluent.models.classify_fingerprint import ClassificationModelFingerprint
+from fluent.models.classify_keywords import ClassificationModelKeywords
 from fluent.utils.csv_helper import readCSV, writeFromDict
 
 
@@ -40,9 +45,8 @@ class Runner(object):
                dataPath,
                resultsDir,
                experimentName,
-               load,
                modelName,
-               modelModuleName,
+               load=None,
                numClasses=3,
                plots=0,
                orderedSplit=False,
@@ -52,10 +56,8 @@ class Runner(object):
     @param dataPath         (str)     Path to raw data file for the experiment.
     @param resultsDir       (str)     Directory where for the results metrics.
     @param experimentName   (str)     Experiment name, used for saving results.
-    @param load             (bool)    True if a serialized model is to be
-                                      loaded.
+    @param load             (str)     Path to serialized model for loading.
     @param modelName        (str)     Name of nupic.fluent Model subclass.
-    @param modeModuleName   (str)     Model module -- location of the subclass.
     @param numClasses       (int)     Number of classes (labels) per sample.
     @param plots            (int)     Specifies plotting of evaluation metrics.
     @param orderedSplit     (bool)    Indicates method for splitting train/test
@@ -70,7 +72,6 @@ class Runner(object):
     self.experimentName = experimentName
     self.load = load
     self.modelName = modelName
-    self.modelModuleName = modelModuleName
     self.numClasses = numClasses
     self.plots = plots
     self.orderedSplit = orderedSplit
@@ -96,31 +97,48 @@ class Runner(object):
     self.model = None
 
 
-  def initModel(self):
+  def initModel(self, modelName):
     """Load or instantiate the classification model."""
     if self.load:
-      self.loadModel()
+      self.model = self.loadModel()
     else:
-      try:
-        module = __import__(self.modelModuleName, {}, {}, self.modelName)
-        modelClass = getattr(module, self.modelName)
-        self.model = modelClass(verbosity=self.verbosity,
-                                numLabels=self.numClasses,
-                                modelDir=self.modelDir)
-      except ImportError:
-        raise RuntimeError("Could not import model class \'{0}\'.".
-                           format(self.modelName))
+      if modelName == "CioWordFingerprint":
+        self.model = ClassificationModelFingerprint(
+          verbosity=self.verbosity,
+          numLabels=self.numClasses,
+          modelDir=self.modelDir,
+          fingerprintType=EncoderTypes.word)
+      if modelName == "CioDocumentFingerprint":
+        self.model = ClassificationModelFingerprint(
+          verbosity=self.verbosity,
+          numLabels=self.numClasses,
+          modelDir=self.modelDir,
+          fingerprintType=EncoderTypes.document)
+      if modelName == "Keywords":
+        self.model = ClassificationModelKeywords(
+          verbosity=self.verbosity,
+          numLabels=self.numClasses,
+          modelDir=self.modelDir)
+      if modelName == "CioEndpoint":
+        self.model = ClassificationModelEndpoint(
+          verbosity=self.verbosity,
+          numLabels=self.numClasses,
+          modelDir=self.modelDir)
+
+      if self.model == None:
+        raise ValueError(
+          "Could not instantiate model \'{}\'.".format(modelName))
 
 
   def loadModel(self):
     """Load the serialized model."""
     try:
-      with open(os.path.join(self.modelDir, "model.pkl"), "rb") as f:
+      with open(self.load, "rb") as f:
         model = pkl.load(f)
-      print "Model loaded from \'{}\'.".format(self.modelDir)
+      print "Model loaded from \'{}\'.".format(self.load)
       return model
     except IOError as e:
-      print "Could not load model from \'{}\'.".format(self.modelDir)
+      print "Could not load model from \'{}\'.".format(self.load)
       raise e
 
 
@@ -295,8 +313,8 @@ class Runner(object):
     # To handle multiple trials of the same size:
     # trialSize -> (category -> list of accuracies)
     trialAccuracies = defaultdict(lambda: defaultdict(lambda: numpy.ndarray(0)))
-    for i, size in enumerate(self.trainSizes):
-      accuracies = self.model.calculateClassificationResults(self.results[i])
+    for result, size in itertools.izip(self.results, self.trainSizes):
+      accuracies = self.model.calculateClassificationResults(result)
       for label, acc in accuracies:
         category = self.labelRefs[label]
         accList = trialAccuracies[size][category]
@@ -353,8 +371,8 @@ class Runner(object):
     template = "{0:<20}|{1:<10}"
     print "Evaluation results for this experiment:"
     print template.format("Size of training set", "Accuracy")
-    for i, a in enumerate(accuracies):
-      print template.format(trainSizes[i], a)
+    for size, acc in itertools.izip(trainSizes, accuracies):
+      print template.format(size, acc)
 
 
   def evaluateCumulativeResults(self, intermResults):
