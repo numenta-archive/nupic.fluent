@@ -206,11 +206,7 @@ if __name__ == "__main__":
                       help="Method to use when picking final classifications")
   parser.add_argument("--classificationFile",
                       default="",
-                      help="Json file mapping string labels to ids")
-  parser.add_argument("--classifierType",
-                      default="KNN",
-                      choices=["KNN", "CLA"],
-                      help="Type of classifier to use for the HTM")
+                      help="JSON file mapping string labels to ids")
 
   args = parser.parse_args()
 

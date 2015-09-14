@@ -210,7 +210,7 @@ class ClassificationModelsTest(unittest.TestCase):
     data file.
     """
     modelName = "HTMNetwork"
-    runner = HTMRunner(dataPath=os.path.join(DATA_DIR, "responses_network.csv"),
+    runner = HTMRunner(dataPath=os.path.join(DATA_DIR, "responses.csv"),
                        networkConfigPath=os.path.join(DATA_DIR, "network_config_sp_tm_knn.json"),
                        resultsDir="",
                        experimentName="htm_test",
@@ -221,10 +221,8 @@ class ClassificationModelsTest(unittest.TestCase):
                        orderedSplit=True,
                        trainSizes=[5],
                        verbosity=0,
-                       generateData=False,
-                       votingMethod="last",
-                       classificationFile=os.path.join(
-                         DATA_DIR, "responses_classifications.json"))
+                       generateData=True,
+                       votingMethod="last")
     runner.initModel()
     self.runExperiment(runner)
 

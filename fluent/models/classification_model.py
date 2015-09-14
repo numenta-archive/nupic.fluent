@@ -127,24 +127,6 @@ class ClassificationModel(object):
     self.classifier.clear()
 
 
-  @staticmethod
-  def prepText(text, preprocess=False):
-    """
-    Returns a list of the text tokens.
-
-    @param preprocess   (bool)    Whether or not to preprocess the text data.
-    """
-    if preprocess:
-      sample = TextPreprocess().tokenize(text,
-                                         ignoreCommon=100,
-                                         removeStrings=["[identifier deleted]"],
-                                         correctSpell=True)
-    else:
-      sample = TextPreprocess().tokenize(text)
-
-    return sample
-
-
   def prepData(self, dataDict, preprocess):
     """
     Returns a dict of same format as dataDict where the text data has been
@@ -164,6 +146,24 @@ class ClassificationModel(object):
       outDict[dataID] = (self.prepText(data[0], preprocess), data[1])
 
     return outDict
+
+
+  @staticmethod
+  def prepText(text, preprocess=False):
+    """
+    Returns a list of the text tokens.
+
+    @param preprocess   (bool)    Whether or not to preprocess the text data.
+    """
+    if preprocess:
+      sample = TextPreprocess().tokenize(text,
+                                         ignoreCommon=100,
+                                         removeStrings=["[identifier deleted]"],
+                                         correctSpell=True)
+    else:
+      sample = TextPreprocess().tokenize(text)
+
+    return sample
 
 
   def writeOutCategories(self, dirName, comparisons=None, labelRefs=None):

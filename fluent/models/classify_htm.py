@@ -24,6 +24,7 @@ import numpy
 from classification_network import configureNetwork
 from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
+from fluent.utils.network_data_generator import NetworkDataGenerator
 from nupic.data.file_record_stream import FileRecordStream
 
 
@@ -35,15 +36,14 @@ class ClassificationModelHTM(ClassificationModel):
 
   def __init__(self,
                networkConfig,
-               inputFilePath,
+               networkDataPath,
                verbosity=1,
                numLabels=3,
                modelDir="ClassificationModelHTM"):
     """
-    @param networkConfig      (str)       Path to JSON of network configuration,
-                                          with region parameters.
-    @param inputFilePath      (str)       Path to data formatted for network
-                                          API.
+    @param networkConfig      (str)     Path to JSON of network configuration,
+                                        with region parameters.
+    @param inputFilePath      (str)     Path to data formatted for network API.
 
     See ClassificationModel for remaining parameters.
     """
@@ -52,14 +52,16 @@ class ClassificationModelHTM(ClassificationModel):
       verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     self.networkConfig = networkConfig
-    self.inputFilePath = inputFilePath
-    self.network = self._initModel()
+    self.networkDataPath = networkDataPath
+    self.network = self.initModel()
     self.learningRegions = self._getLearningRegions()
 
 
-  def _initModel(self):
-    """Initialize the network and related variables"""
-    recordStream = FileRecordStream(streamID=self.inputFilePath)
+  def initModel(self, networkDataPath=None):
+    """Initialize the network with an input network data file."""
+    if networkDataPath:
+      self.networkDataPath = self.prepData(networkDataPath)  # then htmRunner.setupData() can just pass
+    recordStream = FileRecordStream(streamID=self.networkDataPath)
     encoder = CioEncoder(cacheDir="./experiments/cache")
 
     return configureNetwork(recordStream, self.networkConfig, encoder)
@@ -97,6 +99,15 @@ class ClassificationModelHTM(ClassificationModel):
     return [{"text": t,
              "sparsity": None,
              "bitmap": None} for t in sample]
+
+
+  def prepData(self, dataPath, preprocess=False, ordered=True, **kwargs): # work w/ Runner setupData()
+    """
+    Generate the data in network API format. Please see the
+    NetworkDataGenerator.setup() docstring for param descriptions.
+    """
+    ndg = NetworkDataGenerator()
+    return ndg.setupData(dataPath, self.numLabels, preprocess, ordered, **kwargs)
 
 
   def resetModel(self):

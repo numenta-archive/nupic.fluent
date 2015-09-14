@@ -129,27 +129,29 @@ class HTMRunner(Runner):
     populated with the paths of network data files, one for each trial
 
     Look at runner.py (setupData) and network_data_generator.py (split) for the
-    parameters
+    parameters.
     """
     if self.generateData:
+      # TODO: use model.prepData()?
       ndg = NetworkDataGenerator()
       ndg.split(self.dataPath, self.numClasses, preprocess, **kwargs)
 
       filename, ext = os.path.splitext(self.dataPath)
-      self.classificationFile = "{}-classifications.json".format(filename)
+      self.classificationFile = "{}_categories.json".format(filename)
+
       for i in xrange(len(self.trainSizes)):
         if not self.orderedSplit:
           ndg.randomizeData()
-        dataFile = "{}-{}{}".format(filename, i, ext)
+        dataFile = "{}_network_{}{}".format(filename, i, ext)
         ndg.saveData(dataFile, self.classificationFile)
         self.dataFiles.append(dataFile)
 
       if self.verbosity > 0:
         print "{} file(s) generated at {}".format(len(self.dataFiles),
           self.dataFiles)
-        print "Classification json is at: {}".format(self.classificationFile)
+        print "Classification JOSN is at: {}".format(self.classificationFile)
     else:
-      # Does an orderedSplit
+      # Use the input file for each trial; maintains the order of samples.
       self.dataFiles = [self.dataPath] * len(self.trainSizes)
 
     if self.numClasses > 0:
@@ -236,7 +238,8 @@ class HTMRunner(Runner):
       for numTokens in self.partitions[trial][1]:
         indices.append(i)
         i += numTokens
-      print "\tRunner selects to test on sample(s) {}".format(indices)
+      print ("\tRunner selects to test on sequences starting at indices "
+             "{}".format(indices))
 
     results = ([], [])
     for i, numTokens in enumerate(self.partitions[trial][1]):

@@ -188,7 +188,7 @@ class Runner(object):
 
     self.samples = self.model.prepData(self.dataDict, preprocess)
 
-    self.patterns = self.model.encodeSamples(self.samples)
+    self.encodeSamples()
 
     if self.verbosity > 1:
       for i, s in self.samples.iteritems():
