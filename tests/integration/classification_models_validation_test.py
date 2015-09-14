@@ -201,7 +201,7 @@ class ClassificationModelsTest(unittest.TestCase):
       for e, r in zip(expectedClasses, resultClasses)]
 
 
-  def testClassifyHTMAsExpected(self):
+  def testClassifyHTMAsExpectedWithKNN(self):
     """
     Tests ClassificationModelHTM.
     
@@ -211,6 +211,7 @@ class ClassificationModelsTest(unittest.TestCase):
     """
     modelName = "HTMNetwork"
     runner = HTMRunner(dataPath=os.path.join(DATA_DIR, "responses_network.csv"),
+                       networkConfigPath=os.path.join(DATA_DIR, "network_config_sp_tm_knn.json"),
                        resultsDir="",
                        experimentName="htm_test",
                        loadPath=None,
@@ -223,8 +224,8 @@ class ClassificationModelsTest(unittest.TestCase):
                        generateData=False,
                        votingMethod="last",
                        classificationFile=os.path.join(
-                         DATA_DIR, "responses_classifications.json"),
-                       classifierType="KNN")
+                         DATA_DIR, "responses_classifications.json"))
+    runner.initModel()
     self.runExperiment(runner)
 
     expectedClasses, resultClasses = self.getExpectedClassifications(runner,
@@ -233,6 +234,13 @@ class ClassificationModelsTest(unittest.TestCase):
     [self.assertEqual(sorted(e), sorted(r),
       "HTM model predicted classes other than what we expect.")
       for e, r in zip(expectedClasses, resultClasses)]
+
+# TODO: add the following tests...
+
+#  def testClassifyHTMAsExpectedWithCLA(self):
+
+#  def testTrainOnAllTestOnAll(self):
+#    """Train on all samples, save model, load model, and test on all samples."""
 
 
 if __name__ == "__main__":

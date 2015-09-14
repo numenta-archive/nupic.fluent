@@ -69,6 +69,7 @@ def run(args):
                          test=args.test)
   elif args.modelName == "HTMNetwork":
     runner = HTMRunner(dataPath=args.dataPath,
+                       networkConfigPath=args.networkConfigPath,
                        resultsDir=resultsDir,
                        experimentName=args.experimentName,
                        loadPath=args.loadPath,
@@ -80,8 +81,7 @@ def run(args):
                        verbosity=args.verbosity,
                        generateData=args.generateData,
                        votingMethod=args.votingMethod,
-                       classificationFile=args.classificationFile,
-                       classifierType=args.classifierType)
+                       classificationFile=args.classificationFile)
   else:
     runner = Runner(dataPath=args.dataPath,
                     resultsDir=resultsDir,
@@ -130,7 +130,12 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
   parser.add_argument("dataPath",
-                      help="path to data CSV or folder of CSVs.")
+                      help="Path to data CSV or folder of CSVs.",
+                      type=str)
+  parser.add_argument("--networkConfigPath",
+                      default="htm_network_config.json",
+                      help="Path to JSON specifying the network params.",
+                      type=str)
   parser.add_argument("--test",
                       default=None,
                       help="Path to data CSV to use for testing if provided. "

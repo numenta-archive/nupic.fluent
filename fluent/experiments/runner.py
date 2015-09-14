@@ -73,7 +73,6 @@ class Runner(object):
     @param trainSizes       (list)    Number of samples to use in training, per
                                       trial.
     @param verbosity        (int)     Greater value prints out more progress.
-
     """
     self.dataPath = dataPath
     self.resultsDir = resultsDir
@@ -153,7 +152,7 @@ class Runner(object):
       raise e
 
 
-  def resetModel(self, _):
+  def resetModel(self):
     self.model.resetModel()
 
 
@@ -207,7 +206,7 @@ class Runner(object):
       self.partitionIndices()
 
     for i, _ in enumerate(self.trainSizes):
-      self.resetModel(i)
+      self.resetModel()
 
       if self.verbosity > 0:
         print "\tTraining for run {0} of {1}.".format(

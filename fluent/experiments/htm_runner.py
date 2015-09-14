@@ -22,7 +22,7 @@
 import cPickle as pkl
 import os
 
-from collections import Counter
+from collections import Counter, namedtuple
 from fluent.experiments.runner import Runner
 from fluent.models.classify_htm import ClassificationModelHTM
 from fluent.utils.network_data_generator import NetworkDataGenerator
@@ -43,6 +43,7 @@ class HTMRunner(Runner):
 
   def __init__(self,
                dataPath,
+               networkConfigPath,
                resultsDir,
                experimentName,
                loadPath,
@@ -54,20 +55,21 @@ class HTMRunner(Runner):
                verbosity=0,
                generateData=True,
                votingMethod="last",
-               classificationFile="",
-               classifierType="KNN"):
+               classificationFile=""):
     """
-    @param generateData       (bool)   Whether or not we need to generate data
-    @param votingMethod       (str)    Either use "last" tokens score or "most"
-                                       frequent
-    @param classificationFile (str)    Path to json file containing the
-                                       mappings of string labels to ids
-    @param classifierType     (str)    Either "KNN" or "CLA"
-    Look at runner.py for the other parameters
+    @param networkConfigPath  (str)    Path to JSON specifying network params.
+    @param generateData       (bool)   Whether or not we need to generate data.
+    @param votingMethod       (str)    Classify with "last" token's score or
+                                       "most" frequent of the sequence.
+    @param classificationFile (str)    Path to JSON that maps labels to ids.
+
+    See base class constructor for the other parameters.
     """
+    self.networkConfig = self._getNetworkConfig(networkConfigPath)
+    self.model = None
+
     self.generateData = generateData
     self.votingMethod = votingMethod
-    self.classifierType = classifierType
 
     if classificationFile == "" and not generateData:
       raise ValueError("Must give classificationFile if not generating data")
@@ -79,6 +81,34 @@ class HTMRunner(Runner):
     super(HTMRunner, self).__init__(dataPath, resultsDir, experimentName,
                                     modelName, loadPath, numClasses, plots,
                                     orderedSplit, trainSizes, verbosity)
+
+
+  @staticmethod
+  def _getNetworkConfig(networkConfigPath):
+    try:
+      with open(networkConfigPath, "rb") as fin:
+        return json.load(fin)
+    except IOError as e:
+      print "Could not find network configuration JSON at \'{}\'.".format(
+        networkConfigPath)
+      raise e
+
+
+  def initModel(self):
+    """Load or instantiate the classification model."""
+    if self.loadPath:
+      with open(self.loadPath, "rb") as f:
+        self.model = pkl.load(f)
+      # TODO: uncomment once we can save TPRegion; do we need this?
+      # networkFile = self.model.network
+      # self.model.network = Network(networkFile)
+      print "Model loaded from \'{0}\'.".format(self.loadPath)
+    else:
+      self.model = ClassificationModelHTM(self.networkConfig,
+                                          self.dataPath,
+                                          verbosity=self.verbosity,
+                                          numLabels=self.numClasses,
+                                          modelDir=self.modelDir)
 
 
   def _mapLabelRefs(self):
@@ -129,27 +159,16 @@ class HTMRunner(Runner):
       self._mapLabelRefs()
 
 
-  def resetModel(self, trial):
+  def resetModel(self):
     """Load or instantiate the classification model."""
-    if self.loadPath:
-      with open(self.loadPath, "rb") as f:
-        self.model = pkl.load(f)
-      networkFile = self.model.network
-      # TODO: uncomment once we can save TPRegion
-      #self.model.network = Network(networkFile)
-      print "Model loaded from \'{0}\'.".format(self.loadPath)
-    else:
-      tmTrainingSize = self.trainSizes[trial] / 3.0
-      clsTrainingSize = 2 * self.trainSizes[trial] / 3.0
-      self.model = ClassificationModelHTM(self.dataFiles[trial],
-                                          verbosity=self.verbosity,
-                                          tmTrainingSize=tmTrainingSize,
-                                          clsTrainingSize=clsTrainingSize,
-                                          classifierType=self.classifierType)
+    self.initModel()
+    # TODO: change to same as Runner:
+    #   self.model.resetModel()
+    #   otherwise you're creating a new model instance twice each experiment
 
 
   def encodeSamples(self):
-    """This method does nothing since the network encodes the samples"""
+    """Passthrough b/c the network encodes the samples."""
     pass
 
 
@@ -170,8 +189,8 @@ class HTMRunner(Runner):
   def _training(self, trial):
     """
     Train the network on all the tokens in the training set for a particular
-    trial
-    @param trial      (int)       trial count
+    trial.
+    @param trial      (int)       current trial number
     """
     if self.verbosity > 0:
       i = 0
@@ -181,9 +200,9 @@ class HTMRunner(Runner):
         i += numTokens
       print ("\tRunner selects to train on sequences starting at indices {}.".
             format(indices))
+
     for numTokens in self.partitions[trial][0]:
-      for _ in xrange(numTokens):
-        self.model.trainModel()
+      self.model.trainModel(iterations=numTokens)
 
 
   def _selectWinners(self, predictions):
@@ -226,6 +245,8 @@ class HTMRunner(Runner):
         predicted = self.model.testModel()
         predictions.append(predicted)
       winningPredictions = self._selectWinners(predictions)
+
+      # TODO: switch to standard (expected, actual) format
       results[0].append(winningPredictions)
       results[1].append(self.actualLabels[trial][i])
 
@@ -258,6 +279,25 @@ class HTMRunner(Runner):
       dataFile = self.dataFiles[trial]
       numTokens = NetworkDataGenerator.getNumberOfTokens(dataFile)
       self.partitions.append((numTokens[:split], numTokens[split:]))
+
+
+  def partitionLearning(self):
+    """
+    Find the number of partitions for the input data based on a specific
+    networkConfig.
+
+    @return partitions: (list of namedtuples) Region names and index at which the
+      region is to begin learning. The final partition is reserved as a test set.
+    """
+    Partition = namedtuple("Partition", "partName index")
+
+    # Add regions to partition list in order of learning.
+    regionConfigs = ("spRegionConfig", "tmRegionConfig", "upRegionConfig",
+      "classifierRegionConfig")
+    partitions = []
+
+    # TODO
+    return
 
 
   def writeOutClassifications(self):

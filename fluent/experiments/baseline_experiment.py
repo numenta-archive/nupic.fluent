@@ -75,6 +75,7 @@ def run(args):
 
   if args.modelName == "HTMNetwork":
     runner = HTMRunner(dataPath=args.dataPath,
+                       networkConfigPath=args.networkConfigPath,
                        resultsDir=resultsDir,
                        experimentName=args.experimentName,
                        loadPath=args.loadPath,
@@ -142,7 +143,12 @@ if __name__ == "__main__":
 
   parser = argparse.ArgumentParser()
   parser.add_argument("dataPath",
-                      help="Absolute path to data CSV.")
+                      help="Path to data CSV.",
+                      type=str)
+  parser.add_argument("--networkConfigPath",
+                      default=os.path.abspath("data/network_configs/sp_tm_knn.json"),
+                      help="Path to JSON specifying the network params.",
+                      type=str)
   parser.add_argument("-k", "--kFolds",
                       default=5,
                       type=int,
