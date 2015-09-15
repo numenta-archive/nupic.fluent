@@ -19,11 +19,14 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import cPickle as pkl
 import numpy
+import os
 
-from classification_network import createNetwork
+from classification_network import configureNetwork
 from fluent.encoders.cio_encoder import CioEncoder
 from fluent.models.classification_model import ClassificationModel
+from fluent.utils.network_data_generator import NetworkDataGenerator
 from nupic.data.file_record_stream import FileRecordStream
 
 
@@ -34,76 +37,69 @@ class ClassificationModelHTM(ClassificationModel):
   """
 
   def __init__(self,
+               networkConfig,
                inputFilePath,
                verbosity=1,
                numLabels=3,
                modelDir="ClassificationModelHTM",
-               spTrainingSize=0,
-               tmTrainingSize=0,
-               clsTrainingSize=0,
-               classifierType="KNN"):
+               prepData=True):
     """
-    @param inputFilePath      (str)       Path to data formatted for network
-                                          API
-    @param spTrainingSize     (int)       Number of samples the network has to
-                                          be trained on before training the
-                                          spatial pooler
-    @param tmTrainingSize     (int)       Number of samples the network has to
-                                          be trained on before training the
-                                          temporal memory
-    @param clsTrainingSize    (int)       Number of samples the network has to
-                                          be trained on before training the
-                                          classifier
-    @param classifierType     (str)       Either "KNN" or "CLA"
-    See ClassificationModel for remaining parameters
+    @param networkConfig      (str)     Path to JSON of network configuration,
+                                        with region parameters.
+    @param inputFilePath      (str)     Path to data file.
+
+    See ClassificationModel for remaining parameters.
     """
-    self.spTrainingSize = spTrainingSize
-    self.tmTrainingSize = tmTrainingSize
-    self.clsTrainingSize = clsTrainingSize
 
     super(ClassificationModelHTM, self).__init__(
       verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
-    # Initialize Network
-    self.classifierType = classifierType
-    self.recordStream = FileRecordStream(streamID=inputFilePath)
-    self.encoder = CioEncoder(cacheDir="./experiments/cache")
-    self.network = None
-    self.numTrained = 0
-    self.oldClassifications = None
-    self.lengthOfCurrentSequence = 0
-    self._initModel()
+    self.networkConfig = networkConfig
 
-
-  def _initModel(self):
-    """Initialize the network and related variables"""
-    if self.classifierType == "CLA":
-      classifierParams = {"steps": "1",
-                          "implementation": "py",
-                          "clVerbosity": self.verbosity}
-    elif self.classifierType == "KNN":
-      classifierParams = {"k": self.numLabels,
-                          "distThreshold": 0,
-                          "maxCategoryCount": self.numLabels}
+    if prepData:
+      self.networkDataPath = self.prepData(inputFilePath)
     else:
-      raise ValueError("Classifier type {} is not supported.".format(
-        self.classifierType))
+      self.networkDataPath = inputFilePath
 
-    self.network = createNetwork(
-      self.recordStream, "py.LanguageSensor", self.encoder, self.numLabels,
-      "py.{}ClassifierRegion".format(self.classifierType), classifierParams)
-
-    self.network.initialize()
-
-    spatialPoolerRegion = self.network.regions["SP"]
-    temporalMemoryRegion = self.network.regions["TM"]
-    classifierRegion = self.network.regions["classifier"]
-
-    spatialPoolerRegion.setParameter("learningMode", False)
-    temporalMemoryRegion.setParameter("learningMode", False)
-    classifierRegion.setParameter("learningMode", False)
+    self.network = self.initModel()
+    self.learningRegions = self._getLearningRegions()
 
 
+  def prepData(self, dataPath, **kwargs):
+    """
+    Generate the data in network API format.
+
+    @param dataPath     (str)     Path to input data file; format as expected by
+                                  NetworkDataGenerator.
+    """
+    ndg = NetworkDataGenerator()
+    return ndg.setupData(dataPath, self.numLabels, ordered, **kwargs)
+
+
+  def initModel(self):
+    """
+    Initialize the network; self.networdDataPath must already be set.
+    """
+    recordStream = FileRecordStream(streamID=self.networkDataPath)
+    encoder = CioEncoder(cacheDir="./experiments/cache")
+
+    return configureNetwork(recordStream, self.networkConfig, encoder)
+
+
+  def _getLearningRegions(self):
+    """Return tuple of the network's region objects that learn."""
+    learningRegions = []
+    for region in self.network.regions.values():
+      try:
+        _ = region.getParameter("learningMode")
+        learningRegions.append(region)
+      except:
+        continue
+
+    return learningRegions
+
+
+  # TODO: is this still needed?
   def encodeSample(self, sample):
     """
     Put each token in its own dictionary with its bitmap
@@ -130,109 +126,73 @@ class ClassificationModelHTM(ClassificationModel):
     Reset the model by creating a new network since the network API does not
     support resets.
     """
-    self.recordStream.clear()
-    self._initModel()
+    # TODO: test this works as expected
+    self.network = self.initModel()
 
 
-  def trainModel(self):
+  def saveModel(self):
+    # TODO: test this works
+    try:
+      if not os.path.exists(self.modelDir):
+        os.makedirs(self.modelDir)
+      networkPath = os.path.join(self.modelDir, "network.nta")
+      # self.network = networkPath
+      with open(networkPath, "wb") as f:
+        pkl.dump(self, f)
+      if self.verbosity > 0:
+        print "Model saved to \'{}\'.".format(networkPath)
+    except IOError as e:
+      print "Could not save model to \'{}\'.".format(networkPath)
+      raise e
+
+
+  def trainModel(self, iterations=1):
     """
-    Train the network on the input to FileRecordStream.  Train the spatial
-    pooler if the network has been trained on enough (self.spTrainingSize)
-    samples. Train the temporal memory if the network has been trained on
-    enough (self.tmTrainingSize) samples. Train the classifier if the network
-    has been trained on enough (self.clsTrainingSize) samples.
+    Run the network with all regions learning.
+    Note self.sampleReference doesn't get populated b/c in a network model
+    there's a 1-to-1 mapping of training samples.
     """
-    sensorRegion = self.network.regions["sensor"]
-    spatialPoolerRegion = self.network.regions["SP"]
-    temporalMemoryRegion = self.network.regions["TM"]
-    classifierRegion = self.network.regions["classifier"]
+    for region in self.learningRegions:
+      region.setParameter("learningMode", True)
 
-    if self.numTrained >= self.spTrainingSize:
-      spatialPoolerRegion.setParameter("learningMode", True)
-    if self.numTrained >= self.tmTrainingSize:
-      temporalMemoryRegion.setParameter("learningMode", True)
-    if self.numTrained >= self.clsTrainingSize:
-      classifierRegion.setParameter("learningMode", True)
-
-    self.network.run(1)
-    # self.sampleReference doesn't get populated b/c in a network model there's
-    # a 1-to-1 mapping of training samples
-
-    # TODO: delete after Marion's PR is merged
-    # https://github.com/numenta/nupic/pull/2415
-    if self.numTrained >= self.clsTrainingSize:
-      labels = sensorRegion.getOutputData("categoryOut")
-      for label in labels:
-        if label != -1:
-          self._classify(label)
-
-    self.numTrained += 1
-
-
-  # TODO: delete after Marion's PR is merged
-  def _classify(self, label=None):
-    """
-    Work around to get the labels from the classifier for the last input
-    @param label      (int)     class for learning.  If None, just classify
-    @return           (list)    inferred values for each category
-    """
-    classifierRegion = self.network.regions["classifier"]
-
-    if self.classifierType == "CLA":
-      if label is not None:
-        classifierRegion.setParameter("learningMode", True)
-        classificationIn = {"bucketIdx": int(label),
-                            "actValue": int(label)}
-      else:
-        classifierRegion.setParameter("learningMode", False)
-        classificationIn = {"bucketIdx": None,
-                            "actValue": None}
-
-      temporalMemoryRegion = self.network.regions["TM"]
-
-      activeCells = temporalMemoryRegion.getOutputData("bottomUpOut")
-      patternNZ = activeCells.nonzero()[0]
-      clResults = classifierRegion.getSelf().customCompute(
-        recordNum=self.numTrained, patternNZ=patternNZ,
-        classification=classificationIn)
-
-      return clResults[int(classifierRegion.getParameter("steps"))]
-
-    return classifierRegion.getOutputData("categoriesOut")
+    classifierRegion = self.network.regions[
+      self.networkConfig["classifierRegionConfig"].get("regionName")]
+    self.network.run(iterations)
 
 
   def testModel(self, numLabels=3):
     """
-    Test the KNN/CLA classifier on the input sample.
+    Test the classifier region on the input sample. Call this method for each
+    word of a sequence.
+
     @param numLabels  (int)           Number of classification predictions.
     @return           (numpy array)   numLabels most-frequent classifications
                                       for the data samples; int or empty.
     """
-    sensorRegion = self.network.regions["sensor"]
-    spatialPoolerRegion = self.network.regions["SP"]
-    temporalMemoryRegion = self.network.regions["TM"]
-    classifierRegion = self.network.regions["classifier"]
+    sensorRegion = self.network.regions[
+      self.networkConfig["sensorRegionConfig"].get("regionName")]
+    classifierRegion = self.network.regions[
+      self.networkConfig["classifierRegionConfig"].get("regionName")]
 
-    spatialPoolerRegion.setParameter("learningMode", False)
-    temporalMemoryRegion.setParameter("learningMode", False)
-    classifierRegion.setParameter("learningMode", False)
+    for region in self.learningRegions:
+      region.setParameter("learningMode", False)
+    classifierRegion.setParameter("inferenceMode", True)
 
     self.network.run(1)
 
-    inferredValue = self._classify()
-    reset = sensorRegion.getOutputData("resetOut")[0]
+    return self._getClassifierInference(classifierRegion)
 
-    # TODO: Hard coded for equal weighting. Use lengthOfCurrentSequence later
-    i = 1
-    if reset or self.oldClassifications is None:
-      self.oldClassifications = numpy.array(inferredValue)
-      self.lengthOfCurrentSequence = 1
-    else:
-      self.lengthOfCurrentSequence += 1
-      self.oldClassifications += (numpy.array(inferredValue) * i)
 
-    orderedInferredValues = sorted(enumerate(
-      self.oldClassifications), key=lambda x: x[1], reverse=True)
+  def _getClassifierInference(self, classifierRegion):
+    """Return output categories from the classifier region."""
+    relevantCats = classifierRegion.getParameter("categoryCount")
 
-    labels = zip(*orderedInferredValues)[0]
-    return numpy.array(labels[:numLabels])
+    if classifierRegion.type == "py.KNNClassifierRegion":
+      # max number of inferences = k
+      inferenceValues = classifierRegion.getOutputData("categoriesOut")[:relevantCats]
+      return self.getWinningLabels(inferenceValues, numLabels=3)
+
+
+    elif classifierRegion.type == "py.CLAClassifierRegion":
+      # TODO: test this
+      return classifierRegion.getOutputData("categoriesOut")[:relevantCats]

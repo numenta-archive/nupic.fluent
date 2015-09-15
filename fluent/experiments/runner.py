@@ -73,7 +73,6 @@ class Runner(object):
     @param trainSizes       (list)    Number of samples to use in training, per
                                       trial.
     @param verbosity        (int)     Greater value prints out more progress.
-
     """
     self.dataPath = dataPath
     self.resultsDir = resultsDir
@@ -189,7 +188,7 @@ class Runner(object):
 
     self.samples = self.model.prepData(self.dataDict, preprocess)
 
-    self.patterns = self.model.encodeSamples(self.samples)
+    self.encodeSamples()
 
     if self.verbosity > 1:
       for i, s in self.samples.iteritems():

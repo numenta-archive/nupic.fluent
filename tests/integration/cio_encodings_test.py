@@ -71,8 +71,9 @@ class CioTest(unittest.TestCase):
     self.assertFingerprintFields(response)
     
     encodingDict = getTestData("cio_encoding_document.json")
+    
     self.assertEqual(encodingDict["fingerprint"]["positions"],
-        response["fingerprint"]["positions"], "Cio bitmap is not as expected.")
+      response["fingerprint"]["positions"], "Cio bitmap is not as expected.")
 
 
   def testWordFingerprint(self):
@@ -84,8 +85,9 @@ class CioTest(unittest.TestCase):
     self.assertFingerprintFields(response)
     
     encodingDict = getTestData("cio_encoding_word.json")
+
     self.assertEqual(encodingDict["fingerprint"]["positions"],
-        response["fingerprint"]["positions"], "Cio bitmap is not as expected.")
+      response["fingerprint"]["positions"], "Cio bitmap is not as expected.")
 
 
 if __name__ == "__main__":

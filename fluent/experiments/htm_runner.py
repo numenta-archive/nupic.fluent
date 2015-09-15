@@ -22,7 +22,7 @@
 import cPickle as pkl
 import os
 
-from collections import Counter
+from collections import Counter, namedtuple
 from fluent.experiments.runner import Runner
 from fluent.models.classify_htm import ClassificationModelHTM
 from fluent.utils.network_data_generator import NetworkDataGenerator
@@ -43,6 +43,7 @@ class HTMRunner(Runner):
 
   def __init__(self,
                dataPath,
+               networkConfigPath,
                resultsDir,
                experimentName,
                loadPath,
@@ -54,72 +55,101 @@ class HTMRunner(Runner):
                verbosity=0,
                generateData=True,
                votingMethod="last",
-               classificationFile="",
-               classifierType="KNN"):
+               classificationFile=""):
     """
-    @param generateData       (bool)   Whether or not we need to generate data
-    @param votingMethod       (str)    Either use "last" tokens score or "most"
-                                       frequent
-    @param classificationFile (str)    Path to json file containing the
-                                       mappings of string labels to ids
-    @param classifierType     (str)    Either "KNN" or "CLA"
-    Look at runner.py for the other parameters
+    @param networkConfigPath  (str)    Path to JSON specifying network params.
+    @param generateData       (bool)   Whether or not we need to generate data.
+    @param votingMethod       (str)    Classify with "last" token's score or
+                                       "most" frequent of the sequence.
+    @param classificationFile (str)    Path to JSON that maps labels to ids.
+
+    See base class constructor for the other parameters.
     """
-    self.generateData = generateData
+    super(HTMRunner, self).__init__(dataPath, resultsDir, experimentName,
+                                    modelName, loadPath, numClasses, plots,
+                                    orderedSplit, trainSizes, verbosity)
+
+    self.networkConfig = self._getNetworkConfig(networkConfigPath)
+    self.model = None
     self.votingMethod = votingMethod
-    self.classifierType = classifierType
+    self.dataFiles = []
+    self.actualLabels = None
 
     if classificationFile == "" and not generateData:
       raise ValueError("Must give classificationFile if not generating data")
     self.classificationFile = classificationFile
 
-    self.dataFiles = []
-    self.actualLabels = None
-
-    super(HTMRunner, self).__init__(dataPath, resultsDir, experimentName,
-                                    modelName, loadPath, numClasses, plots,
-                                    orderedSplit, trainSizes, verbosity)
+    # Setup data now in order to init the network model. If you want to
+    # specify data params, just call setupData() again later.
+    self.setupNetData(generateData=generateData)
 
 
-  def _mapLabelRefs(self):
-    """Get the mapping from label strings to the corresponding ints."""
+  @staticmethod
+  def _getNetworkConfig(networkConfigPath):
     try:
-      with open(self.classificationFile, "r") as f:
-        labelToId = json.load(f)
-      # Convert the dict of strings -> ids to a list of strings ordered by id
-      self.labelRefs = zip(*sorted(labelToId.iteritems(), key=lambda x:x[1]))[0]
+      with open(networkConfigPath, "rb") as fin:
+        return json.load(fin)
     except IOError as e:
-      print "Must have a valid classification json file"
+      print "Could not find network configuration JSON at \'{}\'.".format(
+        networkConfigPath)
       raise e
 
 
-  def setupData(self, preprocess=False, **kwargs):
+  def initModel(self, trial=0):
+    """
+    Load or instantiate the classification model. Assumes network data is
+    already setup.
+    """
+    if self.loadPath:
+      with open(self.loadPath, "rb") as f:
+        self.model = pkl.load(f)
+      # TODO: uncomment once we can save TPRegion; do we need this?
+      # networkFile = self.model.network
+      # self.model.network = Network(networkFile)
+      print "Model loaded from \'{0}\'.".format(self.loadPath)
+    else:
+      self.model = ClassificationModelHTM(self.networkConfig,
+                                          self.dataFiles[trial],
+                                          verbosity=self.verbosity,
+                                          numLabels=self.numClasses,
+                                          modelDir=self.modelDir,
+                                          prepData=False)
+
+
+  def setupData(self, _):
+    """Passthrough b/c network data generation was done upfront."""
+    pass
+
+
+  def setupNetData(self, preprocess=False, generateData=False, **kwargs):
     """
     Generate the data in network API format if necessary. self.dataFiles is
     populated with the paths of network data files, one for each trial
 
     Look at runner.py (setupData) and network_data_generator.py (split) for the
-    parameters
+    parameters.
     """
-    if self.generateData:
+    if generateData:
+      # TODO: use model.prepData()?
       ndg = NetworkDataGenerator()
       ndg.split(self.dataPath, self.numClasses, preprocess, **kwargs)
 
       filename, ext = os.path.splitext(self.dataPath)
-      self.classificationFile = "{}-classifications.json".format(filename)
+      self.classificationFile = "{}_categories.json".format(filename)
+
       for i in xrange(len(self.trainSizes)):
         if not self.orderedSplit:
           ndg.randomizeData()
-        dataFile = "{}-{}{}".format(filename, i, ext)
+        dataFile = "{}_network_{}{}".format(filename, i, ext)
         ndg.saveData(dataFile, self.classificationFile)
         self.dataFiles.append(dataFile)
 
       if self.verbosity > 0:
         print "{} file(s) generated at {}".format(len(self.dataFiles),
           self.dataFiles)
-        print "Classification json is at: {}".format(self.classificationFile)
+        print "Classification JSON is at: {}".format(self.classificationFile)
     else:
-      # Does an orderedSplit
+      # Use the input file for each trial; maintains the order of samples.
       self.dataFiles = [self.dataPath] * len(self.trainSizes)
 
     if self.numClasses > 0:
@@ -127,30 +157,6 @@ class HTMRunner(Runner):
       self.actualLabels = [self._getClassifications(size, i)
         for i, size in enumerate(self.trainSizes)]
       self._mapLabelRefs()
-
-
-  def resetModel(self, trial):
-    """Load or instantiate the classification model."""
-    if self.loadPath:
-      with open(self.loadPath, "rb") as f:
-        self.model = pkl.load(f)
-      networkFile = self.model.network
-      # TODO: uncomment once we can save TPRegion
-      #self.model.network = Network(networkFile)
-      print "Model loaded from \'{0}\'.".format(self.loadPath)
-    else:
-      tmTrainingSize = self.trainSizes[trial] / 3.0
-      clsTrainingSize = 2 * self.trainSizes[trial] / 3.0
-      self.model = ClassificationModelHTM(self.dataFiles[trial],
-                                          verbosity=self.verbosity,
-                                          tmTrainingSize=tmTrainingSize,
-                                          clsTrainingSize=clsTrainingSize,
-                                          classifierType=self.classifierType)
-
-
-  def encodeSamples(self):
-    """This method does nothing since the network encodes the samples"""
-    pass
 
 
   def _getClassifications(self, split, trial):
@@ -161,17 +167,45 @@ class HTMRunner(Runner):
     @return           (list)      List of list of ids of classifications for a
                                   sample
     """
+    # import pdb; pdb.set_trace()
     dataFile = self.dataFiles[trial]
     classifications = NetworkDataGenerator.getClassifications(dataFile)
     return [[int(c) for c in classes.strip().split(" ")]
              for classes in classifications][split:]
 
 
+  def _mapLabelRefs(self):
+    """Get the mapping from label strings to the corresponding ints."""
+    try:
+      with open(self.classificationFile, "r") as f:
+        labelToId = json.load(f)
+      # Convert the dict of strings -> ids to a list of strings ordered by id
+      self.labelRefs = zip(*sorted(labelToId.iteritems(), key=lambda x:x[1]))[0]
+    except IOError as e:
+      print "Must have a valid classification JSON file"
+      raise e
+
+
+  def resetModel(self, trial=0):
+    """
+    Load or instantiate the classification model; network API doesn't support
+    resetting."""
+    self.initModel(trial=trial)
+    # TODO: change to same as Runner:
+    #   self.model.resetModel()
+    #   otherwise you're creating a new model instance twice each experiment
+
+
+  def encodeSamples(self):
+    """Passthrough b/c the network encodes the samples."""
+    pass
+
+
   def _training(self, trial):
     """
     Train the network on all the tokens in the training set for a particular
-    trial
-    @param trial      (int)       trial count
+    trial.
+    @param trial      (int)       current trial number
     """
     if self.verbosity > 0:
       i = 0
@@ -181,9 +215,9 @@ class HTMRunner(Runner):
         i += numTokens
       print ("\tRunner selects to train on sequences starting at indices {}.".
             format(indices))
+
     for numTokens in self.partitions[trial][0]:
-      for _ in xrange(numTokens):
-        self.model.trainModel()
+      self.model.trainModel(iterations=numTokens)
 
 
   def _selectWinners(self, predictions):
@@ -217,7 +251,8 @@ class HTMRunner(Runner):
       for numTokens in self.partitions[trial][1]:
         indices.append(i)
         i += numTokens
-      print "\tRunner selects to test on sample(s) {}".format(indices)
+      print ("\tRunner selects to test on sequences starting at indices "
+             "{}".format(indices))
 
     results = ([], [])
     for i, numTokens in enumerate(self.partitions[trial][1]):
@@ -226,6 +261,8 @@ class HTMRunner(Runner):
         predicted = self.model.testModel()
         predictions.append(predicted)
       winningPredictions = self._selectWinners(predictions)
+
+      # TODO: switch to standard (expected, actual) format
       results[0].append(winningPredictions)
       results[1].append(self.actualLabels[trial][i])
 
@@ -239,16 +276,6 @@ class HTMRunner(Runner):
     self.results.append(results)
 
 
-  def saveModel(self):
-    """Save the serialized model and network"""
-    # Can't pickle a SWIG object so serialize it using nupic
-    networkPath = os.path.join(self.modelDir, "network.nta")
-    # TODO: uncomment once we can save TPRegion
-    #self.model.network.save(networkPath)
-    self.model.network = networkPath
-    super(HTMRunner, self).saveModel()
-
-
   def partitionIndices(self):
     """
     Sets self.partitions for the number of tokens for each sample in the
@@ -258,6 +285,27 @@ class HTMRunner(Runner):
       dataFile = self.dataFiles[trial]
       numTokens = NetworkDataGenerator.getNumberOfTokens(dataFile)
       self.partitions.append((numTokens[:split], numTokens[split:]))
+
+
+  # TODO
+  # This method is to partition data for which regions are learning, as in the
+  # sequence classification experiments.
+  def partitionLearning(self):
+    """
+    Find the number of partitions for the input data based on a specific
+    networkConfig.
+
+    @return partitions: (list of namedtuples) Region names and index at which the
+      region is to begin learning. The final partition is reserved as a test set.
+    """
+    Partition = namedtuple("Partition", "partName index")
+
+    # Add regions to partition list in order of learning.
+    regionConfigs = ("spRegionConfig", "tmRegionConfig", "upRegionConfig",
+      "classifierRegionConfig")
+    partitions = []
+
+    return
 
 
   def writeOutClassifications(self):

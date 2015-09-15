@@ -69,6 +69,7 @@ def run(args):
                          test=args.test)
   elif args.modelName == "HTMNetwork":
     runner = HTMRunner(dataPath=args.dataPath,
+                       networkConfigPath=args.networkConfigPath,
                        resultsDir=resultsDir,
                        experimentName=args.experimentName,
                        loadPath=args.loadPath,
@@ -80,8 +81,7 @@ def run(args):
                        verbosity=args.verbosity,
                        generateData=args.generateData,
                        votingMethod=args.votingMethod,
-                       classificationFile=args.classificationFile,
-                       classifierType=args.classifierType)
+                       classificationFile=args.classificationFile)
   else:
     runner = Runner(dataPath=args.dataPath,
                     resultsDir=resultsDir,
@@ -94,8 +94,9 @@ def run(args):
                     trainSizes=args.trainSizes,
                     verbosity=args.verbosity)
 
-  if args.modelName != "HTMNetwork":
-    # The data isn't ready yet to initialize an htm model
+  if args.modelName == "HTMNetwork":
+    runner.initModel(0)
+  else:
     runner.initModel(args.modelName)
 
   print "Reading in data and preprocessing."
@@ -130,7 +131,12 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
 
   parser.add_argument("dataPath",
-                      help="path to data CSV or folder of CSVs.")
+                      help="Path to data CSV or folder of CSVs.",
+                      type=str)
+  parser.add_argument("--networkConfigPath",
+                      default="htm_network_config.json",
+                      help="Path to JSON specifying the network params.",
+                      type=str)
   parser.add_argument("--test",
                       default=None,
                       help="Path to data CSV to use for testing if provided. "
@@ -188,24 +194,20 @@ if __name__ == "__main__":
                       default="",
                       help="Path to file of expected classifications.")
   parser.add_argument("--skipConfirmation",
-                      help="If specified will skip the user confirmation step",
+                      help="If specified will skip the user confirmation step.",
                       default=False,
                       action="store_true")
   parser.add_argument("--generateData",
                       default=False,
                       action="store_true",
-                      help="Whether or not to generate network data files")
+                      help="Whether or not to generate network data files.")
   parser.add_argument("--votingMethod",
                       default="last",
                       choices=["last", "most"],
-                      help="Method to use when picking final classifications")
+                      help="Method to use when picking final classifications.")
   parser.add_argument("--classificationFile",
                       default="",
-                      help="Json file mapping string labels to ids")
-  parser.add_argument("--classifierType",
-                      default="KNN",
-                      choices=["KNN", "CLA"],
-                      help="Type of classifier to use for the HTM")
+                      help="JSON file mapping string labels to ids.")
 
   args = parser.parse_args()
 
