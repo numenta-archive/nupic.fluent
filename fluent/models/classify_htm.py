@@ -19,6 +19,7 @@
 # http://numenta.org/licenses/
 # ----------------------------------------------------------------------
 
+import cPickle as pkl
 import numpy
 import os
 
@@ -64,7 +65,7 @@ class ClassificationModelHTM(ClassificationModel):
     self.learningRegions = self._getLearningRegions()
 
 
-  def prepData(self, dataPath, **kwargs): # work w/ Runner setupData()
+  def prepData(self, dataPath, **kwargs):
     """
     Generate the data in network API format.
 
@@ -98,7 +99,8 @@ class ClassificationModelHTM(ClassificationModel):
     return learningRegions
 
 
-  def encodeSample(self, sample):  # TODO: does this ever get called??
+  # TODO: is this still needed?
+  def encodeSample(self, sample):
     """
     Put each token in its own dictionary with its bitmap
     @param sample     (list)            Tokenized sample, where each item is a
@@ -129,11 +131,12 @@ class ClassificationModelHTM(ClassificationModel):
 
 
   def saveModel(self):
-    import pdb; pdb.set_trace()
+    # TODO: test this works
     try:
       if not os.path.exists(self.modelDir):
         os.makedirs(self.modelDir)
       networkPath = os.path.join(self.modelDir, "network.nta")
+      # self.network = networkPath
       with open(networkPath, "wb") as f:
         pkl.dump(self, f)
       if self.verbosity > 0:

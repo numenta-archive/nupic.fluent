@@ -117,6 +117,7 @@ class HTMRunner(Runner):
 
 
   def setupData(self, _):
+    """Passthrough b/c network data generation was done upfront."""
     pass
 
 
@@ -186,7 +187,9 @@ class HTMRunner(Runner):
 
 
   def resetModel(self, trial=0):
-    """Load or instantiate the classification model."""
+    """
+    Load or instantiate the classification model; network API doesn't support
+    resetting."""
     self.initModel(trial=trial)
     # TODO: change to same as Runner:
     #   self.model.resetModel()
@@ -273,17 +276,6 @@ class HTMRunner(Runner):
     self.results.append(results)
 
 
-  # def saveModel(self):
-  #   """Save the serialized model and network"""
-  #   # Can't pickle a SWIG object so serialize it using nupic
-  #   networkPath = os.path.join(self.modelDir, "network.nta")
-  #   # TODO: uncomment once we can save TPRegion
-  #   #self.model.network.save(networkPath)
-  #   self.model.network = networkPath
-  #   import pdb; pdb.set_trace()  # swig object still?
-  #   self.model.saveModel()
-
-
   def partitionIndices(self):
     """
     Sets self.partitions for the number of tokens for each sample in the
@@ -295,6 +287,9 @@ class HTMRunner(Runner):
       self.partitions.append((numTokens[:split], numTokens[split:]))
 
 
+  # TODO
+  # This method is to partition data for which regions are learning, as in the
+  # sequence classification experiments.
   def partitionLearning(self):
     """
     Find the number of partitions for the input data based on a specific
@@ -310,7 +305,6 @@ class HTMRunner(Runner):
       "classifierRegionConfig")
     partitions = []
 
-    # TODO
     return
 
 
