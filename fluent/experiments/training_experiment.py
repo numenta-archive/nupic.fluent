@@ -94,8 +94,9 @@ def run(args):
                     trainSizes=args.trainSizes,
                     verbosity=args.verbosity)
 
-  if args.modelName != "HTMNetwork":
-    # The data isn't ready yet to initialize an htm model
+  if args.modelName == "HTMNetwork":
+    runner.initModel(0)  # include text preprocess arg?
+  else:
     runner.initModel(args.modelName)
 
   print "Reading in data and preprocessing."

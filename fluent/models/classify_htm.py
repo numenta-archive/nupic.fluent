@@ -20,6 +20,7 @@
 # ----------------------------------------------------------------------
 
 import numpy
+import os
 
 from classification_network import configureNetwork
 from fluent.encoders.cio_encoder import CioEncoder
@@ -36,14 +37,15 @@ class ClassificationModelHTM(ClassificationModel):
 
   def __init__(self,
                networkConfig,
-               networkDataPath,
+               inputFilePath,
                verbosity=1,
                numLabels=3,
-               modelDir="ClassificationModelHTM"):
+               modelDir="ClassificationModelHTM",
+               prepData=True):
     """
     @param networkConfig      (str)     Path to JSON of network configuration,
                                         with region parameters.
-    @param inputFilePath      (str)     Path to data formatted for network API.
+    @param inputFilePath      (str)     Path to data file.
 
     See ClassificationModel for remaining parameters.
     """
@@ -52,15 +54,31 @@ class ClassificationModelHTM(ClassificationModel):
       verbosity=verbosity, numLabels=numLabels, modelDir=modelDir)
 
     self.networkConfig = networkConfig
-    self.networkDataPath = networkDataPath
+
+    if prepData:
+      self.networkDataPath = self.prepData(inputFilePath)
+    else:
+      self.networkDataPath = inputFilePath
+
     self.network = self.initModel()
     self.learningRegions = self._getLearningRegions()
 
 
-  def initModel(self, networkDataPath=None):
-    """Initialize the network with an input network data file."""
-    if networkDataPath:
-      self.networkDataPath = self.prepData(networkDataPath)  # then htmRunner.setupData() can just pass
+  def prepData(self, dataPath, **kwargs): # work w/ Runner setupData()
+    """
+    Generate the data in network API format.
+
+    @param dataPath     (str)     Path to input data file; format as expected by
+                                  NetworkDataGenerator.
+    """
+    ndg = NetworkDataGenerator()
+    return ndg.setupData(dataPath, self.numLabels, ordered, **kwargs)
+
+
+  def initModel(self):
+    """
+    Initialize the network; self.networdDataPath must already be set.
+    """
     recordStream = FileRecordStream(streamID=self.networkDataPath)
     encoder = CioEncoder(cacheDir="./experiments/cache")
 
@@ -101,22 +119,28 @@ class ClassificationModelHTM(ClassificationModel):
              "bitmap": None} for t in sample]
 
 
-  def prepData(self, dataPath, preprocess=False, ordered=True, **kwargs): # work w/ Runner setupData()
-    """
-    Generate the data in network API format. Please see the
-    NetworkDataGenerator.setup() docstring for param descriptions.
-    """
-    ndg = NetworkDataGenerator()
-    return ndg.setupData(dataPath, self.numLabels, preprocess, ordered, **kwargs)
-
-
   def resetModel(self):
     """
     Reset the model by creating a new network since the network API does not
     support resets.
     """
     # TODO: test this works as expected
-    self.network = self._initModel()
+    self.network = self.initModel()
+
+
+  def saveModel(self):
+    import pdb; pdb.set_trace()
+    try:
+      if not os.path.exists(self.modelDir):
+        os.makedirs(self.modelDir)
+      networkPath = os.path.join(self.modelDir, "network.nta")
+      with open(networkPath, "wb") as f:
+        pkl.dump(self, f)
+      if self.verbosity > 0:
+        print "Model saved to \'{}\'.".format(networkPath)
+    except IOError as e:
+      print "Could not save model to \'{}\'.".format(networkPath)
+      raise e
 
 
   def trainModel(self, iterations=1):

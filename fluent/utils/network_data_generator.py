@@ -71,7 +71,7 @@ class NetworkDataGenerator(object):
     self.categoryToId = defaultdict(lambda: len(self.categoryToId))
 
 
-  def setupData(self, dataPath, numLabels, preprocess, ordered, **kwargs):
+  def setupData(self, dataPath, numLabels, ordered, **kwargs):
     """
     Main method of this class. Use for setting up a network data file.
     
@@ -83,12 +83,13 @@ class NetworkDataGenerator(object):
     @return dataFileName   (str)    Network data file name; same directory as
                                     input data file.
     """
-    self.split(dataPath, numLabels, preprocess, **kwargs)
+    import pdb; pdb.set_trace()
+    self.split(dataPath, numLabels, **kwargs)
   
     if not ordered:
       self.randomizeData()
     
-    filename, ext = os.path.splitext(self.dataPath)
+    filename, ext = os.path.splitext(dataPath)
     classificationFileName = "{}_categories.json".format(filename)
     dataFileName = "{}_network{}".format(filename, ext)
   
@@ -97,7 +98,7 @@ class NetworkDataGenerator(object):
     return dataFileName
   
 
-  def split(self, filePath, numLabels, textPreprocess, abbrCSV="",
+  def split(self, filePath, numLabels, textPreprocess=False, abbrCSV="",
             contrCSV="", ignoreCommon=100, removeStrings="[identifier deleted]",
             correctSpell=True):
     """
@@ -107,7 +108,8 @@ class NetworkDataGenerator(object):
     @param numLabels       (int)    Number of columns of category labels.
     @param textPreprocess  (bool)   True will preprocess text while tokenizing.
     
-    Please see TextPreprocess tokenize() for the other parameters
+    Please see TextPreprocess tokenize() for the other parameters; they're only
+    used when textPrepricess is True.
     """
     dataDict = readCSV(filePath, numLabels=numLabels)
     if dataDict is None:

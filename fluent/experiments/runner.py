@@ -152,7 +152,7 @@ class Runner(object):
       raise e
 
 
-  def resetModel(self):
+  def resetModel(self, _):
     self.model.resetModel()
 
 
@@ -206,7 +206,7 @@ class Runner(object):
       self.partitionIndices()
 
     for i, _ in enumerate(self.trainSizes):
-      self.resetModel()
+      self.resetModel(i)
 
       if self.verbosity > 0:
         print "\tTraining for run {0} of {1}.".format(

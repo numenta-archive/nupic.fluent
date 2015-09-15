@@ -65,22 +65,23 @@ class HTMRunner(Runner):
 
     See base class constructor for the other parameters.
     """
+    super(HTMRunner, self).__init__(dataPath, resultsDir, experimentName,
+                                    modelName, loadPath, numClasses, plots,
+                                    orderedSplit, trainSizes, verbosity)
+
     self.networkConfig = self._getNetworkConfig(networkConfigPath)
     self.model = None
-
-    self.generateData = generateData
     self.votingMethod = votingMethod
+    self.dataFiles = []
+    self.actualLabels = None
 
     if classificationFile == "" and not generateData:
       raise ValueError("Must give classificationFile if not generating data")
     self.classificationFile = classificationFile
 
-    self.dataFiles = []
-    self.actualLabels = None
-
-    super(HTMRunner, self).__init__(dataPath, resultsDir, experimentName,
-                                    modelName, loadPath, numClasses, plots,
-                                    orderedSplit, trainSizes, verbosity)
+    # Setup data now in order to init the network model. If you want to
+    # specify data params, just call setupData() again later.
+    self.setupNetData(generateData=generateData)
 
 
   @staticmethod
@@ -94,8 +95,11 @@ class HTMRunner(Runner):
       raise e
 
 
-  def initModel(self):
-    """Load or instantiate the classification model."""
+  def initModel(self, trial=0):
+    """
+    Load or instantiate the classification model. Assumes network data is
+    already setup.
+    """
     if self.loadPath:
       with open(self.loadPath, "rb") as f:
         self.model = pkl.load(f)
@@ -105,25 +109,18 @@ class HTMRunner(Runner):
       print "Model loaded from \'{0}\'.".format(self.loadPath)
     else:
       self.model = ClassificationModelHTM(self.networkConfig,
-                                          self.dataPath,
+                                          self.dataFiles[trial],
                                           verbosity=self.verbosity,
                                           numLabels=self.numClasses,
-                                          modelDir=self.modelDir)
+                                          modelDir=self.modelDir,
+                                          prepData=False)
 
 
-  def _mapLabelRefs(self):
-    """Get the mapping from label strings to the corresponding ints."""
-    try:
-      with open(self.classificationFile, "r") as f:
-        labelToId = json.load(f)
-      # Convert the dict of strings -> ids to a list of strings ordered by id
-      self.labelRefs = zip(*sorted(labelToId.iteritems(), key=lambda x:x[1]))[0]
-    except IOError as e:
-      print "Must have a valid classification json file"
-      raise e
+  def setupData(self, _):
+    pass
 
 
-  def setupData(self, preprocess=False, **kwargs):
+  def setupNetData(self, preprocess=False, generateData=False, **kwargs):
     """
     Generate the data in network API format if necessary. self.dataFiles is
     populated with the paths of network data files, one for each trial
@@ -131,7 +128,7 @@ class HTMRunner(Runner):
     Look at runner.py (setupData) and network_data_generator.py (split) for the
     parameters.
     """
-    if self.generateData:
+    if generateData:
       # TODO: use model.prepData()?
       ndg = NetworkDataGenerator()
       ndg.split(self.dataPath, self.numClasses, preprocess, **kwargs)
@@ -149,7 +146,7 @@ class HTMRunner(Runner):
       if self.verbosity > 0:
         print "{} file(s) generated at {}".format(len(self.dataFiles),
           self.dataFiles)
-        print "Classification JOSN is at: {}".format(self.classificationFile)
+        print "Classification JSON is at: {}".format(self.classificationFile)
     else:
       # Use the input file for each trial; maintains the order of samples.
       self.dataFiles = [self.dataPath] * len(self.trainSizes)
@@ -161,19 +158,6 @@ class HTMRunner(Runner):
       self._mapLabelRefs()
 
 
-  def resetModel(self):
-    """Load or instantiate the classification model."""
-    self.initModel()
-    # TODO: change to same as Runner:
-    #   self.model.resetModel()
-    #   otherwise you're creating a new model instance twice each experiment
-
-
-  def encodeSamples(self):
-    """Passthrough b/c the network encodes the samples."""
-    pass
-
-
   def _getClassifications(self, split, trial):
     """
     Gets the classifications for testing samples for a particular trial
@@ -182,10 +166,36 @@ class HTMRunner(Runner):
     @return           (list)      List of list of ids of classifications for a
                                   sample
     """
+    # import pdb; pdb.set_trace()
     dataFile = self.dataFiles[trial]
     classifications = NetworkDataGenerator.getClassifications(dataFile)
     return [[int(c) for c in classes.strip().split(" ")]
              for classes in classifications][split:]
+
+
+  def _mapLabelRefs(self):
+    """Get the mapping from label strings to the corresponding ints."""
+    try:
+      with open(self.classificationFile, "r") as f:
+        labelToId = json.load(f)
+      # Convert the dict of strings -> ids to a list of strings ordered by id
+      self.labelRefs = zip(*sorted(labelToId.iteritems(), key=lambda x:x[1]))[0]
+    except IOError as e:
+      print "Must have a valid classification JSON file"
+      raise e
+
+
+  def resetModel(self, trial=0):
+    """Load or instantiate the classification model."""
+    self.initModel(trial=trial)
+    # TODO: change to same as Runner:
+    #   self.model.resetModel()
+    #   otherwise you're creating a new model instance twice each experiment
+
+
+  def encodeSamples(self):
+    """Passthrough b/c the network encodes the samples."""
+    pass
 
 
   def _training(self, trial):
@@ -263,14 +273,15 @@ class HTMRunner(Runner):
     self.results.append(results)
 
 
-  def saveModel(self):
-    """Save the serialized model and network"""
-    # Can't pickle a SWIG object so serialize it using nupic
-    networkPath = os.path.join(self.modelDir, "network.nta")
-    # TODO: uncomment once we can save TPRegion
-    #self.model.network.save(networkPath)
-    self.model.network = networkPath
-    super(HTMRunner, self).saveModel()
+  # def saveModel(self):
+  #   """Save the serialized model and network"""
+  #   # Can't pickle a SWIG object so serialize it using nupic
+  #   networkPath = os.path.join(self.modelDir, "network.nta")
+  #   # TODO: uncomment once we can save TPRegion
+  #   #self.model.network.save(networkPath)
+  #   self.model.network = networkPath
+  #   import pdb; pdb.set_trace()  # swig object still?
+  #   self.model.saveModel()
 
 
   def partitionIndices(self):
