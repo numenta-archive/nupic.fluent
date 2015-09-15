@@ -95,7 +95,7 @@ def run(args):
                     verbosity=args.verbosity)
 
   if args.modelName == "HTMNetwork":
-    runner.initModel(0)  # include text preprocess arg?
+    runner.initModel(0)
   else:
     runner.initModel(args.modelName)
 
@@ -194,20 +194,20 @@ if __name__ == "__main__":
                       default="",
                       help="Path to file of expected classifications.")
   parser.add_argument("--skipConfirmation",
-                      help="If specified will skip the user confirmation step",
+                      help="If specified will skip the user confirmation step.",
                       default=False,
                       action="store_true")
   parser.add_argument("--generateData",
                       default=False,
                       action="store_true",
-                      help="Whether or not to generate network data files")
+                      help="Whether or not to generate network data files.")
   parser.add_argument("--votingMethod",
                       default="last",
                       choices=["last", "most"],
-                      help="Method to use when picking final classifications")
+                      help="Method to use when picking final classifications.")
   parser.add_argument("--classificationFile",
                       default="",
-                      help="JSON file mapping string labels to ids")
+                      help="JSON file mapping string labels to ids.")
 
   args = parser.parse_args()
 
