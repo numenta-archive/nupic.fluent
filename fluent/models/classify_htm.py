@@ -57,23 +57,28 @@ class ClassificationModelHTM(ClassificationModel):
     self.networkConfig = networkConfig
 
     if prepData:
-      self.networkDataPath = self.prepData(inputFilePath)
+      self.networkDataPath, self.networkDataGen = self.prepData(inputFilePath)
     else:
       self.networkDataPath = inputFilePath
+      self.networkDataGen = None
 
     self.network = self.initModel()
     self.learningRegions = self._getLearningRegions()
 
 
-  def prepData(self, dataPath, **kwargs):
+  def prepData(self, dataPath, ordered=False, **kwargs):
     """
     Generate the data in network API format.
 
-    @param dataPath     (str)     Path to input data file; format as expected by
-                                  NetworkDataGenerator.
+    @param dataPath          (str)  Path to input data file; format as expected
+                                    by NetworkDataGenerator.
+    @return networkDataPath  (str)  Path to data formtted for network API.
+    @return ndg              (NetworkDataGenerator)
     """
     ndg = NetworkDataGenerator()
-    return ndg.setupData(dataPath, self.numLabels, ordered, **kwargs)
+    networkDataPath = ndg.setupData(dataPath, self.numLabels, ordered, **kwargs)
+
+    return networkDataPath, ndg
 
 
   def initModel(self):
@@ -157,6 +162,7 @@ class ClassificationModelHTM(ClassificationModel):
 
     classifierRegion = self.network.regions[
       self.networkConfig["classifierRegionConfig"].get("regionName")]
+
     self.network.run(iterations)
 
 
