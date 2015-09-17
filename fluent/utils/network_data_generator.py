@@ -148,9 +148,7 @@ class NetworkDataGenerator(object):
     """Erases the categories, replacing them with the sequence number."""
     for data in self.records:
       for record in data:
-#        import pdb; pdb.set_trace()
         record["_category"] = record["_sequenceId"]
-#        import pdb; pdb.set_trace()
 
 
   @staticmethod

@@ -34,7 +34,7 @@ from nupic.data.file_record_stream import FileRecordStream
 
 class ClassificationModelHTM(ClassificationModel):
   """
-  Class to run the survey response classification task with nupic network
+  Class to run the survey response classification task with nupic network.
   """
 
   def __init__(self,
@@ -49,11 +49,10 @@ class ClassificationModelHTM(ClassificationModel):
     @param networkConfig      (str)     Path to JSON of network configuration,
                                         with region parameters.
     @param inputFilePath      (str)     Path to data file.
-    @param prepData
-    @param stripCats
-
-
-
+    @param prepData           (bool)    Prepare the input data into network API
+                                        format.
+    @param stripCats          (bool)    Remove the categories and replace them
+                                        with the sequence_Id.
     See ClassificationModel for remaining parameters.
     """
 
@@ -63,7 +62,8 @@ class ClassificationModelHTM(ClassificationModel):
     self.networkConfig = networkConfig
 
     if prepData:
-      self.networkDataPath, self.networkDataGen = self.prepData(inputFilePath, stripCats=stripCats)
+      self.networkDataPath, self.networkDataGen = self.prepData(
+        inputFilePath, stripCats=stripCats)
     else:
       self.networkDataPath = inputFilePath
       self.networkDataGen = None
@@ -84,15 +84,15 @@ class ClassificationModelHTM(ClassificationModel):
 
     @param dataPath          (str)  Path to input data file; format as expected
                                     by NetworkDataGenerator.
-
-
-
-
+    @param ordered           (bool) Keep order of data, or randomize.
+    @param stripCats         (bool) Remove the categories and replace them with
+                                    the sequence_Id.
     @return networkDataPath  (str)  Path to data formtted for network API.
     @return ndg              (NetworkDataGenerator)
     """
     ndg = NetworkDataGenerator()
-    networkDataPath = ndg.setupData(dataPath, self.numLabels, ordered, stripCats, **kwargs)
+    networkDataPath = ndg.setupData(
+      dataPath, self.numLabels, ordered, stripCats, **kwargs)
 
     return networkDataPath, ndg
 
@@ -204,7 +204,8 @@ class ClassificationModelHTM(ClassificationModel):
 
     if self.classifierRegion.type == "py.KNNClassifierRegion":
       # max number of inferences = k
-      inferenceValues = self.classifierRegion.getOutputData("categoriesOut")[:relevantCats]
+      inferenceValues = self.classifierRegion.getOutputData(
+        "categoriesOut")[:relevantCats]
       return self.getWinningLabels(inferenceValues, numLabels=3)
 
 
@@ -215,8 +216,10 @@ class ClassificationModelHTM(ClassificationModel):
 
   def queryModel(self, query, preprocess=False):
     """
-    Overrides base class implementation...
-
+    Run the query through the network, getting the classifer region's inferences
+    for all words of the query sequence.
+    @return       (list)          Two-tuples of sequence ID and distance, sorted
+                                  closest to farthest from the query.
     """
     for region in self.learningRegions:
       region.setParameter("learningMode", False)
@@ -228,6 +231,7 @@ class ClassificationModelHTM(ClassificationModel):
     sampleDistances = None
     sensor = self.sensorRegion.getSelf()
     for qD in queryDicts:
+      # Sum together the inferred distances for each word of the query sequence.
       sensor.queue.appendleft(qD)
       self.network.run(1)
       inferenceValues = self.classifierRegion.getOutputData("categoriesOut")
