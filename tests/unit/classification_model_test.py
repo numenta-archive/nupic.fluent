@@ -234,13 +234,15 @@ class ClassificationModelTest(unittest.TestCase):
         model.sampleReference, "List of indices for samples trained on does "
         "not match the expected.")
 
-    ind, dist = model.queryModel("Bulbasaur", False)
-
-    self.assertSequenceEqual([4, 2, 1, 0], ind,
-        "Query results are not the expected list of sample indices.")
-    self.assertSequenceEqual(
-        [0.4736842215061188, 0.5, 0.8157894611358643, 0.9736841917037964],
-        dist.tolist(), "Query results are not the expected list of distances.")
+    sortedDistances = model.queryModel("Bulbasaur", False)
+    
+    expectedOrder = [4, 2, 1, 0, 3]
+    expectedDistances = [0.47368422, 0.5, 0.81578946, 0.97368419, 0.97368419]
+    for i, (sample, distance) in enumerate(zip(expectedOrder, expectedDistances)):
+      self.assertEqual(sample, sortedDistances[i][0],
+        "Query results do not give expected order of sample indices.")
+      self.assertAlmostEqual(distance, sortedDistances[i][1], 5,
+        "Query results do not give expected sample distances.")
 
 
 if __name__ == "__main__":

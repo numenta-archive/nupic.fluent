@@ -47,7 +47,7 @@ class ClassificationModelsTest(unittest.TestCase):
       print "Runner could not execute the experiment."
       raise e
     finally:
-      # Cleanup
+      # cleanup
       shutil.rmtree(runner.model.modelDir.split("/")[0])
   
   
@@ -211,7 +211,8 @@ class ClassificationModelsTest(unittest.TestCase):
     """
     modelName = "HTMNetwork"
     runner = HTMRunner(dataPath=os.path.join(DATA_DIR, "responses_network.csv"),
-                       networkConfigPath=os.path.join(DATA_DIR, "network_config_sp_tm_knn.json"),
+                       networkConfigPath=os.path.join(
+                         DATA_DIR, "network_config_sp_tm_knn.json"),
                        resultsDir="",
                        experimentName="htm_test",
                        loadPath=None,

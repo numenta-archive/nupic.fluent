@@ -55,23 +55,25 @@ class NetworkDataGenerator(object):
     Note: a reset marks the first item of a new sequence.
     """
     self.records = []
-    self.fieldNames = ["_token", "_categories", "_sequenceID", "_reset", "ID"]
+    self.fieldNames = ["_token", "_category", "_sequenceId", "_reset", "ID"]
     self.types = {"_token": "string",
-                  "_categories": "list",
-                  "_sequenceID": "int",
+                  "_category": "list",
+                  "_sequenceId": "int",
                   "_reset": "int",
                   "ID": "string"}
     self.specials = {"_token": "",
-                     "_categories": "C",
-                     "_sequenceID": "S",
+                     "_category": "C",
+                     "_sequenceId": "S",
                      "_reset": "R"}
 
     # len(self.categoryToId) gives each category a unique id w/o having
     # duplicates
     self.categoryToId = defaultdict(lambda: len(self.categoryToId))
+    
+    self.sequenceCount = 0
 
 
-  def setupData(self, dataPath, numLabels, ordered, **kwargs):
+  def setupData(self, dataPath, numLabels=0, ordered=False, stripCats=False, **kwargs):
     """
     Main method of this class. Use for setting up a network data file.
     
@@ -80,18 +82,23 @@ class NetworkDataGenerator(object):
     @param textPreprocess  (bool)   True will preprocess text while tokenizing.
     @param ordered         (bool)   Keep data samples (sequences) in order,
                                     otherwise randomize.
+    
+    
+    
     @return dataFileName   (str)    Network data file name; same directory as
                                     input data file.
     """
-    import pdb; pdb.set_trace()
     self.split(dataPath, numLabels, **kwargs)
   
     if not ordered:
       self.randomizeData()
     
     filename, ext = os.path.splitext(dataPath)
-    classificationFileName = "{}_categories.json".format(filename)
+    classificationFileName = "{}_category.json".format(filename)
     dataFileName = "{}_network{}".format(filename, ext)
+    
+    if stripCats:
+      self._stripCategories()
   
     self.saveData(dataFileName, classificationFileName)
     
@@ -131,21 +138,36 @@ class NetworkDataGenerator(object):
       else:
         tokens = preprocessor.tokenize(comment)
 
-      # Write the sequence of data records for this sample.
-      record = {"_categories":categories,
-                "_sequenceID":i}
-      data = []
-      reset = 1
-      for t in tokens:
-        tokenRecord = record.copy()
-        tokenRecord["_token"] = t
-        tokenRecord["_reset"] = reset
-        tokenRecord["ID"] = uniqueID
-        reset = 0
-        data.append(tokenRecord)
+      data = self._formatSequence(tokens, categories, i, uniqueID)
 
       self.records.append(data)
+      self.sequenceCount += 1
 
+
+  def _stripCategories(self):
+    """Erases the categories, replacing them with the sequence number."""
+    for data in self.records:
+      for record in data:
+        record["_category"] = record["_sequenceId"]
+
+
+  @staticmethod
+  def _formatSequence(tokens, categories, seqID, uniqueID):
+    """Write the sequence of data records for this sample."""
+    record = {"_category":categories,
+              "_sequenceId":seqID}
+    data = []
+    reset = 1
+    for t in tokens:
+      tokenRecord = record.copy()
+      tokenRecord["_token"] = t
+      tokenRecord["_reset"] = reset
+      tokenRecord["ID"] = uniqueID
+      reset = 0
+      data.append(tokenRecord)
+
+    return data
+  
 
   def randomizeData(self):
     random.shuffle(self.records)
@@ -200,15 +222,30 @@ class NetworkDataGenerator(object):
     return dataOutputFile
 
 
+  def generateSequence(self, text, preprocess=False):
+    """
+    Return a list of lists representing the text sequence in network data 
+    format. Does not preprocess the text.
+    """
+    # TODO: enable text preprocessing; abstract out the logic in split() into a common method.
+    tokens = TextPreprocess().tokenize(text)
+    cat = [-1]
+    self.sequenceCount += 1
+    uniqueID = "q"
+    data = self._formatSequence(tokens, cat, self.sequenceCount, uniqueID)
+
+    return data
+
+
   def reset(self):
     self.records = []
-    self.fieldNames = ["token", "_sequenceID", "_reset", "ID"]
+    self.fieldNames = ["token", "_sequenceId", "_reset", "ID"]
     self.types = {"token": "string",
-                  "_sequenceID": "int",
+                  "_sequenceId": "int",
                   "_reset": "int",
                   "ID": "string"}
     self.specials = {"token": "",
-                     "_sequenceID": "S",
+                     "_sequenceId": "S",
                      "_reset": "R"}
 
     self.categoryToId.clear()
@@ -231,7 +268,7 @@ class NetworkDataGenerator(object):
         next(reader, None)
         resetIdx = next(reader).index("R")
         tokenIdx = header.index("_token")
-        catIdx = header.index("_categories")
+        catIdx = header.index("_category")
         idIdx = header.index("ID")
 
         currentSample = []
