@@ -21,6 +21,7 @@
 
 import cPickle as pkl
 import numpy
+import operator
 import os
 
 from classification_network import configureNetwork
@@ -42,11 +43,16 @@ class ClassificationModelHTM(ClassificationModel):
                verbosity=1,
                numLabels=3,
                modelDir="ClassificationModelHTM",
-               prepData=True):
+               prepData=True,
+               stripCats=False):
     """
     @param networkConfig      (str)     Path to JSON of network configuration,
                                         with region parameters.
     @param inputFilePath      (str)     Path to data file.
+    @param prepData
+    @param stripCats
+
+
 
     See ClassificationModel for remaining parameters.
     """
@@ -57,7 +63,7 @@ class ClassificationModelHTM(ClassificationModel):
     self.networkConfig = networkConfig
 
     if prepData:
-      self.networkDataPath, self.networkDataGen = self.prepData(inputFilePath)
+      self.networkDataPath, self.networkDataGen = self.prepData(inputFilePath, stripCats=stripCats)
     else:
       self.networkDataPath = inputFilePath
       self.networkDataGen = None
@@ -65,18 +71,28 @@ class ClassificationModelHTM(ClassificationModel):
     self.network = self.initModel()
     self.learningRegions = self._getLearningRegions()
 
+    # Always a sensor and classifier region.
+    self.sensorRegion = self.network.regions[
+      self.networkConfig["sensorRegionConfig"].get("regionName")]
+    self.classifierRegion = self.network.regions[
+      self.networkConfig["classifierRegionConfig"].get("regionName")]
 
-  def prepData(self, dataPath, ordered=False, **kwargs):
+
+  def prepData(self, dataPath, ordered=False, stripCats=False, **kwargs):
     """
     Generate the data in network API format.
 
     @param dataPath          (str)  Path to input data file; format as expected
                                     by NetworkDataGenerator.
+
+
+
+
     @return networkDataPath  (str)  Path to data formtted for network API.
     @return ndg              (NetworkDataGenerator)
     """
     ndg = NetworkDataGenerator()
-    networkDataPath = ndg.setupData(dataPath, self.numLabels, ordered, **kwargs)
+    networkDataPath = ndg.setupData(dataPath, self.numLabels, ordered, stripCats, **kwargs)
 
     return networkDataPath, ndg
 
@@ -137,6 +153,7 @@ class ClassificationModelHTM(ClassificationModel):
 
   def saveModel(self):
     # TODO: test this works
+    #   use self.network.save()?
     try:
       if not os.path.exists(self.modelDir):
         os.makedirs(self.modelDir)
@@ -160,9 +177,6 @@ class ClassificationModelHTM(ClassificationModel):
     for region in self.learningRegions:
       region.setParameter("learningMode", True)
 
-    classifierRegion = self.network.regions[
-      self.networkConfig["classifierRegionConfig"].get("regionName")]
-
     self.network.run(iterations)
 
 
@@ -175,30 +189,58 @@ class ClassificationModelHTM(ClassificationModel):
     @return           (numpy array)   numLabels most-frequent classifications
                                       for the data samples; int or empty.
     """
-    sensorRegion = self.network.regions[
-      self.networkConfig["sensorRegionConfig"].get("regionName")]
-    classifierRegion = self.network.regions[
-      self.networkConfig["classifierRegionConfig"].get("regionName")]
-
     for region in self.learningRegions:
       region.setParameter("learningMode", False)
-    classifierRegion.setParameter("inferenceMode", True)
+    self.classifierRegion.setParameter("inferenceMode", True)
 
     self.network.run(1)
 
-    return self._getClassifierInference(classifierRegion)
+    return self._getClassifierInference()
 
 
-  def _getClassifierInference(self, classifierRegion):
+  def _getClassifierInference(self):
     """Return output categories from the classifier region."""
-    relevantCats = classifierRegion.getParameter("categoryCount")
+    relevantCats = self.classifierRegion.getParameter("categoryCount")
 
-    if classifierRegion.type == "py.KNNClassifierRegion":
+    if self.classifierRegion.type == "py.KNNClassifierRegion":
       # max number of inferences = k
-      inferenceValues = classifierRegion.getOutputData("categoriesOut")[:relevantCats]
+      inferenceValues = self.classifierRegion.getOutputData("categoriesOut")[:relevantCats]
       return self.getWinningLabels(inferenceValues, numLabels=3)
 
 
-    elif classifierRegion.type == "py.CLAClassifierRegion":
+    elif self.classifierRegion.type == "py.CLAClassifierRegion":
       # TODO: test this
-      return classifierRegion.getOutputData("categoriesOut")[:relevantCats]
+      return self.classifierRegion.getOutputData("categoriesOut")[:relevantCats]
+
+
+  def queryModel(self, query, preprocess=False):
+    """
+    Overrides base class implementation...
+
+    """
+    for region in self.learningRegions:
+      region.setParameter("learningMode", False)
+    self.classifierRegion.setParameter("inferenceMode", True)
+
+    # Put query text in LanguageSensor data format.
+    queryDicts = self.networkDataGen.generateSequence(query, preprocess)
+
+    sampleDistances = None
+    sensor = self.sensorRegion.getSelf()
+    for qD in queryDicts:
+      sensor.queue.appendleft(qD)
+      self.network.run(1)
+      inferenceValues = self.classifierRegion.getOutputData("categoriesOut")
+      if sampleDistances is None:
+        sampleDistances = inferenceValues
+      else:
+        sampleDistances += inferenceValues
+
+    catCount = self.classifierRegion.getParameter("categoryCount")
+    # The use of numpy.lexsort() here is to first sort by labelFreq, then sort
+    # by random values; this breaks ties in a random manner.
+    randomValues = numpy.random.random(catCount)
+    sortedSamples = numpy.lexsort((randomValues, sampleDistances[:catCount]))
+    qTuple = [(a, b) for a, b in zip(sortedSamples, sampleDistances[:catCount])]
+
+    return sorted(qTuple, key=operator.itemgetter(1))
